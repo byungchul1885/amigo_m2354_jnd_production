@@ -43,6 +43,7 @@ typedef struct
 ******************************************************************************
 */
 void dsm_rtc_init(void);
+void dsm_rtc_set_time(uint32_t sec);
 uint32_t dsm_rtc_get_time(void);
 void dsm_rtc_set_hw_time(DATE_TIME_T* p_data_time);
 uint32_t dsm_rtc_get_hw_time(DATE_TIME_T* date_time_t);

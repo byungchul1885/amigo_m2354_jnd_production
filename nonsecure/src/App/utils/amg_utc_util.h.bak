@@ -40,7 +40,6 @@ typedef struct date_time
 ******************************************************************************
 */
 
-uint32_t dsm_utc_util_set_time(DATE_TIME_T *date_time_p);
 uint32_t dsm_convet_time_to_sec(DATE_TIME_T *date_time_p);
 int dsm_convert_utc_to_time(uint32_t utc_sec, DATE_TIME_T *date_time_wp);
 
