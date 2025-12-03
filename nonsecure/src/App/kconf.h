@@ -1,0 +1,95 @@
+/*
+ * Automatically generated C config: don't edit
+ */
+#define AUTOCONF_INCLUDED
+#define CONFIG_MCU_NAME "stm32l4"
+#define GCC_TOOLCHAIN 1
+#undef IAR_TOOLCHAIN
+
+/*
+ * Platform
+ */
+// #define CONFIG_PLATFORM_NAME "amigo_meter"
+// #define CONFIG_NVIC_VECT_TAB_OFFSET 0x4200
+#define UART_M 1
+#undef UART1_STDIO
+#undef UART1_SLIPIO
+#define UART1_ENABLED 1
+#undef UART1_DISABLED
+#define PERI_UART1 1
+#define CONFIG_UART1_BAUDRATE 115200
+#undef UART2_STDIO
+#undef UART2_SLIPIO
+#define USART2_SMARTCARD 1
+#undef UART2_ENABLED
+#undef UART2_DISABLED
+#define PERI_UART2 1
+#define CONFIG_UART2_BAUDRATE 115200
+#define UART3_STDIO 1
+#undef UART3_SLIPIO
+#undef UART3_ENABLED
+#undef UART3_DISABLED
+#define PERI_UART3 1
+#define CONFIG_UART3_BAUDRATE 115200
+#undef UART4_STDIO
+#undef UART4_SLIPIO
+#define UART4_ENABLED 1
+#undef UART4_DISABLED
+#define PERI_UART4 1
+#define CONFIG_UART4_BAUDRATE 115200
+#undef UART5_STDIO
+#undef UART5_SLIPIO
+#define UART5_ENABLED 1
+#undef UART5_DISABLED
+#define PERI_UART5 1
+#define CONFIG_UART5_BAUDRATE 115200
+#undef LPUART1_STDIO
+#undef LPUART1_SLIPIO
+#define LPUART1_ENABLED 1
+#undef LPUART1_DISABLED
+#define PERI_LPUART1 1
+#define CONFIG_LPUART1_BAUDRATE 115200
+#define LED_M 1
+#define BUTTON_M 1
+#define MAGNETIC_SENSOR_M 1
+#define ZCD_M 1
+#define WTD_EXT_M 1
+#define LATCH_RELAY_M 1
+#define METER_DEV_M 1
+#define MX25R4035F_M 1
+#define AT24CM02_M 1
+#define SEGLCD_ENABLE_M 1
+#define SMARTCARD_M 1
+#undef SMARTCARD_KOMSCO_M
+#undef SMARTCARD_KEYPAIR_M /* bccho, 2023-07-19 */
+#undef SMARTCARD_KEPCO_M
+#define RTOS_DNKOS 1
+#undef RTOS_FREERTOS
+
+/*
+ * Kernel
+ */
+#define KERNEL_M 1
+#define SCHED_PERIOD_10 1
+#undef SCHED_PERIOD_32
+#undef SCHED_PERIOD_100
+#undef TASKQ_LEN_8
+#undef TASKQ_LEN_16
+#define TASKQ_LEN_32 1
+#undef TASKQ_LEN_64
+#undef TASKQ_LEN_128
+#define USER_TIMER_M 1
+#define THREAD_M 1
+#define ENABLE_SCHEDULING 1
+#undef THREAD_EXT_M
+#undef SEM_M
+#undef MSGQ_M
+
+/*
+ * Meter Stack
+ */
+
+/*
+ * Debugging
+ */
+#undef NOS_DEBUG_M

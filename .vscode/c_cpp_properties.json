@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/nonsecure/**",
+                "${workspaceFolder}/secure/**",
+                "${workspaceFolder}/loader/**",
+                "${workspaceFolder}/axiocrypto_dist/**",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/M2354BSP/Library/**",
+                "${workspaceFolder}/FreeRTOS-Kernel/**",
+                "${workspaceFolder}/libs/**"
+            ],
+            "defines": [
+                "__ARM_FEATURE_CMSE = 3U"
+            ],
+            "forcedInclude": [
+                "${workspaceFolder}/nonsecure/src/predefines.h"
+            ],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "d:/Keil_v5/ARM/ARMCLANG/bin/armclang.exe",
+            "compilerArgs": [
+                "-mcpu=cortex-m23",
+                "--target=arm-arm-none-eabi",
+                "-std=c11"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-clang-arm"
+        }
+    ],
+    "version": 4
+}
