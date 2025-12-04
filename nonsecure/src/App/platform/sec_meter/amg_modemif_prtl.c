@@ -2245,6 +2245,11 @@ uint32_t dsm_atcmd_rx_proc(ST_AT_CMD_RX_PKT* p_com_pkt)
                             dsm_atcmd_set_meterid(FALSE);
                             vTaskDelay(100);
 
+#if 1  // jp.kim 25.12.03  외부모뎀 기기 정보 읽기 추가
+                            dsm_atcmd_get_modem_id(FALSE);
+                            vTaskDelay(100);
+#endif
+
 #if 1  // jp.kim 25.01.17
                             dsm_atcmd_get_fwver(FALSE, FALSE);
                             vTaskDelay(100);
@@ -2297,6 +2302,19 @@ uint32_t dsm_atcmd_rx_proc(ST_AT_CMD_RX_PKT* p_com_pkt)
                             {
                                 ST_MDM_ID st_modem_id;
 
+#if 1  // jp.kim 25.12.03  외부모뎀 기기 정보 읽기 추가
+                                memcpy((uint8_t*)&st_modem_id, ptr,
+                                       p_com_pkt->data_cnt);
+                                DPRINT_HEX(DBG_TRACE, "EXT_MDM_ID", ptr,
+                                           p_com_pkt->data_cnt, DUMP_ALWAYS);
+
+                                nv_write(I_EXT_MODEM_ID,
+                                         (uint8_t*)&st_modem_id);
+                                nv_read(I_EXT_MODEM_ID, (uint8_t*)&st_modem_id);
+                                DPRINT_HEX(DBG_TRACE, "EXT_MDM_ID_NV",
+                                           &st_modem_id.id[0],
+                                           p_com_pkt->data_cnt, DUMP_ALWAYS);
+#else
                                 nv_read(I_EXT_MODEM_ID, (uint8_t*)&st_modem_id);
 
                                 if (memcmp(&st_modem_id.id[0], ptr,
@@ -2307,6 +2325,7 @@ uint32_t dsm_atcmd_rx_proc(ST_AT_CMD_RX_PKT* p_com_pkt)
                                     nv_write(I_EXT_MODEM_ID,
                                              (uint8_t*)&st_modem_id);
                                 }
+#endif
                             }
                         }
 

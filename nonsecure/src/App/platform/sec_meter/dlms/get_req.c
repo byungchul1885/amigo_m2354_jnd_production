@@ -77,6 +77,7 @@ uint16_t buffsize_for_lp;
 uint32_t lpindex_for_lp;
 ST_CUR_CAP_OP_DECISION_INFO gst_cur_op_cap_info;
 
+void ob_cert_log_case(elog_cert_kind_type elog);
 static void approc_fill_get_atcmd_resp_block(bool first);
 static void fill_register_scale(int8_t scaler, uint8_t unit);
 static void ob_zcrs_sig_out_durtime(void);
@@ -226,7 +227,7 @@ static void ob_run_modem_info(void);
 static void ob_use_mr_data_num(void);
 static void ob_nms_dms_id(void);
 static void ob_sap_assignment(void);
-static void ob_security_setup(void);
+void ob_security_setup(void);
 static void ob_cert_log_cnt(elog_cert_kind_type elog);
 static void ob_evt_cert_log(elog_cert_kind_type elog);
 static void ob_evt_tou_imagetransfer(void);
@@ -7771,6 +7772,12 @@ static void approc_fill_get_resp_normal(void)
     case OBJ_SEC_EVT_LOG_NUM:
         ob_cert_log_cnt(eLogCert_NG);
         break;
+
+#if 1  // jp.kim 25.12.03  보안로그 개별 obis 읽기 fail 종류 추가
+    case OBJ_SEC_EVT_LOG_CASE:
+        ob_cert_log_case(eLogCert_NG);
+        break;
+#endif
 
     case OBJ_TOU_IMAGE_TRANSFER:
         ob_evt_tou_imagetransfer();
@@ -15385,7 +15392,7 @@ static void ob_self_error_ref(void)
     }
 }
 
-static void ob_security_setup(void)
+void ob_security_setup(void)
 {
     uint8_t t8 = 0;
     uint8_t pt8[SUBJ_MAX_SIZE];
@@ -15462,7 +15469,50 @@ static uint16_t get_cert_log_cnt(elog_cert_kind_type elog, uint8_t* tptr)
     return log_cert_cnt[elog];
 }
 
-static void ob_cert_log_cnt(elog_cert_kind_type elog)
+#if 1  // jp.kim 25.12.03  보안로그 개별 obis 읽기 fail 종류 추가  //test
+       // 필요함.
+void ob_cert_log_case(elog_cert_kind_type elog)
+{
+    U8* tptr;
+    tptr = appl_tbuff;
+
+    U8 idx, cnt;
+    U8 t8;
+    U16 logcertcnt;
+
+    logcertcnt = get_cert_log_cnt(elog, tptr);
+
+    DPRINTF(DBG_TRACE, _D "%s: elog[%d], logcertcnt[%d]\r\n", __func__, elog,
+            logcertcnt);
+
+    if (logcertcnt == 0)
+    {
+        t8 = 0;
+        FILL_U08(t8);
+        return;
+    }
+    idx = (logcertcnt - 1) % LOG_CERT_BUFF_SIZE;
+    cnt = (logcertcnt < LOG_CERT_RECORD_LEN) ? logcertcnt : LOG_CERT_RECORD_LEN;
+
+    switch (elog)
+    {
+    default:
+        nv_sub_info.ch[0] = elog;
+        if (nv_read(I_LOG_CERT_DATA, tptr))
+        {
+            log_cert_data_type* logcertdata;
+            logcertdata = (log_cert_data_type*)tptr;
+
+            FILL_U08(logcertdata->evt[idx].ng_case);
+            DPRINTF(DBG_TRACE,
+                    _D "%s: elog[%d], logcertdata->evt[idx].ng_case[%d]\r\n",
+                    __func__, elog, logcertdata->evt[idx].ng_case);
+        }
+    }
+}
+#endif
+
+void ob_cert_log_cnt(elog_cert_kind_type elog)
 {
     uint16_t t16;
 
@@ -15470,14 +15520,19 @@ static void ob_cert_log_cnt(elog_cert_kind_type elog)
 
     t16 = get_cert_log_cnt(elog, appl_tbuff);
 
+#if 1  // jp.kim 25.12.03  보안로그 개별 obis 읽기 fail 횟수
+    // 8bit data
+    FILL_U08((U8)t16);
+#else
     if (elog == eLogCert_NG)
     {
-        FILL_U08((uint8_t)t16);
+        FILL_U08((U8)t16);
     }
     else
     {
         FILL_U16(t16);
     }
+#endif
 }
 
 static void fill_cert_log_data(elog_cert_kind_type elog, uint8_t* tptr)
@@ -15513,11 +15568,40 @@ static void fill_cert_log_data(elog_cert_kind_type elog, uint8_t* tptr)
             {
                 FILL_STRUCT(0x03);
                 fill_clock_obj(&logcertdata->evt[idx].dt);
+
+#if 1  // jp.kim 25.12.03  보안로그 data 순서 수정
+                /*
+                항목구성[capture_objects]	OBIS 코드[logical_name]
+                속성[attribute_index] 발생 일자/시간 0.0.1.0.0.255 2 횟수
+                0.128.99.98.20.255 			2 보안 이벤트
+                종류 				1.128.128.192.99.255 		2
+                */
+
+                // 2 	[value] 	보안 로그 발생 횟수 (unsigned: (17))
+                t8 = (U8)(logcertcnt - i);
+                FILL_U08(t8);
+
+                /*
+                [value]  보안 이벤트 종류 (unsigned: (17))
+                value 내용
+                0xA1 암호 모듈 초기화 오류
+                0xA2 암호 모듈 연동 오류
+                0xA3 Z 생성 오류
+                0xA4 세션키 생성 오류
+                0xA7 전자서명 생성 오류
+                0xA8 전자서명 검증 오류
+                0xA9 보안 항목 누락
+                0xAA 상호인증 실패
+                0xFF 기타오류
+                */
+                FILL_U08(logcertdata->evt[idx].ng_case);
+
+#else
                 FILL_U08(logcertdata->evt[idx].ng_case);
 
                 if (elog == eLogCert_NG)
                 {
-                    t8 = (uint8_t)(logcertcnt - i);
+                    t8 = (U8)(logcertcnt - i);
                     FILL_U08(t8);
                 }
                 else
@@ -15525,7 +15609,7 @@ static void fill_cert_log_data(elog_cert_kind_type elog, uint8_t* tptr)
                     t16 = logcertcnt - i;
                     FILL_U16(t16);
                 }
-
+#endif
                 if (idx == 0)
                     idx = LOG_CERT_BUFF_SIZE - 1;
                 else
