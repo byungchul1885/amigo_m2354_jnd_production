@@ -57,11 +57,6 @@ const uint8_t days_of_month[13] = {0,  31, 28, 31, 30, 31, 30,
 ******************************************************************************
 */
 
-int dsm_set_utc_time(uint32_t sec)
-{
-    dsm_rtc_set_time(sec);
-    return 0;
-}
 
 uint32_t dsm_get_utc_time(void) { return dsm_rtc_get_time(); }
 
@@ -109,42 +104,6 @@ uint32_t dsm_convet_time_to_sec(DATE_TIME_T *date_time_p)
     utc_sec += date_time_p->min * MIN_TOTAL_SECONDS;
     // sec
     utc_sec += date_time_p->sec;
-
-    return utc_sec;
-}
-
-uint32_t dsm_utc_util_set_time(DATE_TIME_T *date_time_p)
-{
-    int i;
-    uint32_t utc_sec;
-
-    DPRINTF(DBG_TRACE, "%s: %d.%d.%d %d:%d:%d\r\n", __func__, date_time_p->year,
-            date_time_p->month, date_time_p->day, date_time_p->hour,
-            date_time_p->min, date_time_p->sec);
-
-    if (date_time_p->year < 1970)
-        return 0;
-
-    utc_sec = 0;
-    for (i = 1970; i < date_time_p->year; i++)
-    {
-        if (dsm_is_leap_year(i))
-            utc_sec += (uint32_t)LEAP_YEAR_TOTAL_SECONDS;
-        else
-            utc_sec += (uint32_t)COMMON_YEAR_TOTAL_SECONDS;
-    }
-    for (i = 1; i < date_time_p->month; i++)
-    {
-        utc_sec += (uint32_t)(days_of_month[i] * DAY_TOTAL_SECONDS);
-        if (i == 2 && dsm_is_leap_year(date_time_p->year))
-            utc_sec += (uint32_t)DAY_TOTAL_SECONDS;
-    }
-    utc_sec += (uint32_t)((date_time_p->day - 1) * DAY_TOTAL_SECONDS);
-    utc_sec += (uint32_t)(date_time_p->hour * HOUR_TOTAL_SECONDS);
-    utc_sec += (uint32_t)(date_time_p->min * MIN_TOTAL_SECONDS);
-    utc_sec += (uint32_t)(date_time_p->sec);
-
-    dsm_set_utc_time(utc_sec);
 
     return utc_sec;
 }

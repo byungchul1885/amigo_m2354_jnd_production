@@ -303,58 +303,41 @@ void whm_init(void)
 }
 
 extern uint8_t bat_inst_mon;
-void cur_rtc_restore(date_time_type *back_dt, uint8_t *tptr)
+void cur_rtc_restore(date_time_type* back_dt, uint8_t* tptr)
 {
-    bool lastLp;
+    DATE_TIME_T curr_data_time;
     date_time_type dt;
     bool rtc_is_inited;
 
     rtc_is_inited = rtc_init();
 
-#if 0 /* bccho, 2023-12-26, 1226 패치 적용 안함 */
-    if ((!rtc_is_inited) && (dsm_pmnt_get_op_mode() == PMNT_STOCK_OP))
+    if (!dsm_rtc_get_hw_time(&curr_data_time))
     {
-        whm_init();
+        rtc_is_inited = FALSE;
     }
 
-    DPRINTF(DBG_TRACE, _D "%s  rtc_is_inited[%x] \r\n", __func__,
-            rtc_is_inited);
-#endif
+    struct tm SystemTime;
+    ST_TIME_BCD stITime;
+
+    util_get_system_time(&SystemTime, &stITime);
+
+    if (SystemTime.tm_year == 100)
+    {
+        rtc_is_inited = FALSE;
+    }
 
     bat_rtc_backuped = rtc_is_inited;
 
     if (!bat_rtc_backuped)
     {
-        lastLp = lp_last_record_dt(&dt, tptr);
-
         if (back_dt != 0)
         {
-            if (lastLp)
-            {
-                if (cmp_date_time(&dt, back_dt) < 0)
-                {
-                    dt = *back_dt;
-                }
-                else
-                {
-                }
-            }
-            else
-            {
-                dt = *back_dt;
-            }
+            dt = *back_dt;
             write_rtc(&dt);
         }
         else
         {
-            if (lastLp)
-            {
-                write_rtc(&dt);
-            }
-            else
-            {
-                reset_rtc();
-            }
+            reset_rtc();
         }
 
         cur_rtc_update();
@@ -975,10 +958,12 @@ void rtc_chg_proc(date_time_type* pdt, uint8_t* tptr)
         LP_event = LPevt_backup;
     }
 
-    write_rtc(pdt);  // pdt is pointer of date time to be set, print the pdt
-                     // and call dsm_rtc_set_hw_time()
-
+    // 시간 변경하고 나서 rtc update 부분은 안전하게 ISR과 context switch
+    // 일어나지 않도록. bccho, 2025-09-22
+    vPortEnterCritical();
+    write_rtc(pdt);
     cur_rtc_update();
+    vPortExitCritical();
 
     LP_nextdt_set(&cur_rtc);
 
@@ -2117,6 +2102,17 @@ static void whm_rtc_event(uint8_t* tptr)
         b_lpavg_monitor = true;
         b_lp_pf_monitor = TRUE;
 
+#if 1 /* bccho, 2025-12-11, 하루 96번 저장 */
+        if (cur_min == 1 || cur_min == 16 || cur_min == 31 || cur_min == 46)
+        {
+            b_mtaccm_prd_bakup = true;
+        }
+        else if (cur_min == 2 || cur_min == 17 || cur_min == 32 ||
+                 cur_min == 47)
+        {
+            b_whmop_prd_bakup = true;
+        }
+#else
         if (cur_hour == 3 || cur_hour == 15)
         {
             if (cur_min == 12)
@@ -2128,6 +2124,7 @@ static void whm_rtc_event(uint8_t* tptr)
                 b_whmop_prd_bakup = true;
             }
         }
+#endif
     }
 
     b_eob_proc = false;

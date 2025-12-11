@@ -229,17 +229,6 @@ void RTC_Alarm_IRQHandler(void)
 #endif /* bccho */
 }
 
-void dsm_rtc_set_time(uint32_t sec)
-{
-#if 1 /* bccho, 2023-08-30 */
-    rtc_tick = sec;
-#else
-    OS_ENTER_CRITICAL();
-    rtc_tick = sec;
-    OS_EXIT_CRITICAL();
-#endif
-}
-
 uint32_t dsm_rtc_get_time(void)
 {
     uint32_t sec_tick;
@@ -366,7 +355,10 @@ uint32_t dsm_rtc_get_hw_time(DATE_TIME_T* dt)
 #ifdef RTC_EXTERNAL
     MSG03("dsm_rtc_get_hw_time");
 
-    uint8_t date[7];
+    uint8_t date1[7];
+    uint8_t date2[7];
+    uint8_t* date = date1;
+
     static DATE_TIME_T pre_dt = {.month = 1, .day = 1};
     bool use_pre = false;
 
@@ -411,11 +403,27 @@ uint32_t dsm_rtc_get_hw_time(DATE_TIME_T* dt)
     }
 
     vTaskDelay(1);
-    uint32_t len = I2C_ReadMultiBytesOneReg(RTCI, 0x32, RV8803_SEC, date, 7);
+    uint32_t len = I2C_ReadMultiBytesOneReg(RTCI, 0x32, RV8803_SEC, date1, 7);
     if (len != 7)
     {
         MSGERROR("get_hw_time, fail, len:%d, flag:%02X", len, flags);
         use_pre = true;
+        goto exit_use_pre;
+    }
+
+    if ((date1[RV8803_SEC] & 0x7f) == bin2bcd(59))
+    {
+        vTaskDelay(1);
+        len = I2C_ReadMultiBytesOneReg(RTCI, 0x32, RV8803_SEC, date2, 7);
+        if (len != 7)
+        {
+            use_pre = true;
+            goto exit_use_pre;
+        }
+        if ((date2[RV8803_SEC] & 0x7f) != bin2bcd(59))
+        {
+            date = date2;
+        }
     }
 
 exit_use_pre:
@@ -439,6 +447,7 @@ exit_use_pre:
         SYS_ResetModule_S(I2C2_RST);
         I2C_Open_S(RTCI, 400000);
 #endif
+        return FALSE;
     }
     else
     {
