@@ -1825,6 +1825,7 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
         {
             if (dsm_imgtrfr_activNverify_is_ready(img_type))
             {
+                fw_type = dsm_imgtrfr_fwimage_dl_get_fw_type();
                 if (fw_type == FW_DL_SYS_PART)  // 운영부
                 {
                     uint32_t size = dsm_imgtrfr_get_rcvimage_size(IMG__FW);
