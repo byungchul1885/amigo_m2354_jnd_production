@@ -167,6 +167,9 @@ typedef enum
     ACT_RESULT_DATA_NG,
     ACT_RESULT_TYPE_UNMAT,
     ACT_RESULT_OTHER,
+#if 1  // jp.kim 25.12.06 //운영부 계량부 무결성 검증
+    ACT_RESULT_VERIFY_FAILED,
+#endif
     ACT_RESULT_PRE_SEC_MUTUAL_AUTH_NG,
     ACT_RESULT_PRE_SEC_KEYAGREEMENT_NG
 } act_req_result_type;
@@ -444,8 +447,8 @@ OBJ_PREPAY_LOADLIMIT_CANCEL //62
 #if 1 /* bccho, 2024-09-05, 삼상 */
 #define NUM_MYOBJ_SEC                                                       \
     (NUM_MYOBJ_G + _BWD_n + _MEAS_n + _sCURR_n + _MIN_MAX_n + _ETC_n - 19 + \
-     _Tou_n + NUM_ADD_SEC_OBJ_NUM + JP_AMR_ADD + PHASE3_DATA_ADD + 4 +      \
-     2 + 10) /* 128+1+10+6+4+2-19+2+68+10 = 212 */
+     _Tou_n + NUM_ADD_SEC_OBJ_NUM + JP_AMR_ADD + PHASE3_DATA_ADD + 4 + 2 +  \
+     10) /* 128+1+10+6+4+2-19+2+68+10 = 212 */
 #else
 #define NUM_MYOBJ_SEC                                                       \
     (NUM_MYOBJ_G + _BWD_n + _MEAS_n + _sCURR_n + _MIN_MAX_n + _ETC_n - 19 + \
@@ -1450,10 +1453,10 @@ typedef struct
     uint8_t instance_id[6];
     uint8_t version;
     uint8_t attributes_cnt;
-    const /*__code*/ uint8_t *as0_attr;
-    const /*__code*/ uint8_t *as1_attr;
-    const uint8_t *as3_attr;
-    const uint8_t *as4_attr;
+    const /*__code*/ uint8_t* as0_attr;
+    const /*__code*/ uint8_t* as1_attr;
+    const uint8_t* as3_attr;
+    const uint8_t* as4_attr;
 } myobj_struct_type;
 
 typedef enum
@@ -1587,11 +1590,11 @@ typedef struct _st_mt_rst_time_
 #define appl_is_sap_assign_kepco_mnt() \
     (g_sap_assin_run == SAP_ASSIGN_KEPCO_MANAGEMENT)
 
-extern uint8_t *appl_msg;
+extern uint8_t* appl_msg;
 extern int appl_len;
-extern uint8_t *pPdu;
+extern uint8_t* pPdu;
 extern int pPdu_idx;
-extern uint8_t *appl_tbuff;
+extern uint8_t* appl_tbuff;
 extern uint16_t appl_class_id;
 extern obis_type appl_obis;
 extern uint8_t appl_att_id;
@@ -1604,8 +1607,8 @@ extern uint8_t appl_is_last_block;
 extern uint32_t appl_block_num;
 extern uint32_t appl_next_block_num;
 extern appl_result_type appl_result;
-extern U8_16 *pu8_16;
-extern U8_16_32 *pu8_16_32;
+extern U8_16* pu8_16;
+extern U8_16_32* pu8_16_32;
 extern U8_16 appl_fill_var16;
 extern U8_16_32 appl_fill_var32;
 extern U8_Float appl_fill_varFloat;
@@ -1633,7 +1636,7 @@ void appl_set_conn_state(appl_state_type state);
 void appl_init(void);
 void appl_conn_ind(uint8_t client);
 void appl_disc_ind(bool reason, bool cmdsnrm);
-void appl_msg_data_ind(uint8_t *buf, int len);
+void appl_msg_data_ind(uint8_t* buf, int len);
 appl_result_type appl_obj_enum_and_acs_check(void);
 void appl_get_resp(void);
 void appl_set_resp(void);
@@ -1677,22 +1680,22 @@ void whm_clear_all(bool is_factory);
 
 // (PACKED)alignment 문제 대문에 포인터를 사용 함
 #define FILL_V16(v)                   \
-    pu8_16 = (U8_16 *)&(v);           \
+    pu8_16 = (U8_16*)&(v);            \
     pPdu[pPdu_idx++] = pu8_16->c[HI]; \
     pPdu[pPdu_idx++] = pu8_16->c[LO]
 #define FILL_V32(v)                         \
-    pu8_16_32 = (U8_16_32 *)&(v);           \
+    pu8_16_32 = (U8_16_32*)&(v);            \
     pPdu[pPdu_idx++] = pu8_16_32->c[HI_HI]; \
     pPdu[pPdu_idx++] = pu8_16_32->c[HI_LO]; \
     pPdu[pPdu_idx++] = pu8_16_32->c[LO_HI]; \
     pPdu[pPdu_idx++] = pu8_16_32->c[LO_LO]
 
 #define FILL_U16_pV(a, v)        \
-    pu8_16 = (U8_16 *)&(v);      \
+    pu8_16 = (U8_16*)&(v);       \
     pPdu[(a)++] = pu8_16->c[HI]; \
     pPdu[(a)++] = pu8_16->c[LO]
 #define FILL_U32_pV(a, v)              \
-    pu8_16_32 = (U8_16_32 *)&(v);      \
+    pu8_16_32 = (U8_16_32*)&(v);       \
     pPdu[(a)++] = pu8_16_32->c[HI_HI]; \
     pPdu[(a)++] = pu8_16_32->c[HI_LO]; \
     pPdu[(a)++] = pu8_16_32->c[LO_HI]; \
@@ -1775,13 +1778,13 @@ typedef enum
 #define COMM_IF_CAN (1 << 1)
 #define COMM_IF_RS485 (1 << 0)
 
-uint8_t *appl_get_msg_pointer(void);
-void appl_set_msg_pointer(uint8_t *pmsg);
+uint8_t* appl_get_msg_pointer(void);
+void appl_set_msg_pointer(uint8_t* pmsg);
 int appl_get_appl_len(void);
 void appl_set_appl_len(int len);
 void appl_set_sap(appl_sap_type sap);
-char *dsm_appl_sap_string(uint32_t sap);
-char *dsm_appl_conn_string(uint32_t conn);
+char* dsm_appl_sap_string(uint32_t sap);
+char* dsm_appl_conn_string(uint32_t conn);
 bool appl_is_asso_for_sec_site(void);
 bool appl_is_asso_for_sec_utility(void);
 bool appl_is_asso_utility(void);
@@ -1799,14 +1802,14 @@ uint32_t appl_get_sec_4_485_timeout_for_sec_utility(void);
 void appl_set_asso_4_485_timestart_flag(bool val);
 bool appl_get_asso_4_485_timestart_flag(void);
 
-void appl_msg_process(uint8_t *pbuff);
-myobj_struct_type *dsm_touETC_get_object(uint8_t class_id, uint8_t *obis);
+void appl_msg_process(uint8_t* pbuff);
+myobj_struct_type* dsm_touETC_get_object(uint8_t class_id, uint8_t* obis);
 // uint32_t obis_get_fw_info_type_groupa_b(uint8_t grpb);
 uint32_t obis_get_fw_info_type_group_b(uint8_t grpb);
 uint32_t obis_get_fw_info_imgtr_groupe(void);
 bool obis_is_mr_data_type_groupb(uint8_t grpb);
 uint8_t obis_get_mr_data_type(uint8_t grpb);
-myobj_struct_type *appl_get_object(uint16_t obj_idx);
+myobj_struct_type* appl_get_object(uint16_t obj_idx);
 void whm_clear_all(bool is_factory);
 void dsm_meter_reset_timer_proc(void);
 

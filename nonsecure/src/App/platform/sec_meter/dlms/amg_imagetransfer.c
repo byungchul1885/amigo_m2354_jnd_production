@@ -113,6 +113,121 @@ ST_SUB_FW_IMG_DL_INFO gst_sub_fw_info;
 */
 void log_sys_sw_up(void);
 
+#if 1  // jp.kim 25.12.06 //  무결성 검증//intel-HEX 무결성 검증 test 프로그램
+U8 g_meter_fw_chk_sum_err = 0;
+int g_eof_found = 0;
+U32 g_total_data_len = 0;
+char g_linebuf[256];  // 현재 라인만 저장
+int g_linepos = 0;
+
+// HEX 문자열에서 특정 위치의 2자리 필드를 읽어 정수로 변환
+int read_hex_field(const char* line, int offset)
+{
+    char buf[3];  // 2자리 + 널 종료
+    memcpy(buf, line + offset, 2);
+    buf[2] = '\0';
+    return (int)strtol(buf, NULL, 16);
+}
+
+// 한 줄 검증 및 데이터 길이 누적
+int verify_hex_line(const char* line)
+{
+    if (line[0] != ':')
+        return -1;
+
+    int len = read_hex_field(line, 1);  // LL
+    unsigned int sum = len;
+
+    int addr_hi = read_hex_field(line, 3);
+    int addr_lo = read_hex_field(line, 5);
+    sum += addr_hi + addr_lo;
+
+    int rectype = read_hex_field(line, 7);
+    sum += rectype;
+
+    int pos = 9;
+    for (int i = 0; i < len; i++)
+    {
+        int val = read_hex_field(line, pos);
+        sum += val;
+        pos += 2;
+    }
+
+    int checksum = read_hex_field(line, pos);
+    sum += checksum;
+
+    if ((sum & 0xFF) != 0)
+    {
+        DPRINTF(DBG_ERR,
+                "%s: Checksum error in line:  if ((sum & 0xFF) != 0) return "
+                "-1; \r\n",
+                __func__);
+        return -1;  // 체크섬 오류
+    }
+
+    // if (rectype == 0x00) { // 데이터 레코드일 경우 길이 누적
+    //     g_total_data_len += len;
+    // }
+
+    return rectype;
+}
+
+// 패킷 단위 처리 (라인 버퍼만 유지)
+// jp.kim 25.12.06 //운영부  무결성 검증
+
+int verify_packets(unsigned char* pkt, unsigned int len)
+{
+    U8 error_sum = 0;
+    g_total_data_len += len;
+
+    while (len--)
+    {
+        char c = *pkt++;
+        if (g_linepos > 200)
+        {
+            DPRINTF(DBG_ERR, "Checksum buffer over error in line: %s\r\n",
+                    g_linebuf);
+            g_linepos = 0;  // 버퍼 초기화
+            error_sum = 1;
+            return -1;
+        }
+        g_linebuf[g_linepos] = c;
+        g_linepos++;
+
+        if (c == '\n')
+        {  // 라인 완성
+            DPRINTF(DBG_ERR, "lin ok: c[0x%x] len[0x%x] g_linepos[%d]\r\n", c,
+                    len, g_linepos);
+            g_linebuf[g_linepos] = '\0';  // string end 표시
+
+            int result = verify_hex_line(g_linebuf);
+            if (result < 0)
+            {
+                DPRINTF(DBG_ERR, "Checksum error in line: %s\r\n", g_linebuf);
+
+                error_sum = 1;
+                // g_linepos = 0; // 버퍼 초기화
+                // return -1;
+            }
+            if (result == 0x01)
+            {  // EOF 레코드 확인
+                g_eof_found = 1;
+            }
+
+            g_linepos = 0;  // 버퍼 초기화
+        }
+    }
+
+    if (error_sum)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+#endif
+
 uint32_t dsm_flash_get_flash_page_size(uint8_t type)
 {
     uint32_t ret = 0;
@@ -1112,7 +1227,12 @@ bool dsm_imgtrfr_fwimage_hash(uint8_t fw_type, uint8_t* pblk, uint16_t blk_size)
 
         if (blk_number == 0)
         {
-#if 1 /* bccho, HASH, 2023-09-01 */
+#if 1  // jp.kim 25.12.06 // 계량부 무결성 검증
+            g_eof_found = 0;
+            g_total_data_len = 0;
+            g_linepos = 0;
+            g_meter_fw_chk_sum_err = 0;
+#endif
             if (axiocrypto_allocate_slot(hHandle, ASYM_ECDSA_P256, 0) !=
                 CRYPTO_SUCCESS)
             {
@@ -1130,56 +1250,82 @@ bool dsm_imgtrfr_fwimage_hash(uint8_t fw_type, uint8_t* pblk, uint16_t blk_size)
                 MSGERROR("axiocrypto_hash_update, Fail");
                 return FALSE;
             }
-#else
-            ret = _kcmvpSha256Begin(pblk, blk_size);
-#endif
             DPRINTF(DBG_TRACE,
                     _D
                     "FW IMG Hash Begin: blk_num[%d], blk_len[%d], ret[%d]\r\n",
                     blk_number, blk_size, ret);
+
+#if 1  // jp.kim 25.12.06 // 계량부 무결성 검증
+            if (verify_packets(pblk, blk_size) != 0)
+            {
+                g_meter_fw_chk_sum_err = 1;
+                DPRINTF(DBG_ERR, "Integrity check failed!  pk1 \r\n");
+            }
+#endif
         }
         else
         {
             if (!dsm_imgtrfr_get_int_status_bit(IMG__FW,
                                                 IMG_SBIT_POS_LAST_TRFR))
             {
-#if 1 /* bccho, HASH, 2023-09-01 */
                 if (axiocrypto_hash_update(hHandle, pblk, blk_size) !=
                     CRYPTO_SUCCESS)
                 {
                     MSGERROR("axiocrypto_hash_update, Fail");
                     return FALSE;
                 }
-#else
-                ret = _kcmvpSha256Mid(pblk, blk_size);
-#endif
+
                 DPRINTF(
                     DBG_TRACE,
                     _D "FW IMG Hash Mid: blk_num[%d], blk_len[%d], ret[%d]\r\n",
                     blk_number, blk_size, ret);
+
+#if 1  // jp.kim 25.12.06 // 계량부 무결성 검증
+                if (verify_packets(pblk, blk_size))
+                {
+                    g_meter_fw_chk_sum_err = 1;
+                    DPRINTF(DBG_ERR, "Integrity check failed!  pk2 \r\n");
+                }
+#endif
             }
             else
             {
-                uint8_t* phash =
-                    dsm_imgtrfr_get_hash(IMG__FW);  // get and set hash
-#if 1 /* bccho, HASH, 2023-09-01 */
+                uint8_t* phash = dsm_imgtrfr_get_hash(IMG__FW);
+
                 if (axiocrypto_hash_update(hHandle, pblk, blk_size) !=
                     CRYPTO_SUCCESS)
                 {
                     MSGERROR("axiocrypto_hash_update, Fail");
                     return FALSE;
                 }
+#if 1  // jp.kim 25.12.06 // 계량부 무결성 검증
+       // 최종 check sum
+                if (verify_packets(pblk, blk_size))
+                {
+                    g_meter_fw_chk_sum_err = 1;
+                    DPRINTF(DBG_ERR, "Integrity check failed!  pk3 \r\n");
+                }
+                else if (g_meter_fw_chk_sum_err)
+                    DPRINTF(DBG_ERR, "Integrity check failed!  all \r\n");
+
+                else if (!g_eof_found)
+                {
+                    g_meter_fw_chk_sum_err = 1;
+                    DPRINTF(DBG_ERR, "EOF record (:00000001FF) not found!\r\n");
+                }
+                else
+                {
+                    DPRINTF(DBG_ERR, "All packets verified successfully!\r\n");
+                    DPRINTF(DBG_ERR, "Total data length = %d bytes\r\n",
+                            g_total_data_len);
+                }
+#endif
                 if (axiocrypto_hash_final(hHandle, phash, IMAGE_HASH_SIZE) !=
                     CRYPTO_SUCCESS)
                 {
                     MSGERROR("axiocrypto_hash_final, Fail");
                     return FALSE;
                 }
-#else
-                ret = _kcmvpSha256End(
-                    phash, pblk,
-                    blk_size);  // this code is equal to dsm_imgtrfr_set_hash()
-#endif
 
                 dsm_imgtrfr_set_int_status_bits(IMG__FW, IMG_SBIT_VAL_HASH_GEN);
                 DPRINTF(
@@ -1388,7 +1534,6 @@ void dsm_imgtrfr_fwimage_act_run_process(uint8_t fw_type)
 /********************/
 /*sub fw image*/
 /********************/
-extern bool xmodem_flash_update(uint32_t addr, uint8_t* buf, uint32_t len);
 bool dsm_imgtrfr_fw_subimage_buff_update(uint8_t* pblk, uint16_t blk_size)
 {
     uint32_t flash_addr;

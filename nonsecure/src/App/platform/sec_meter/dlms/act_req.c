@@ -25,6 +25,7 @@
 #include "amg_media_mnt.h"
 #include "disp.h"
 #include "amg_modemif_prtl.h"
+#include "nsclib.h"
 
 #define _D "[AREQ] "
 
@@ -43,12 +44,14 @@ extern bool METER_FW_UP_END_PULSE_MODIFY;
 extern U16 METER_FW_UP_ING_CNT;
 extern U8 PULSE_DIR_MODIFY_BACK;
 extern bool init_mif_task_firm_up;
+extern U8 g_meter_fw_chk_sum_err;
 
 uint32_t g_pre_sector = 0;
 
 void prog_cur_tou_fut_proc(void);
-void prog_cur_dl_proc(prog_dl_type *progdl, uint8_t *tptr);
-bool prog_fut_dl_proc(prog_dl_type *progdl, uint8_t *tptr);
+void prog_cur_dl_proc(prog_dl_type* progdl, uint8_t* tptr);
+bool prog_fut_dl_proc(prog_dl_type* progdl, uint8_t* tptr);
+static bool check_sys_fw_crc(uint32_t size);
 
 static void approc_act_req_normal(int idx);
 static void approc_act_req_proc(int idx);
@@ -142,7 +145,7 @@ static void approc_act_req_proc(int idx)
         appl_obj_id == OBJ_PUSH_SETUP_ERR_CODE ||
         appl_obj_id == OBJ_PUSH_SETUP_LAST_LP)
     {
-        uint8_t *cp;
+        uint8_t* cp;
 
         cp = &appl_msg[idx++];
         if (*cp != METHOD_OPT_DATA_FLAG)
@@ -157,7 +160,7 @@ static void approc_act_req_proc(int idx)
     {
         if (!appl_is_sap_private())  // JP.KIM 24.11.08
         {
-            uint8_t *cp;
+            uint8_t* cp;
             cp = &appl_msg[idx++];
             if (*cp != METHOD_OPT_DATA_FLAG)
             {
@@ -168,7 +171,7 @@ static void approc_act_req_proc(int idx)
         }
 
         tag = appl_msg[idx++];
-        ToH16((U8_16 *)&cmd, &appl_msg[idx]);
+        ToH16((U8_16*)&cmd, &appl_msg[idx]);
         idx += 2;
 
         if (tag != LONGUNSIGNED_TAG)
@@ -290,7 +293,7 @@ static void approc_fill_act_resp_normal(void)
 
 static void ob_push_setup_cmd(uint8_t setup_type, int idx)
 {
-    uint8_t *cp;
+    uint8_t* cp;
     uint8_t cp_idx = 0;
     DPRINTF(DBG_TRACE, _D "%s: meth_id[%d], setup_type[%d]\r\n", __func__,
             appl_att_id, setup_type);
@@ -382,7 +385,7 @@ void ob_dev_cmd(uint16_t cmd)
         break;
 
     case DEVICE_CMD_PGM_DL:
-        memset((uint8_t *)&prog_dl, 0, sizeof(prog_dl_type));
+        memset((uint8_t*)&prog_dl, 0, sizeof(prog_dl_type));
         set_prog_dl_idx();
         set_hol_dl_idx();
         tou_set_cnt_reset();
@@ -488,7 +491,7 @@ static void ob_holidays_cmd(uint8_t method, int idx)
     bool rslt = false;
     bool fut_act = false;
     uint16_t holidx, yr;
-    uint8_t *cp;
+    uint8_t* cp;
     holiday_struct_type hol = {0};
 
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
@@ -549,14 +552,14 @@ static void ob_holidays_cmd(uint8_t method, int idx)
 
             if (*cp++ == LONGUNSIGNED_TAG)
             {
-                ToH16((U8_16 *)&holidx, cp);
+                ToH16((U8_16*)&holidx, cp);
                 cp += 2;
 
                 if (*cp == OCTSTRING_TAG && *(cp + 1) == 5)
                 {
                     cp += 2;
 
-                    ToH16((U8_16 *)&yr, cp);
+                    ToH16((U8_16*)&yr, cp);
                     yr -= BASE_YEAR;
                     hol.month = *(cp + 2);
                     hol.date = *(cp + 3);
@@ -579,7 +582,7 @@ static void ob_holidays_cmd(uint8_t method, int idx)
         DPRINTF(DBG_TRACE, "%s: Delete of Special Days Table\r\n", __func__);
         if (*cp++ == LONGUNSIGNED_TAG)
         {
-            ToH16((U8_16 *)&holidx, cp);
+            ToH16((U8_16*)&holidx, cp);
             edit_holidays(false, fut_act, holidx, /*(uint16_t)NULL*/ 0,
                           /*(holiday_struct_type *)NULL*/ &hol, appl_tbuff);
 
@@ -671,7 +674,7 @@ static void ob_assLN_cmd(uint8_t method, int idx)
     }
 }
 
-static void parse_key_agreement(key_agree_type *parse)
+static void parse_key_agreement(key_agree_type* parse)
 {
     DPRINTF(DBG_TRACE, "%s\r\n", __func__);
     if (packed_ptr[packed_idx++] == STRUCTURE_TAG)
@@ -715,7 +718,7 @@ static void parse_key_agreement(key_agree_type *parse)
     DPRINTF(DBG_TRACE, "%s: end\r\n", __func__);
 }
 
-bool parse_key_info(uint8_t *cp, key_info_type *parse)
+bool parse_key_info(uint8_t* cp, key_info_type* parse)
 {
     int i;
     bool ret = false;
@@ -745,7 +748,7 @@ bool parse_key_info(uint8_t *cp, key_info_type *parse)
 
 static void ob_security_setup_cmd(uint8_t method, int idx)
 {
-    uint8_t *cp;
+    uint8_t* cp;
     uint16_t cp_idx = 0;
 
     cp = &appl_msg[idx];
@@ -763,14 +766,14 @@ static void ob_security_setup_cmd(uint8_t method, int idx)
         break;
     case 3:  // key_agreement (data)
     {
-        key_info_type *pkey_info = (key_info_type *)appl_tbuff;
+        key_info_type* pkey_info = (key_info_type*)appl_tbuff;
         bool ret = false;
 
         ret = parse_key_info(&cp[0], pkey_info);
 
         if (ret)
         {
-            if (dsm_sec_key_agreement_process((uint8_t *)pkey_info,
+            if (dsm_sec_key_agreement_process((uint8_t*)pkey_info,
                                               sizeof(key_info_type)))
             {
                 appl_set_conn_state(APPL_KEY_AGREEMENT_STATE);
@@ -951,7 +954,7 @@ void ob_act_rsp_security_setup(void)
 
 void dsm_touImage_download_ready(void)
 {
-    memset((uint8_t *)&prog_dl, 0, sizeof(prog_dl_type));
+    memset((uint8_t*)&prog_dl, 0, sizeof(prog_dl_type));
     set_prog_dl_idx();
     set_hol_dl_idx();
     tou_set_cnt_reset();
@@ -970,7 +973,7 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
     uint16_t cp_idx = 0;
     uint32_t t32;
     uint16_t len, offset = 0;
-    uint8_t *pimg_blk;
+    uint8_t* pimg_blk;
     EN_IMG_TYPE img_type = IMG__TOU;
 
     cp = &appl_msg[idx];
@@ -996,7 +999,7 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
                 if (cp[cp_idx] == UDLONG_TAG)
                 {
                     pt8 = &cp[cp_idx + 1];
-                    ToH32((U8_16_32 *)&t32, pt8);
+                    ToH32((U8_16_32*)&t32, pt8);
                     dsm_imgtrfr_set_image_size(img_type, t32);
                     cp_idx += 5;
 
@@ -1043,7 +1046,7 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
             {
                 /* Block Number */
                 pt8 = &cp[cp_idx + 1];
-                ToH32((U8_16_32 *)&t32, pt8);
+                ToH32((U8_16_32*)&t32, pt8);
                 cp_idx += 5;
 
                 if (cp[cp_idx] == OCTSTRING_TAG)
@@ -1070,7 +1073,7 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
 
                     if (t32 == 0)  // Block Number is 0
                     {
-                        uint8_t *dst_id;
+                        uint8_t* dst_id;
                         uint8_t get_id[MANUF_ID_SIZE];
 
                         dst_id = pimg_blk + 21;  // TOU Name(8) + 13
@@ -1099,7 +1102,7 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
                     if (dsm_imgtrfr_get_blk_num(img_type) == t32)
                     {
                         int16_t ret = 0;
-                        uint8_t *phash = dsm_imgtrfr_get_hash(img_type);
+                        uint8_t* phash = dsm_imgtrfr_get_hash(img_type);
                         uint32_t img_size =
                             dsm_imgtrfr_get_image_size(img_type);
                         uint32_t img_rcv_size =
@@ -1359,7 +1362,7 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
             uint16_t i, idx = 0;
             ST_TOU_HEADER_INFO tou_hd;
             uint32_t img_size = dsm_imgtrfr_get_image_size(img_type);
-            uint8_t *pimg = dsm_imgtrfr_touimage_get_buff();
+            uint8_t* pimg = dsm_imgtrfr_touimage_get_buff();
             prg_tou_type = 0;
 
             DPRINTF(DBG_WARN, "TOU image activated\r\n");
@@ -1450,8 +1453,8 @@ void ob_act_rsp_touimage_transfer(void)
     }
 }
 
-bool dsm_fw_is_valid(uint8_t fw_type, uint8_t *pname, date_time_type *pst,
-                     date_time_type *psp)
+bool dsm_fw_is_valid(uint8_t fw_type, uint8_t* pname, date_time_type* pst,
+                     date_time_type* psp)
 {
     bool ret = false;
 
@@ -1529,7 +1532,7 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
     uint16_t cp_idx = 0;
     uint32_t t32;
     uint16_t len, offset = 0;
-    uint8_t *pimg_blk;
+    uint8_t* pimg_blk;
     EN_IMG_TYPE img_type = IMG__FW;
     // uint32_t flash_addr = 0;
     uint8_t fw_type;
@@ -1562,8 +1565,8 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
             if ((cp[cp_idx] == OCTSTRING_TAG) &&
                 (cp[cp_idx + 1] == IMAGE_FW_NAME_MAX_SIZE))
             {
-                uint8_t
-                    *img_name;  // 53HTMMSSTTTTTT (H: H/W Ver, T: S/W Type, M:
+                uint8_t*
+                    img_name;  // 53HTMMSSTTTTTT (H: H/W Ver, T: S/W Type, M:
                 // Manufacturer ID, S: S/W Ver, T: Build Date)
 
                 img_name = &cp[cp_idx + 2];
@@ -1575,7 +1578,7 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
                 if (cp[cp_idx] == UDLONG_TAG)
                 {
                     pt8 = &cp[cp_idx + 1];
-                    ToH32((U8_16_32 *)&t32, pt8);
+                    ToH32((U8_16_32*)&t32, pt8);
                     dsm_imgtrfr_set_image_size(img_type, t32);
                     cp_idx += 5;
 
@@ -1595,29 +1598,19 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
                     // 2: 착탈형 모뎀,
                     // 3: 계량부
                     fw_type = dsm_imgtrfr_fwimage_dl_get_fw_type();
-#if 1
-                    uint8_t *pfwname = dsm_imgtrfr_get_name(img_type);
+
+                    // jp.kim 25.12.06 //계량부 무결성 검증
+                    if (fw_type == FW_DL_METER_PART)
+                    {
+                        g_meter_fw_chk_sum_err = 0;
+                    }
+
+                    uint8_t* pfwname = dsm_imgtrfr_get_name(img_type);
                     if (!dsm_fw_is_valid(fw_type, pfwname, &st, &sp))
                     {
                         goto parser_imagetrfr_init_err;
                     }
-#else
-                    if ((fw_type == FW_DL_SYS_PART) ||
-                        (fw_type == FW_DL_METER_PART))
-                    {
-                        if ((img_name[4] != COMPANY_ID_1) ||
-                            (img_name[5] != COMPANY_ID_2) ||
-                            ((appl_obis.id[GROUP_E] != 0) &&
-                             (appl_obis.id[GROUP_E] != 3)))
-                        {
-                            DPRINTF(DBG_TRACE,
-                                    "%s: Error, Manufacturer ID is not matched "
-                                    "!\r\n",
-                                    __func__);
-                            goto parser_imagetrfr_init_err;
-                        }
-                    }
-#endif
+
                     dsm_imgtrfr_set_fw_type(fw_type);
 
                     dsm_imgtrfr_fwimage_act_init_process(
@@ -1667,7 +1660,7 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
             {
                 /* Block Number */
                 pt8 = &cp[cp_idx + 1];
-                ToH32((U8_16_32 *)&t32, pt8);
+                ToH32((U8_16_32*)&t32, pt8);
                 cp_idx += 5;
 
                 if (cp[cp_idx] == OCTSTRING_TAG)
@@ -1832,22 +1825,62 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
         {
             if (dsm_imgtrfr_activNverify_is_ready(img_type))
             {
-                dsm_imgtrfr_set_transfer_status(img_type,
-                                                IMGTR_S_VERIFY_SUCCESSFUL);
+                if (fw_type == FW_DL_SYS_PART)  // 운영부
+                {
+                    uint32_t size = dsm_imgtrfr_get_rcvimage_size(IMG__FW);
+                    if (!check_sys_fw_crc(size))
+                    {
+                        dsm_imgtrfr_set_transfer_status(img_type,
+                                                        IMGTR_S_VERIFY_FAILED);
+                        DPRINTF(DBG_ERR,
+                                _D "SYS FW image CRC check fail!!!\r\n");
+                        appl_resp_result = ACT_RESULT_OTHER;
+                    }
+                    else
+                    {
+                        dsm_imgtrfr_set_transfer_status(
+                            img_type, IMGTR_S_VERIFY_SUCCESSFUL);
+                        DPRINTF(DBG_WARN,
+                                _D "SYS FW image verified SUCCESS!!!\r\n");
+                    }
+                }
+                else if (fw_type == FW_DL_METER_PART)  // 계량
+                {
+                    if (!g_meter_fw_chk_sum_err)
+                    {
+                        dsm_imgtrfr_set_transfer_status(
+                            img_type, IMGTR_S_VERIFY_SUCCESSFUL);
+                        DPRINTF(DBG_WARN,
+                                _D "METER FW image verified SUCCESS!!!\r\n");
+                    }
+                    else
+                    {
+                        dsm_imgtrfr_set_transfer_status(img_type,
+                                                        IMGTR_S_VERIFY_FAILED);
+                        DPRINTF(
+                            DBG_ERR, _D
+                            "METER FW image verify check sum cal fail!!! \r\n");
+                        appl_resp_result = ACT_RESULT_OTHER;
+                    }
+                }
+                else // 내장, 외장
+                {
+                    dsm_imgtrfr_set_transfer_status(img_type,
+                                                    IMGTR_S_VERIFY_SUCCESSFUL);
+                }
+
                 DPRINTF(DBG_WARN, _D "FW image verified!!!\r\n");
             }
             else
             {
                 dsm_imgtrfr_set_transfer_status(img_type,
                                                 IMGTR_S_VERIFY_FAILED);
-                DPRINTF(DBG_ERR, _D "FW image verify ready fail!!!\r\n");
-
-                goto parser_imagetrfr_verify_err;
+                DPRINTF(DBG_ERR, _D "FW image verify ready fail!!! ");
+                appl_resp_result = ACT_RESULT_VERIFY_FAILED;
             }
         }
         else
         {
-        parser_imagetrfr_verify_err:
             appl_resp_result = ACT_RESULT_DATA_NG;
         }
         break;
@@ -1893,12 +1926,12 @@ void dsm_image_update_go_proc(void)
 {
     // 0: 운영부, 1: 내장 모뎀, 2: 착탈형 모뎀, 3: 계량부
     uint8_t fw_type = dsm_imgtrfr_get_fw_type();
-    ST_FW_IMG_DOWNLOAD_INFO *pimage_dlinfo = NULL;
+    ST_FW_IMG_DOWNLOAD_INFO* pimage_dlinfo = NULL;
 
     // 0: TOU, 1: FW
     uint8_t img_type = g_imggo_img_type;
 
-    ST_MTP_PUSH_DATA *pushd = dsm_mtp_get_push_data();
+    ST_MTP_PUSH_DATA* pushd = dsm_mtp_get_push_data();
     float fval;
     U8 i = 0;
 
@@ -1947,8 +1980,9 @@ void dsm_image_update_go_proc(void)
         DPRINTF(DBG_WARN, "========================================\r\n");
         DPRINTF(DBG_WARN, "Block Size: %d, Block Count: %d\r\n",
                 pimage_dlinfo->blk_size, pimage_dlinfo->blk_number);
-        DPRINTF(DBG_WARN, "Addr: 0x%08X, Image Size: %d\r\n",
-                pimage_dlinfo->start_dl_addr, pimage_dlinfo->image_size);
+        DPRINTF(DBG_WARN, "Addr: 0x%08X, Image Size: %d(0x%x)\r\n",
+                pimage_dlinfo->start_dl_addr, pimage_dlinfo->image_size,
+                pimage_dlinfo->image_size);
         DPRINTF(DBG_WARN, "FW Type: %d, Image Identifier: %s\r\n",
                 pimage_dlinfo->fw_type, fw_name);
         DPRINTF(DBG_WARN, "========================================\r\n");
@@ -2136,9 +2170,9 @@ holiday_struct_type g_holiday_blk_19[HOLIDAYS_PER_BLOCK_BLK_19] = {};
 #define HOLIDAYS_PER_BLOCK_BLK_20 0
 holiday_struct_type g_holiday_blk_20[HOLIDAYS_PER_BLOCK_BLK_20] = {};
 
-holiday_struct_type *dsm_hday_blk_pointer(uint8_t blk_num)
+holiday_struct_type* dsm_hday_blk_pointer(uint8_t blk_num)
 {
-    holiday_struct_type *p_holiday_blk = NULL;
+    holiday_struct_type* p_holiday_blk = NULL;
 
     switch (blk_num)
     {
@@ -2294,7 +2328,7 @@ void dsm_touimage_default(U8 rate_2)
     week_date_type week_info;
     dayid_table_type dayid_info;
     holiday_date_type hol_date_block;
-    holiday_struct_type *p_holiday_blk = NULL;
+    holiday_struct_type* p_holiday_blk = NULL;
 
     DPRINTF(DBG_TRACE, "%s\r\n", __func__);
 
@@ -2313,7 +2347,7 @@ void dsm_touimage_default(U8 rate_2)
                 season_info.season[cnt].date, season_info.season[cnt].week_id);
     }
 
-    if (nv_write(I_SEASON_PROFILE_DL, (uint8_t *)&season_info))
+    if (nv_write(I_SEASON_PROFILE_DL, (uint8_t*)&season_info))
     {
         pdl_set_bits |= SETBITS_TOU_SEASON;
     }
@@ -2343,7 +2377,7 @@ void dsm_touimage_default(U8 rate_2)
                    WEEK_LEN, DUMP_ALWAYS);
     }
 
-    if (nv_write(I_WEEK_PROFILE_DL, (uint8_t *)&week_info))
+    if (nv_write(I_WEEK_PROFILE_DL, (uint8_t*)&week_info))
     {
         pdl_set_bits |= SETBITS_TOU_WEEK;
     }
@@ -2367,7 +2401,7 @@ void dsm_touimage_default(U8 rate_2)
                 dayid_info.tou_conf[cnt].rate);
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
-    nv_write(I_DAY_PROFILE_DL, (uint8_t *)&dayid_info);
+    nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     // data_id 1
     dayid_info.day_id = 1;
@@ -2383,7 +2417,7 @@ void dsm_touimage_default(U8 rate_2)
                 dayid_info.tou_conf[cnt].rate);
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
-    nv_write(I_DAY_PROFILE_DL, (uint8_t *)&dayid_info);
+    nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     // data_id 2
     dayid_info.day_id = 2;
@@ -2399,7 +2433,7 @@ void dsm_touimage_default(U8 rate_2)
                 dayid_info.tou_conf[cnt].rate);
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
-    nv_write(I_DAY_PROFILE_DL, (uint8_t *)&dayid_info);
+    nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     // data_id 3
     dayid_info.day_id = 3;
@@ -2415,7 +2449,7 @@ void dsm_touimage_default(U8 rate_2)
                 dayid_info.tou_conf[cnt].rate);
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
-    nv_write(I_DAY_PROFILE_DL, (uint8_t *)&dayid_info);
+    nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     for (cnt = 4; cnt < DAY_PROF_SIZE; cnt++)
     {
@@ -2437,7 +2471,7 @@ void dsm_touimage_default(U8 rate_2)
                     dayid_info.tou_conf[cnt_2].rate);
         }
         nv_sub_info.ch[0] = dayid_info.day_id;
-        nv_write(I_DAY_PROFILE_DL, (uint8_t *)&dayid_info);
+        nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
     }
 
     pdl_set_bits |= SETBITS_TOU_DAY;
@@ -2457,7 +2491,7 @@ void dsm_touimage_default(U8 rate_2)
         p_holiday_blk = dsm_hday_blk_pointer(cnt_2);  // holidays arrays
         nv_sub_info.ch[0] = cnt_2;
 
-        memset((uint8_t *)&hol_date_block, 0xff, sizeof(holiday_date_type));
+        memset((uint8_t*)&hol_date_block, 0xff, sizeof(holiday_date_type));
 
         if (cnt_2 == 0)
         {
@@ -2475,7 +2509,7 @@ void dsm_touimage_default(U8 rate_2)
 
         for (cnt = 0; cnt < hol_date_block.arr_len; cnt++)
         {
-            memcpy((uint8_t *)&hol_date_block.holiday[cnt], &p_holiday_blk[cnt],
+            memcpy((uint8_t*)&hol_date_block.holiday[cnt], &p_holiday_blk[cnt],
                    sizeof(holiday_struct_type));
 
             DPRINTF(DBG_TRACE, "\t\tDAY_ID[%d], MONTH[%02d],DATE[%02d]\r\n",
@@ -2483,8 +2517,8 @@ void dsm_touimage_default(U8 rate_2)
                     hol_date_block.holiday[cnt].month,
                     hol_date_block.holiday[cnt].date);
         }
-        nv_write(I_HOLIDAYS_DL, (uint8_t *)&hol_date_block);
-        nv_write(I_HOL_DATE_BLOCK, (uint8_t *)&hol_date_block);
+        nv_write(I_HOLIDAYS_DL, (uint8_t*)&hol_date_block);
+        nv_write(I_HOL_DATE_BLOCK, (uint8_t*)&hol_date_block);
     }
 
     pdl_set_bits |= SETBITS_HOLIDAYS;
@@ -2501,4 +2535,118 @@ void dsm_touimage_default(U8 rate_2)
     currprog_available_bits = prog_setbits_to_availbits(pdl_set_bits, 0);
     prog_cur_add();
     program_default_init();
+}
+
+static uint32_t crc32_make_bin_update(uint32_t crc, const uint8_t* p,
+                                      uint32_t len)
+{
+    static uint32_t table[256];
+    static uint8_t init_done = 0;
+    uint32_t i;
+
+    if (!init_done)
+    {
+        uint32_t n;
+        for (n = 0; n < 256U; n++)
+        {
+            uint32_t c = n;
+            for (i = 0; i < 8U; i++)
+            {
+                if (c & 1U)
+                    c = (c >> 1) ^ 0xEDB88320U;
+                else
+                    c >>= 1;
+            }
+            table[n] = c;
+        }
+        init_done = 1;
+    }
+
+    for (i = 0; i < len; i++)
+    {
+        crc = (crc >> 8) ^ table[(crc ^ p[i]) & 0xFFU];
+    }
+
+    return crc;
+}
+
+static bool check_sys_fw_crc(uint32_t size)
+{
+    enum
+    {
+        CRC_CHUNK_SIZE = 4096U
+    };
+    bool ok = false;
+    uint8_t* buf = NULL;
+    uint8_t tail[8];
+    uint32_t base_addr;
+    uint32_t payload_len;
+    uint32_t crc;
+    uint32_t offset = 0;
+    uint32_t expected = 0;
+
+    if (size < 4U)
+        return false;
+
+    base_addr = dsm_imgtrfr_get_start_dl_addr();
+    if ((base_addr & 0x3U) != 0U)
+        return false;
+
+    payload_len = size - 4U;
+
+    buf = (uint8_t*)pvPortMalloc(CRC_CHUNK_SIZE);
+    if (buf == NULL)
+        goto cleanup;
+
+    crc = 0xFFFFFFFFU;
+
+    while ((offset + 4U) <= payload_len)
+    {
+        uint32_t remaining = payload_len - offset;
+        uint32_t read_len = remaining;
+
+        if (read_len > CRC_CHUNK_SIZE)
+            read_len = CRC_CHUNK_SIZE;
+
+        read_len &= ~0x3U;
+        if (read_len == 0U)
+            break;
+
+        OTA_ReadNewFW_S(base_addr + offset, buf, read_len);
+        crc = crc32_make_bin_update(crc, buf, read_len);
+        offset += read_len;
+
+        kick_watchdog_S();
+    }
+
+    if (offset < payload_len)
+    {
+        uint32_t tail_len = payload_len - offset; /* 1..3 */
+        OTA_ReadNewFW_S(base_addr + offset, buf, 4U);
+        crc = crc32_make_bin_update(crc, buf, tail_len);
+    }
+
+    crc ^= 0xFFFFFFFFU;
+
+    {
+        uint32_t crc_addr = base_addr + payload_len;
+        uint32_t aligned = crc_addr & ~0x3U;
+        uint32_t prefix = crc_addr - aligned;
+
+        OTA_ReadNewFW_S(aligned, tail, 8U);
+
+        expected = ((uint32_t)tail[prefix + 0U] << 24) |
+                   ((uint32_t)tail[prefix + 1U] << 16) |
+                   ((uint32_t)tail[prefix + 2U] << 8) |
+                   ((uint32_t)tail[prefix + 3U] << 0);
+    }
+
+    DPRINTF(DBG_WARN, _D "SYS FW CRC: calc[0x%08lX] stored[0x%08lX]\r\n", crc,
+            expected);
+    ok = (crc == expected);
+
+cleanup:
+    if (buf != NULL)
+        vPortFree(buf);
+    return ok;
 }

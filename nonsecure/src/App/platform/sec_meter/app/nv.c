@@ -39,7 +39,7 @@ void inc_rcntdm_wear_idx(void)
         rcntdm_wear_idx = 0;
 }
 
-char *dsm_nv_item_string(nv_item_type nv_item)
+char* dsm_nv_item_string(nv_item_type nv_item)
 {
     switch (nv_item)
     {
@@ -307,9 +307,9 @@ char *dsm_nv_item_string(nv_item_type nv_item)
     }
 }
 
-bool dsm_ram_write(uint32_t ram_addr, uint8_t *pwdata, uint32_t length)
+bool dsm_ram_write(uint32_t ram_addr, uint8_t* pwdata, uint32_t length)
 {
-    uint8_t *ptr = (uint8_t *)RAM_data.lprt_record;
+    uint8_t* ptr = (uint8_t*)RAM_data.lprt_record;
     uint32_t ch_count = dsm_get_dm_out_measure_print_chkcount();
 
     if (ch_count % 20 == 5 && (rt_lp_interval < 5))
@@ -324,9 +324,9 @@ bool dsm_ram_write(uint32_t ram_addr, uint8_t *pwdata, uint32_t length)
     return true;
 }
 
-bool dsm_ram_read(uint32_t ram_addr, uint8_t *prdata, uint32_t length)
+bool dsm_ram_read(uint32_t ram_addr, uint8_t* prdata, uint32_t length)
 {
-    uint8_t *ptr = (uint8_t *)RAM_data.lprt_record;
+    uint8_t* ptr = (uint8_t*)RAM_data.lprt_record;
     {
         DPRINTF(DBG_NONE, "%s: addr[%d], len[%d]\r\n", __func__, ram_addr,
                 length);
@@ -338,9 +338,9 @@ bool dsm_ram_read(uint32_t ram_addr, uint8_t *prdata, uint32_t length)
     return true;
 }
 
-bool ram_proc(nv_item_type ram_item, uint8_t *ram_data, bool wr)
+bool ram_proc(nv_item_type ram_item, uint8_t* ram_data, bool wr)
 {
-    ram_type *ram_type_ptr;
+    ram_type* ram_type_ptr;
     uint32_t ram_pos = 0;
     uint16_t ram_size = 0;
 
@@ -353,7 +353,7 @@ bool ram_proc(nv_item_type ram_item, uint8_t *ram_data, bool wr)
                 dsm_nv_item_string(ram_item));
     }
 
-    ram_type_ptr = (ram_type *)0;
+    ram_type_ptr = (ram_type*)0;
 
     switch (ram_item)
     {
@@ -394,7 +394,7 @@ bool ram_proc(nv_item_type ram_item, uint8_t *ram_data, bool wr)
     return true;
 }
 
-bool nv_proc(nv_item_type nv_item, uint8_t *nv_data, bool wr)
+bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
 {
     error_nv_type nv_err = NV_OK;
 #if 0 /* bccho, HAL_OK, 2023-07-15 */    
@@ -402,7 +402,7 @@ bool nv_proc(nv_item_type nv_item, uint8_t *nv_data, bool wr)
 #else /* bccho */
     uint32_t pstatus = HAL_ERROR;
 #endif
-    Nv_type *nv_type_ptr = (Nv_type *)0;
+    Nv_type* nv_type_ptr = (Nv_type*)0;
     uint32_t nv_pos = 0;
     uint16_t nv_size = 0;
     bool b_CRC_chk = true;
@@ -1020,12 +1020,12 @@ bool nv_proc(nv_item_type nv_item, uint8_t *nv_data, bool wr)
         {
             nv_pos = (uint32_t)&(
                 nv_type_ptr->log_data[nv_sub_info.ch[0]].dt[nv_sub_info.ch[1]]);
-            nv_size = (uint8_t)sizeof(date_time_type);
+            nv_size = sizeof(date_time_type);
         }
         else
         {
             nv_pos = (uint32_t)&(nv_type_ptr->log_data[nv_sub_info.ch[0]]);
-            nv_size = (uint8_t)sizeof(log_data_type);
+            nv_size = sizeof(log_data_type);
         }
         b_CRC_chk = FALSE;
         break;
@@ -1034,12 +1034,12 @@ bool nv_proc(nv_item_type nv_item, uint8_t *nv_data, bool wr)
         if (wr)
         {
             nv_pos = (uint32_t)&(nv_type_ptr->log_data1.evt[nv_sub_info.ch[0]]);
-            nv_size = (uint8_t)sizeof(evt_durtime_type);
+            nv_size = sizeof(evt_durtime_type);
         }
         else
         {
             nv_pos = (uint32_t)&(nv_type_ptr->log_data1);
-            nv_size = (uint8_t)sizeof(log_data1_type);
+            nv_size = sizeof(log_data1_type);
         }
         b_CRC_chk = FALSE;
         break;
@@ -1231,12 +1231,12 @@ bool nv_proc(nv_item_type nv_item, uint8_t *nv_data, bool wr)
         {
             nv_pos = (uint32_t)&(nv_type_ptr->log_cert_data[nv_sub_info.ch[0]]
                                      .evt[nv_sub_info.ch[1]]);
-            nv_size = (uint8_t)sizeof(evt_cert_time_type);
+            nv_size = sizeof(evt_cert_time_type);
         }
         else
         {
             nv_pos = (uint32_t)&(nv_type_ptr->log_cert_data[nv_sub_info.ch[0]]);
-            nv_size = (uint8_t)sizeof(log_cert_data_type);
+            nv_size = sizeof(log_cert_data_type);
         }
         b_CRC_chk = FALSE;
         break;
@@ -1259,7 +1259,7 @@ bool nv_proc(nv_item_type nv_item, uint8_t *nv_data, bool wr)
         break;
     case I_FW_IMG_INFO:
         nv_pos = (uint32_t)&(nv_type_ptr->fw_info[nv_sub_info.ch[0]]);
-        nv_size = (uint8_t)sizeof(ST_FW_INFO);
+        nv_size = sizeof(ST_FW_INFO);
         break;
 
     case I_SUB_FW_IMG_DOWNLOAD_INFO:

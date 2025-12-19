@@ -6,7 +6,6 @@
 
 #define KEPCO_CERT_STORAGE_MAGIC 0x4B43534D
 #define KEPCO_CERT_ADDRESS 0x2F000
-#define KEPCO_CERT_SIZE 4096
 
 typedef struct
 {

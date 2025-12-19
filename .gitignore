@@ -49,6 +49,7 @@ Thumbs.db
 # Applications
 *.app
 *.exe
+!/make-bin.exe
 *.war
 
 # Large media files

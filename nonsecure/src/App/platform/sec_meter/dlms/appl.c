@@ -21,12 +21,12 @@
 
 #define _D "[APPL] "
 
-uint8_t *appl_msg;
+uint8_t* appl_msg;
 int appl_len;
 
-uint8_t *pPdu;
+uint8_t* pPdu;
 int pPdu_idx;
-uint8_t *appl_tbuff;
+uint8_t* appl_tbuff;
 
 /* bccho, 2024-09-05, 삼상 */
 bool G_SIGNING_OK = 0;
@@ -34,8 +34,8 @@ bool G_SIGNING_OK = 0;
 extern U16 getresp_LP_len;
 extern U32 getresp_LP_index;
 
-U8_16 *pu8_16;
-U8_16_32 *pu8_16_32;
+U8_16* pu8_16;
+U8_16_32* pu8_16_32;
 
 appl_sap_type appl_sap;
 uint8_t g_sap_assin_run;
@@ -84,7 +84,7 @@ static bool appl_reqtype_act_check(appl_req_type req);
 static bool appl_reqtype_sec_check(appl_req_type req);
 static bool appl_reqtype_sec_ds_check(appl_req_type req);
 bool obis_is_asso_range(uint8_t grp);
-void appl_msg_process(uint8_t *pbuff);
+void appl_msg_process(uint8_t* pbuff);
 static void appl_exception_resp(uint8_t err_state, uint8_t err_enum);
 static bool obis_is_fw_ch_groupb(uint8_t grpb);
 static bool obis_is_fw_ch_groupe(uint8_t grpe);
@@ -1062,11 +1062,11 @@ static const myobj_struct_type
          all_n},
 };
 
-extern uint8_t *touset_parse_buf;
+extern uint8_t* touset_parse_buf;
 
-uint8_t *appl_get_msg_pointer(void) { return appl_msg; }
+uint8_t* appl_get_msg_pointer(void) { return appl_msg; }
 
-void appl_set_msg_pointer(uint8_t *pmsg) { appl_msg = pmsg; }
+void appl_set_msg_pointer(uint8_t* pmsg) { appl_msg = pmsg; }
 
 int appl_get_appl_len(void) { return appl_len; }
 
@@ -1074,7 +1074,7 @@ void appl_set_appl_len(int len) { appl_len = len; }
 
 void appl_set_sap(appl_sap_type sap) { appl_sap = sap; }
 
-char *dsm_appl_sap_string(uint32_t sap)
+char* dsm_appl_sap_string(uint32_t sap)
 {
     switch (sap)
     {
@@ -1095,7 +1095,7 @@ char *dsm_appl_sap_string(uint32_t sap)
     }
 }
 
-char *dsm_appl_conn_string(uint32_t conn)
+char* dsm_appl_conn_string(uint32_t conn)
 {
     switch (conn)
     {
@@ -1300,7 +1300,7 @@ void appl_disc_ind(bool reason, bool cmdsnrm)
     appl_conn_state = APPL_IDLE_STATE;
 }
 
-void appl_msg_data_ind(uint8_t *buf, int len)
+void appl_msg_data_ind(uint8_t* buf, int len)
 {
     int idx;
     aarq_rslt_type rslt;
@@ -1365,7 +1365,7 @@ void appl_msg_data_ind(uint8_t *buf, int len)
         };
         dsm_sec_sc_field_set(&sc);
 #else
-        dsm_sec_sc_field_set((T_DLMS_SC *)NULL);
+        dsm_sec_sc_field_set((T_DLMS_SC*)NULL);
 #endif
 
         if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
@@ -1549,7 +1549,7 @@ void appl_msg_data_ind(uint8_t *buf, int len)
     dsm_sec_set_operation(false);
 }
 
-void appl_msg_process(uint8_t *pbuff)
+void appl_msg_process(uint8_t* pbuff)
 {
     uint16_t idx = 0;
 
@@ -1573,10 +1573,10 @@ void appl_msg_process(uint8_t *pbuff)
     }
 }
 
-myobj_struct_type *appl_get_object(uint16_t obj_idx)
+myobj_struct_type* appl_get_object(uint16_t obj_idx)
 {
     DPRINTF(DBG_TRACE, "%s: obj_idx[%d]\r\n", __func__, obj_idx);
-    return (myobj_struct_type *)&myobj_list[obj_idx];
+    return (myobj_struct_type*)&myobj_list[obj_idx];
 }
 
 appl_result_type appl_obj_enum_and_acs_check(void)
@@ -1584,8 +1584,8 @@ appl_result_type appl_obj_enum_and_acs_check(void)
     /* 오브젝트 액세스 권한 확인 */
 
     int i, j;
-    const /*__code*/ uint8_t *aso_att;
-    const /*__code*/ myobj_struct_type *object;
+    const /*__code*/ uint8_t* aso_att;
+    const /*__code*/ myobj_struct_type* object;
 
     if (appl_is_sap_public() ||
         appl_is_sap_utility()) /* CLIENT_ADDR_PUBLIC or CLIENT_ADDR_UTILITY */
@@ -1612,7 +1612,7 @@ appl_result_type appl_obj_enum_and_acs_check(void)
         j = NUM_MYOBJ_PRIVATE;
         object = &myobj_list_private[0];
     }
-    char *str_sap = 0;
+    char* str_sap = 0;
     switch (appl_sap)
     {
     case SAP_PUBLIC:
@@ -1787,10 +1787,10 @@ appl_result_type appl_obj_enum_and_acs_check(void)
     return APPL_RESULT_OK;
 }
 
-myobj_struct_type *dsm_touETC_get_object(uint8_t class_id, uint8_t *obis)
+myobj_struct_type* dsm_touETC_get_object(uint8_t class_id, uint8_t* obis)
 {
     int i, j;
-    myobj_struct_type *object;
+    myobj_struct_type* object;
 
     //    DPRINTF(DBG_NONE, "%s: [ IN_CLASS_ID[%04d] ]\r\n", __func__,
     //    class_id); DPRINT_HEX(DBG_NONE, "IN_OBIS", obis, 6, DUMP_DLMS);
@@ -1798,22 +1798,22 @@ myobj_struct_type *dsm_touETC_get_object(uint8_t class_id, uint8_t *obis)
     if (appl_is_sap_public() || appl_is_sap_utility())
     {
         j = NUM_MYOBJ_DEV_MANAGEMENT;
-        object = (myobj_struct_type *)&myobj_list_dev_management[0];
+        object = (myobj_struct_type*)&myobj_list_dev_management[0];
     }
     else if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
     {
         j = NUM_MYOBJ_SEC;
-        object = (myobj_struct_type *)&myobj_list[0];
+        object = (myobj_struct_type*)&myobj_list[0];
     }
     else if (appl_is_sap_485comm())
     {
         j = NUM_MYOBJ_485COMM;
-        object = (myobj_struct_type *)&myobj_list_485comm[0];
+        object = (myobj_struct_type*)&myobj_list_485comm[0];
     }
     else
     {
         j = NUM_MYOBJ_PRIVATE;
-        object = (myobj_struct_type *)&myobj_list_private[0];
+        object = (myobj_struct_type*)&myobj_list_private[0];
     }
 
     for (i = 0; i < j; i++, object++)
@@ -1849,7 +1849,7 @@ myobj_struct_type *dsm_touETC_get_object(uint8_t class_id, uint8_t *obis)
 int appl_cosem_descript(int idx)
 {
     // class id
-    ToH16((U8_16 *)&appl_class_id, &appl_msg[idx]);
+    ToH16((U8_16*)&appl_class_id, &appl_msg[idx]);
     idx += 2;
     // obis code
     memcpy(appl_obis.id, &appl_msg[idx], OBIS_ID_SIZE);
@@ -1898,7 +1898,7 @@ int appl_block_descript(int idx)
     appl_is_last_block = appl_msg[idx];
     idx += 1;
     // block number
-    ToH32((U8_16_32 *)&appl_block_num, &appl_msg[idx]);
+    ToH32((U8_16_32*)&appl_block_num, &appl_msg[idx]);
     idx += 4;
 
     return idx;
@@ -1921,9 +1921,9 @@ int appl_block_descript(int idx)
 void object_list_element_proc(void)
 {
     uint8_t t8;
-    const uint8_t *attr;
+    const uint8_t* attr;
     uint8_t attr_num;
-    const myobj_struct_type *object;
+    const myobj_struct_type* object;
     uint8_t idx_max;
     uint8_t inst_id[6];
     uint16_t clsid;
@@ -2083,7 +2083,7 @@ void object_list_element_proc(void)
 void at_cmd_rsp_list_element_proc(void)
 {
     U16 reclen;
-    ST_ATCMD_TMP_BUF *pst_atmcd_from_modem =
+    ST_ATCMD_TMP_BUF* pst_atmcd_from_modem =
         dsm_get_atcmd_from_modem(EXT_MODEM_TYPE);
     DPRINTF(DBG_TRACE, _D "%s: modem_type[%d]\r\n", __func__, EXT_MODEM_TYPE);
 
@@ -2365,7 +2365,7 @@ static void appl_util_pwd_retore(void)
 {
     auth_pwd_type auth;
 
-    if (nv_read(I_UTIL_PASSWORD, (uint8_t *)&auth))
+    if (nv_read(I_UTIL_PASSWORD, (uint8_t*)&auth))
     {
         appl_util_pwd = auth.pwd;
     }
@@ -2380,7 +2380,7 @@ static void appl_485comm_pwd_retore(void)
 {
     auth_pwd_type auth;
 
-    if (nv_read(I_485_PASSWORD, (uint8_t *)&auth))
+    if (nv_read(I_485_PASSWORD, (uint8_t*)&auth))
     {
         appl_485_pwd = auth.pwd;
     }
@@ -2446,7 +2446,7 @@ elog_kind_type conv_elog_from_grpe(uint8_t grp)
 // uint8_t sec_buf[1024 + 270];
 uint8_t sec_buf[1500 + 100];  // jp.kim 25.01.22
 #define OPT_DS_SIGN_NEED 0
-void appl_send_msg(uint32_t EN_AT, uint8_t *pbuff, uint16_t len)
+void appl_send_msg(uint32_t EN_AT, uint8_t* pbuff, uint16_t len)
 {
     uint16_t tx_len = 0;
     uint8_t idx = 0;
@@ -2515,7 +2515,7 @@ void appl_get_resp(void)
     int idx;
     int pktlen;
     uint32_t EN_AT_FLAG = 0;
-    T_DLMS_SC *p_sc = dsm_sec_sc_field_get();
+    T_DLMS_SC* p_sc = dsm_sec_sc_field_get();
 
     DPRINTF(DBG_TRACE, "%s: appl_resp_result[%d], RX_ENC[%d]\r\n", __func__,
             appl_resp_result, p_sc->enc);
@@ -2572,7 +2572,7 @@ void appl_set_resp(void)
 {
     int idx;
     uint32_t EN_AT_FLAG = 0;
-    T_DLMS_SC *p_sc = dsm_sec_sc_field_get();
+    T_DLMS_SC* p_sc = dsm_sec_sc_field_get();
 
     DPRINTF(DBG_TRACE, "%s: appl_resp_result[%d], RX_ENC[%d]\r\n", __func__,
             appl_resp_result, p_sc->enc);
@@ -2623,7 +2623,7 @@ void appl_act_resp(void)  // action
     int idx;
     int pktlen;
     uint32_t EN_AT_FLAG = 0;
-    T_DLMS_SC *p_sc = dsm_sec_sc_field_get();
+    T_DLMS_SC* p_sc = dsm_sec_sc_field_get();
 
     DPRINTF(DBG_TRACE,
             "%s: appl_resp_result[%d], RX_ENC[%d], option_flag[%d]\r\n",
@@ -2806,7 +2806,7 @@ static bool appl_AARE(aarq_rslt_type rslt)
     return ok;
 }
 
-uint16_t appl_aare_set_param(uint32_t sel_param, uint8_t *ptxbuff)
+uint16_t appl_aare_set_param(uint32_t sel_param, uint8_t* ptxbuff)
 {
     uint16_t idx = 0, ret_size = 0;
 
@@ -2864,7 +2864,7 @@ uint16_t appl_aare_set_param(uint32_t sel_param, uint8_t *ptxbuff)
     case ASSO_RESP_AE_QUALIFIER:  // A5
     {
         uint16_t cert_len;
-        uint8_t *p_cert;
+        uint8_t* p_cert;
 
         p_cert = dsm_sec_get_cert_buff();
         if (!p_cert)
@@ -3157,6 +3157,13 @@ static uint8_t appl_act_result_reason(act_req_result_type rslt)
     case ACT_RESULT_TYPE_UNMAT:
         reason = DATA_ACS_TYPE_UNMAT;
         break;
+#if 1  // jp.kim 25.12.06 //운영부 계량부 무결성 검증
+    case ACT_RESULT_VERIFY_FAILED:
+        reason = RLT_ACT_TEMP_FAIL;
+        break;
+
+    case ACT_RESULT_OTHER:
+#endif
     case ACT_RESULT_PRE_SEC_MUTUAL_AUTH_NG:
     case ACT_RESULT_PRE_SEC_KEYAGREEMENT_NG:
         reason = RLT_ACT_OTHER_REASON;
@@ -3214,7 +3221,7 @@ void dsm_meter_reset_timer_proc(void)
     }
 }
 
-static void nv_extn_clear(void) { nv_write(I_EXTN_CLEAR, (uint8_t *)NULL); }
+static void nv_extn_clear(void) { nv_write(I_EXTN_CLEAR, (uint8_t*)NULL); }
 
 void whm_clear_all(bool is_factory)
 {
@@ -3238,18 +3245,18 @@ void whm_clear_all(bool is_factory)
     if (is_factory)  // product //jp.kim 25.03.30
     {
         // jp.kim 25.03.30
-        dsm_imgtrfr_fwinfo_read((uint8_t *)&fwinfo, FWINFO_CUR_MODEM);
+        dsm_imgtrfr_fwinfo_read((uint8_t*)&fwinfo, FWINFO_CUR_MODEM);
         memset(&fwinfo.dt, 0xFF, sizeof(date_time_type));
-        dsm_imgtrfr_fwinfo_write((uint8_t *)&fwinfo, FWINFO_CUR_MODEM);
+        dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo, FWINFO_CUR_MODEM);
     }
     // jp.kim 25.03.30
-    dsm_imgtrfr_fwinfo_read((uint8_t *)&fwinfo, FWINFO_CUR_E_MODEM);
+    dsm_imgtrfr_fwinfo_read((uint8_t*)&fwinfo, FWINFO_CUR_E_MODEM);
     memset(&fwinfo.dt, 0xFF, sizeof(date_time_type));
-    dsm_imgtrfr_fwinfo_write((uint8_t *)&fwinfo, FWINFO_CUR_E_MODEM);
+    dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo, FWINFO_CUR_E_MODEM);
 
     // 착탈형 모뎀 ID 정보 초기화
     ST_MDM_ID ext_mdm_id = {0};
-    nv_write(I_EXT_MODEM_ID, (uint8_t *)&ext_mdm_id);
+    nv_write(I_EXT_MODEM_ID, (uint8_t*)&ext_mdm_id);
 
     ST_MTP_CAL_POINT st_mtp_cal_point;
     ST_MTP_PARM st_mtp_parm;
@@ -3283,7 +3290,7 @@ void whm_clear_all(bool is_factory)
         DPRINTF(DBG_TRACE, _D "%s: %d.%d.%d %d:%d:%d\r\n", __func__,
                 cur_rtc.year, cur_rtc.month, cur_rtc.date, cur_rtc.hour,
                 cur_rtc.min, cur_rtc.sec);
-        nv_write(I_MT_RST_TIME, (uint8_t *)&st_mt_rst_time);
+        nv_write(I_MT_RST_TIME, (uint8_t*)&st_mt_rst_time);
         log_mt_initialization(appl_tbuff);
         nv_header_set(NV_COMM_INITED);
     }

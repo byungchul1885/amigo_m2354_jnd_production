@@ -4471,7 +4471,7 @@ static void obset_inst_key(int idx)
         if (retry > 0)
         {
             MSG10("[KEY] Retry attempt %d/%d\r\n", retry, MAX_RETRIES - 1);
-            
+
             // Erase flash sector before retry
             if (FMC_Erase_S(KEPCO_CERT_ADDRESS) != 0)
             {
@@ -4512,7 +4512,8 @@ static void obset_inst_key(int idx)
         if (memcmp(&kcs, &kcs2, sizeof(kepco_cert_storage_t)) == 0)
         {
             write_success = true;
-            MSG10("[KEY] Write verified successfully on attempt %d\r\n", retry + 1);
+            MSG10("[KEY] Write verified successfully on attempt %d\r\n",
+                  retry + 1);
         }
         else
         {
@@ -5288,7 +5289,9 @@ static void obset_evt_tou_imagetransfer(int idx)
         }
     }
     break;
-    case 0x03:
+#if 0  // jp.kim 25.12.06 //규격에 없는 attr. write //운영부 계량부 무결성
+       // 검증
+        case 0x03:
     {
         /* [image_transferred_block_status] ※ 사용 안 함 */
     }
@@ -5347,6 +5350,7 @@ static void obset_evt_tou_imagetransfer(int idx)
             dsm_imgtrfr_parser_image_to_activate_info(IMG__TOU, &appl_msg[idx]);
     }
     break;
+#endif
     }
 }
 // TODO: (WD)
@@ -5380,7 +5384,7 @@ static void obset_evt_fw_imagetransfer(uint16_t idx)
         }
     }
     break;
-
+#if 0  // jp.kim 25.12.06 //규격에 없는 attr. write //운영부 계량부 무결성 검증
     case 0x03:
     {
         /* [image_transferred_block_status] */
@@ -5439,6 +5443,7 @@ static void obset_evt_fw_imagetransfer(uint16_t idx)
             dsm_imgtrfr_parser_image_to_activate_info(IMG__FW, &appl_msg[idx]);
     }
     break;
+#endif
     }
 }
 

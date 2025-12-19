@@ -22,6 +22,7 @@ uint32_t GetSystemCoreClock_S(void);
 uint8_t XMD_Write_S(uint32_t u32Addr, uint32_t u32Data);
 uint8_t OTA_WriteNewFW_S(uint32_t u32Address, const uint8_t *pu8Buff,
                          uint32_t u32Size);
+void OTA_ReadNewFW_S(uint32_t u32Address, uint8_t *pu8Buff, uint32_t u32Size);
 void kick_watchdog_S(void);
 void CAN_Init_S(void);
 uint32_t CAN_Open_S(uint32_t u32BaudRate);
