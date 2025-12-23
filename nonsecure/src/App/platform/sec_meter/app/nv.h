@@ -162,7 +162,6 @@ typedef enum
     I_MT_RST_TIME,
     I_EXT_MODEM_ID,
     I_STOCK_OP_TIMES,
-    I_EXTN_CLEAR,
     I_MT_CONFIG_2,
     I_ZCD_RESULT_TIME,
     I_MODEM_BAUD,

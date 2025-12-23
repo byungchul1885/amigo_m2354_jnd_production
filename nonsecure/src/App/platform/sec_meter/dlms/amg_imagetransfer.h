@@ -288,7 +288,7 @@ uint32_t dsm_imgtrfr_activNverify_is_ready(EN_IMG_TYPE type);
 /******************/
 bool dsm_imgtrfr_fwinfo_read(uint8_t* pblk, uint32_t pos);
 bool dsm_imgtrfr_fwinfo_write(uint8_t* pblk, uint32_t pos);
-void dsm_sys_fwinfo_initial_set(bool product);
+bool dsm_sys_fwinfo_initial_set(bool product);
 bool dsm_sys_fwinfo_is_initialNset(void);
 void dsm_imgtrfr_fwimage_dl_info_save(void);
 uint8_t dsm_imgtrfr_fwimage_dl_get_fw_type(void);

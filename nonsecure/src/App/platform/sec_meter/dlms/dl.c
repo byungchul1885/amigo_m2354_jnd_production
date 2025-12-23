@@ -60,7 +60,7 @@ static void dl_control_proc(void);
 static void dl_ctrl_in_ndm_state(void);
 static void dl_ctrl_in_nrm_state(void);
 static bool dl_LLC_header_chk(void);
-static void dl_send_info_frame(bool seg, uint8_t *buf, uint16_t len);
+static void dl_send_info_frame(bool seg, uint8_t* buf, uint16_t len);
 static void dl_send_FRMR(void);
 static void dl_send_SNRM_UA(void);
 
@@ -82,14 +82,14 @@ static void dl_send_UA(void);
 static bool dl_control_check(void);
 static void dl_appl_msg_proc(void);
 static void dl_RR_msg_proc(void);
-static bool dl_seg_frame_read(uint8_t *buf, int offs, int len);
-static bool dl_seg_frame_write(uint8_t *buf, int offs, int len);
+static bool dl_seg_frame_read(uint8_t* buf, int offs, int len);
+static bool dl_seg_frame_write(uint8_t* buf, int offs, int len);
 static void dl_stop(bool reason, bool cmdsnrm);
 static void dl_seg_info_init(void);
 void dsp_comm_is_ing_set(void);
 uint8_t byte_to_ascii(uint8_t a);
 void prod_control_cal_begin(int idx);
-void fw_info_print(fw_info_t *p_fwinfo, uint32_t crc_val);
+void fw_info_print(fw_info_t* p_fwinfo, uint32_t crc_val);
 
 const uint8_t jnd_ver_fw_id[] = {JND_VERSION_FW_ID};
 
@@ -201,7 +201,7 @@ void dl_proc(bool frmok)
     }
 }
 
-void dl_fill_LLC_header(uint8_t *lptr)
+void dl_fill_LLC_header(uint8_t* lptr)
 {
     // LLC header encapsulation
     lptr[0] = 0xe6;  // destination LSAP
@@ -415,7 +415,7 @@ static bool dl_control_check(void)
     return false;
 }
 
-static uint8_t *dl_get_parm_val(uint8_t *cp, U8_16_32 *val)
+static uint8_t* dl_get_parm_val(uint8_t* cp, U8_16_32* val)
 {
     val->l = 0L;
 
@@ -647,7 +647,7 @@ void prod_control_cal_begin(int idx)
     DPRINTF(DBG_INFO, "\r\ncal start\r\n");
 
     if (!nv_read(I_MTP_CAL_POINT,
-                 (uint8_t *)&st_mtp_cal_point))  // 우선 최근 사용값 사용
+                 (uint8_t*)&st_mtp_cal_point))  // 우선 최근 사용값 사용
     // if(1)
     {
         dsm_mtp_default_cal_point(&st_mtp_cal_point);  // error 이면 default
@@ -658,10 +658,10 @@ void prod_control_cal_begin(int idx)
     idx += 35;
     idx += 2;  // array field skip
     idx += 2;  // struct field skip
-    DPRINT_HEX(DBG_TRACE, "appl_msg_data", (uint8_t *)&appl_msg[idx], 30,
+    DPRINT_HEX(DBG_TRACE, "appl_msg_data", (uint8_t*)&appl_msg[idx], 30,
                DUMP_ALWAYS);
-    ToHFloat((U8_Float *)&fval, (uint8_t *)&appl_msg[idx]);
-    ToCommFloat(&st_mtp_cal_point.val.ref_current[0], (U8_Float *)&fval);
+    ToHFloat((U8_Float*)&fval, (uint8_t*)&appl_msg[idx]);
+    ToCommFloat(&st_mtp_cal_point.val.ref_current[0], (U8_Float*)&fval);
     DPRINTF(DBG_TRACE, "current: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     idx += 2;
@@ -670,8 +670,8 @@ void prod_control_cal_begin(int idx)
     if ((fval < 2.0) || (fval > 20.0))
         error = true;
 
-    ToHFloat((U8_Float *)&fval, (uint8_t *)&appl_msg[idx]);
-    ToCommFloat(&st_mtp_cal_point.val.ref_voltage[0], (U8_Float *)&fval);
+    ToHFloat((U8_Float*)&fval, (uint8_t*)&appl_msg[idx]);
+    ToCommFloat(&st_mtp_cal_point.val.ref_voltage[0], (U8_Float*)&fval);
     DPRINTF(DBG_TRACE, "voltage: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     idx += 2;
@@ -680,10 +680,10 @@ void prod_control_cal_begin(int idx)
     if ((fval < 100.0) || (fval > 300.0))
         error = true;
 
-    ToHFloat((U8_Float *)&fval, (uint8_t *)&appl_msg[idx]);
+    ToHFloat((U8_Float*)&fval, (uint8_t*)&appl_msg[idx]);
     idx += 3;
 
-    ToCommFloat(&st_mtp_cal_point.val.ref_phase[0], (U8_Float *)&fval);
+    ToCommFloat(&st_mtp_cal_point.val.ref_phase[0], (U8_Float*)&fval);
     DPRINTF(DBG_TRACE, "phase: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     idx += 2;
@@ -701,14 +701,14 @@ void prod_control_cal_begin(int idx)
         (st_mtp_cal_point.val.process_time > 20))
         error = true;
 
-    ToH16((U8_16 *)&val16, &appl_msg[idx]);
+    ToH16((U8_16*)&val16, &appl_msg[idx]);
     fval = ((float)val16) / 10.0;
     idx++;
 
-    ST_MTP_PUSH_DATA *pushd = dsm_mtp_get_push_data();
-    temp_adj_data_type *temp_adj;
+    ST_MTP_PUSH_DATA* pushd = dsm_mtp_get_push_data();
+    temp_adj_data_type* temp_adj;
     // float fval;
-    temp_adj = (temp_adj_data_type *)appl_tbuff;
+    temp_adj = (temp_adj_data_type*)appl_tbuff;
 
     if ((fval < -20.0) || (fval > 100.0))
     {
@@ -718,7 +718,7 @@ void prod_control_cal_begin(int idx)
     {
         adj_currtemp = (fval - pushd->temp);
         temp_adj->T_adj_temp = adj_currtemp;
-        nv_write(I_ADJ_TEMP_DATA, (U8 *)temp_adj);
+        nv_write(I_ADJ_TEMP_DATA, (U8*)temp_adj);
     }
 
     if (error)
@@ -729,10 +729,10 @@ void prod_control_cal_begin(int idx)
     else
     {
         nv_write(I_MTP_CAL_POINT,
-                 (uint8_t *)&st_mtp_cal_point);  // 정상이면 비휘발 메모리 저장
+                 (uint8_t*)&st_mtp_cal_point);  // 정상이면 비휘발 메모리 저장
     }
 
-    memcpy((uint8_t *)&g_mtp_cal_start, (uint8_t *)&st_mtp_cal_point.val,
+    memcpy((uint8_t*)&g_mtp_cal_start, (uint8_t*)&st_mtp_cal_point.val,
            sizeof(g_mtp_cal_start));
 
     MSG09("prod_control_cal_begin");
@@ -742,7 +742,7 @@ void prod_control_cal_begin(int idx)
     dsm_mtp_fsm_send();
 }
 
-void factory_addtional_reset(void)
+bool factory_addtional_reset(void)
 {
     // U8 i =0;
     // ST_FW_INFO fwinfo = {0};
@@ -750,6 +750,7 @@ void factory_addtional_reset(void)
     fw_info_t fw_info_bank2;
     uint32_t crc_val;
     uint32_t sf_addr_dest;
+    bool error = 0;
 
     // flash FW_INFO SF_1  erase
     sf_addr_dest = dsm_sflash_fw_get_startaddr(E_SFLASH_SYS_FW_1_T);
@@ -770,7 +771,9 @@ void factory_addtional_reset(void)
     fw_info_print(&fw_info_bank2, crc_val);
 
     // sys fw_info clear
-    dsm_sys_fwinfo_initial_set(true);  // external flash info
+    error = dsm_sys_fwinfo_initial_set(true);  // external flash info
+
+    return error;
 }
 
 #if 0
@@ -1481,7 +1484,7 @@ static void prod_dl_frame_tx(U8 *buf, U16 len)
 }
 #endif
 
-static void dl_frame_tx(dl_frame_tx_type frm, bool seg, uint8_t *buf,
+static void dl_frame_tx(dl_frame_tx_type frm, bool seg, uint8_t* buf,
                         uint16_t len)
 {
     int i;
@@ -1584,7 +1587,7 @@ static void dl_frame_tx(dl_frame_tx_type frm, bool seg, uint8_t *buf,
 static void dl_send_FRMR(void)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
-    dl_frame_tx(FRMR_FRAME, false, (uint8_t *)0, 0);
+    dl_frame_tx(FRMR_FRAME, false, (uint8_t*)0, 0);
 }
 
 #if 0
@@ -1654,29 +1657,29 @@ static void prod_dl_send_error(U8 sts)
 static void dl_send_DM(void)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
-    dl_frame_tx(DM_FRAME, false, (uint8_t *)0, 0);
+    dl_frame_tx(DM_FRAME, false, (uint8_t*)0, 0);
 }
 
 static void dl_send_RR(void)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
-    dl_frame_tx(RR_FRAME, false, (uint8_t *)0, 0);
+    dl_frame_tx(RR_FRAME, false, (uint8_t*)0, 0);
 }
 
 static void dl_send_UA(void)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
-    dl_frame_tx(UA_FRAME, false, (uint8_t *)0, 0);
+    dl_frame_tx(UA_FRAME, false, (uint8_t*)0, 0);
 }
 
-static void dl_send_info_frame(bool seg, uint8_t *buf, uint16_t len)
+static void dl_send_info_frame(bool seg, uint8_t* buf, uint16_t len)
 {
     /* buf == pPdu, global_buff[1024+100] */
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
     dl_frame_tx(I_FRAME, seg, buf, len);
 }
 
-void dl_send_appl_msg(uint8_t *buf, int len)
+void dl_send_appl_msg(uint8_t* buf, int len)
 {
     DPRINTF(DBG_TRACE, _D "%s: len[%d], dl_tx_max_info[%d]\r\n", __func__, len,
             dl_tx_max_info);
@@ -1697,14 +1700,14 @@ void dl_send_appl_msg(uint8_t *buf, int len)
     }
 }
 
-static bool dl_seg_frame_read(uint8_t *buf, int offs, int len)
+static bool dl_seg_frame_read(uint8_t* buf, int offs, int len)
 {
     nv_sub_info.seg.offset = offs;
     nv_sub_info.seg.len = len;
     return nv_read(I_TX_SEG_FRAME, buf);
 }
 
-static bool dl_seg_frame_write(uint8_t *buf, int offs, int len)
+static bool dl_seg_frame_write(uint8_t* buf, int offs, int len)
 {
     if ((offs + len) > TX_SEG_FRAME_SIZE)
     {
@@ -1721,13 +1724,13 @@ static void dl_seg_info_init(void) { dl_seg_frame_len = 0; }
 
 void dl_set_tx_max_info(uint16_t tx_max_len) { dl_tx_max_info = tx_max_len; }
 
-void dl_send_UI_frame(bool seg, uint8_t *buf, uint16_t len)
+void dl_send_UI_frame(bool seg, uint8_t* buf, uint16_t len)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
     dl_frame_tx(UI_FRAME, seg, buf, len);
 }
 
-void dl_send_appl_push_datanoti_msg(uint8_t *buf, int len)
+void dl_send_appl_push_datanoti_msg(uint8_t* buf, int len)
 {
     dl_send_UI_frame(false, buf, len);
 }

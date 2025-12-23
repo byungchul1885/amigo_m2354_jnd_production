@@ -28,6 +28,10 @@
 
 /* bccho, 2024-09-05, 삼상 */
 #include "amg_gpio.h"
+#include <ctype.h>
+#include <string.h>
+
+#include "Softimer.h"
 /*
 ******************************************************************************
 *   Definition
@@ -77,10 +81,9 @@ typedef enum
 extern uint32_t g_bank_offset;
 extern uint32_t g_pre_sector;
 extern ST_MDM_MIC_FWUP_DL gst_mdm_mic_fwupdl;
-
-#if 0
-extern bool g_modem_exist;  // jp.kim 25.01.20
-#endif
+extern ST_FW_INFO sun_fw_info;
+extern bool dr_dsp, r_sun_dsp, dsp_comm_ing, dsp_cal_mode_ing, dsp_cal_st_ing,
+    dsp_cal_mode_end, dsp_sun_ver_err_ing;
 
 ST_TOU_IMG_INFO gst_tou_image_info;
 ST_TOU_IMG_DATA gst_tou_image_data;
@@ -111,6 +114,7 @@ ST_SUB_FW_IMG_DL_INFO gst_sub_fw_info;
 *	GLOBAL FUNCTIONS
 ******************************************************************************
 */
+void dsp_sun_version_error(void);
 void log_sys_sw_up(void);
 
 #if 1  // jp.kim 25.12.06 //  무결성 검증//intel-HEX 무결성 검증 test 프로그램
@@ -130,31 +134,96 @@ int read_hex_field(const char* line, int offset)
 }
 
 // 한 줄 검증 및 데이터 길이 누적
+static int hex_nibble(char c)
+{
+    if ((c >= '0') && (c <= '9'))
+        return (int)(c - '0');
+
+    c = (char)toupper((unsigned char)c);
+    if ((c >= 'A') && (c <= 'F'))
+        return (int)(10 + (c - 'A'));
+
+    return -1;
+}
+
+static int read_hex_field_checked(const char* line, unsigned int line_len,
+                                  unsigned int offset, int* out)
+{
+    if ((line == NULL) || (out == NULL))
+        return -1;
+
+    if ((offset + 2U) > line_len)
+        return -1;
+
+    if (!isxdigit((unsigned char)line[offset]) ||
+        !isxdigit((unsigned char)line[offset + 1U]))
+        return -1;
+
+    int hi = hex_nibble(line[offset]);
+    int lo = hex_nibble(line[offset + 1U]);
+    if ((hi < 0) || (lo < 0))
+        return -1;
+
+    *out = (hi << 4) | lo;
+    return 0;
+}
+
 int verify_hex_line(const char* line)
 {
+    if (line == NULL)
+        return -1;
+
+    unsigned int line_len = (unsigned int)strlen(line);
+    while ((line_len > 0U) &&
+           ((line[line_len - 1U] == '\n') || (line[line_len - 1U] == '\r')))
+    {
+        line_len--;
+    }
+
+    // Minimum: ":LLAAAATTCC" => 11 chars
+    if (line_len < 11U)
+        return -1;
+
     if (line[0] != ':')
         return -1;
 
-    int len = read_hex_field(line, 1);  // LL
-    unsigned int sum = len;
+    int len = 0;
+    if (read_hex_field_checked(line, line_len, 1U, &len) != 0)
+        return -1;
 
-    int addr_hi = read_hex_field(line, 3);
-    int addr_lo = read_hex_field(line, 5);
-    sum += addr_hi + addr_lo;
+    unsigned int expected_len = 11U + (2U * (unsigned int)len);
+    if (line_len != expected_len)
+        return -1;
 
-    int rectype = read_hex_field(line, 7);
-    sum += rectype;
+    unsigned int sum = (unsigned int)len;
 
-    int pos = 9;
+    int addr_hi = 0;
+    int addr_lo = 0;
+    if (read_hex_field_checked(line, line_len, 3U, &addr_hi) != 0)
+        return -1;
+    if (read_hex_field_checked(line, line_len, 5U, &addr_lo) != 0)
+        return -1;
+    sum += (unsigned int)addr_hi + (unsigned int)addr_lo;
+
+    int rectype = 0;
+    if (read_hex_field_checked(line, line_len, 7U, &rectype) != 0)
+        return -1;
+    sum += (unsigned int)rectype;
+
+    unsigned int pos = 9U;
     for (int i = 0; i < len; i++)
     {
-        int val = read_hex_field(line, pos);
-        sum += val;
-        pos += 2;
+        int val = 0;
+        if (read_hex_field_checked(line, line_len, pos, &val) != 0)
+            return -1;
+        sum += (unsigned int)val;
+        pos += 2U;
     }
 
-    int checksum = read_hex_field(line, pos);
-    sum += checksum;
+    int checksum = 0;
+    if (read_hex_field_checked(line, line_len, pos, &checksum) != 0)
+        return -1;
+    sum += (unsigned int)checksum;
 
     if ((sum & 0xFF) != 0)
     {
@@ -183,8 +252,10 @@ int verify_packets(unsigned char* pkt, unsigned int len)
     while (len--)
     {
         char c = *pkt++;
-        if (g_linepos > 200)
+        if ((g_linepos < 0) ||
+            ((unsigned int)g_linepos >= (sizeof(g_linebuf) - 1U)))
         {
+            g_linebuf[sizeof(g_linebuf) - 1U] = '\0';
             DPRINTF(DBG_ERR, "Checksum buffer over error in line: %s\r\n",
                     g_linebuf);
             g_linepos = 0;  // 버퍼 초기화
@@ -682,7 +753,7 @@ bool dsm_imgtrfr_fwinfo_read(uint8_t* pblk, uint32_t pos)
     ret = nv_read(I_FW_IMG_INFO, pblk);
 
 #if 1  // JP.KIM 24.10.29
-    if (pos == FW_DL_SYS_PART)
+    if (pos == FWINFO_CUR_SYS)
     {
         memcpy((uint8_t*)&fwinfo, pblk, sizeof(ST_FW_INFO));
 
@@ -730,14 +801,11 @@ bool dsm_imgtrfr_fwinfo_write(uint8_t* pblk, uint32_t pos)
 // #define VERSION_NORMAL      0x30
 // #define VERSION_ABNORMAL    0x31
 // #define VERSION_METER_PART  0x33
-void dsm_sys_fwinfo_initial_set(bool product)
+bool dsm_sys_fwinfo_initial_set(bool product)
 {
-    uint8_t bank = 0;
+    bool error = 0;
     ST_FW_INFO fwinfo = {0};
     uint8_t manuid[MANUF_ID_SIZE] = {0};
-    date_time_type sys_apply_dt, meter_apply_dt;
-
-    // memset((uint8_t*)&fwinfo, 0x00, sizeof(ST_FW_INFO)); // all 0, init hash
 
     /* 소프트웨어 적용 날짜 : 6 Bytes */
     if (product == true)
@@ -762,15 +830,13 @@ void dsm_sys_fwinfo_initial_set(bool product)
         fwinfo.version[3] = manuid[1];  // '8'
         fwinfo.version[4] = SOFTWARE_VERSION_H;
         fwinfo.version[5] = SOFTWARE_VERSION_L;
-        //
-        // TODO: (WD) __DATE__ 데이터 반영 필요함.
-        fwinfo.date_time[0] = 0x32;  // Y
-        fwinfo.date_time[1] = 0x34;  // Y
-        fwinfo.date_time[2] = 0x30;  // M
-        fwinfo.date_time[3] = 0x31;  // M
-        fwinfo.date_time[4] = 0x30;  // D
-        fwinfo.date_time[5] = 0x31;  // D
 
+        fwinfo.date_time[0] = SOFTWARE_DATE_YYH;  // Y
+        fwinfo.date_time[1] = SOFTWARE_DATE_YYL;  // Y
+        fwinfo.date_time[2] = SOFTWARE_DATE_MMH;  // M
+        fwinfo.date_time[3] = SOFTWARE_DATE_MML;  // M
+        fwinfo.date_time[4] = SOFTWARE_DATE_DDH;  // D
+        fwinfo.date_time[5] = SOFTWARE_DATE_DDL;  // D
         /*
             현재 소프트웨어 적용 날짜
             OBIS : 0 0 96 2 13 255, Attributes : 2
@@ -781,6 +847,9 @@ void dsm_sys_fwinfo_initial_set(bool product)
         */
         memset(&fwinfo.dt, 0xff,
                sizeof(date_time_type));  // ref. ob_evt_fw_apply_date()
+
+        fwinfo.version[0] = METER_HW_VERSION;
+        fwinfo.version[1] = SOFTWARE_METER_PART;
         dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo, FWINFO_CUR_SYS);
 
         uint8_t temp[/*Page_Offset*/ 64] = {0};
@@ -833,8 +902,54 @@ void dsm_sys_fwinfo_initial_set(bool product)
     /*IN_MODEM part fwinfo default**/
     /****************************/
     if (product == true)
-    {  // 규격 반영 - 양산시 fw apply date
+    {
+        fwinfo.mt_type[0] = (METER_ID / 10) + '0';
+        fwinfo.mt_type[1] = (METER_ID % 10) + '0';
+        fwinfo.version[0] = INMODEM_HW_VERSION;
         fwinfo.version[1] = SOFTWARE_INMODEM_PART;
+        fwinfo.version[2] = COMPANY_ID_1;  //
+        fwinfo.version[3] = COMPANY_ID_2;  //
+        fwinfo.version[4] = INMODEM_VERSION_H;
+        fwinfo.version[5] = INMODEM_VERSION_L;
+        fwinfo.date_time[0] = INMODEM_DATE_YYH;  // Y
+        fwinfo.date_time[1] = INMODEM_DATE_YYL;  // Y
+        fwinfo.date_time[2] = INMODEM_DATE_MMH;  // M
+        fwinfo.date_time[3] = INMODEM_DATE_MML;  // M
+        fwinfo.date_time[4] = INMODEM_DATE_DDH;  // D
+        fwinfo.date_time[5] = INMODEM_DATE_DDL;  // D
+
+        // SUN FWINFO 읽기 sun_fw_info
+        memset(sun_fw_info.date_time, 0x00, FW_GENERATION_DATE_SIZE);
+        dsm_atcmd_if_is_valid(MEDIA_RUN_SUN, false);  // fw_info
+        vTaskDelay(100);
+        DPRINT_HEX(DBG_TRACE, "1 sun_fw_info.date_time", sun_fw_info.date_time,
+                   FW_GENERATION_DATE_SIZE, DUMP_ALWAYS);
+
+        memset(sun_fw_info.date_time, 0x00, FW_GENERATION_DATE_SIZE);
+        dsm_atcmd_if_is_valid(MEDIA_RUN_SUN, false);  // fw_info
+        vTaskDelay(100);
+        DPRINT_HEX(DBG_TRACE, "2 sun_fw_info.date_time", sun_fw_info.date_time,
+                   FW_GENERATION_DATE_SIZE, DUMP_ALWAYS);
+
+        // 상호간 비교  ( 운영부 <-> SUN )
+        if ((!memcmp(fwinfo.date_time, sun_fw_info.date_time,
+                     FW_GENERATION_DATE_SIZE)))
+        {
+            DPRINTF(DBG_WARN, _D "FW image version compare SUCCESS!!!\r\n");
+        }
+        else  // ERROR // 서로 다르면 verify error
+        {
+            DPRINTF(DBG_ERR, _D "FW image verify FW.DATE fail!!! \r\n");
+            DPRINT_HEX(DBG_TRACE, "fw_info.date_tim(AMIGO)", fwinfo.date_time,
+                       FW_GENERATION_DATE_SIZE, DUMP_ALWAYS);
+            DPRINT_HEX(DBG_TRACE, "sun_fw_info.date_time",
+                       sun_fw_info.date_time, FW_GENERATION_DATE_SIZE,
+                       DUMP_ALWAYS);
+            dsp_sun_ver_err_ing = true;
+            dsp_sun_ver_err_ing_timeset(T300SEC);
+            error = 1;
+        }
+
         dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo, FWINFO_CUR_MODEM);
     }
 
@@ -848,6 +963,8 @@ void dsm_sys_fwinfo_initial_set(bool product)
     DPRINTF(DBG_TRACE, "FW_METER_VER: %c%c%c%c%c%c\r\n", fwinfo.version[0],
             fwinfo.version[1], fwinfo.version[2], fwinfo.version[3],
             fwinfo.version[4], fwinfo.version[5]);
+
+    return error;
 }
 
 bool dsm_sys_fwinfo_is_initialNset(void)
@@ -1307,7 +1424,6 @@ bool dsm_imgtrfr_fwimage_hash(uint8_t fw_type, uint8_t* pblk, uint16_t blk_size)
                 }
                 else if (g_meter_fw_chk_sum_err)
                     DPRINTF(DBG_ERR, "Integrity check failed!  all \r\n");
-
                 else if (!g_eof_found)
                 {
                     g_meter_fw_chk_sum_err = 1;

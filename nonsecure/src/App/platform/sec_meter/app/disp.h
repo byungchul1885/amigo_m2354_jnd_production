@@ -37,8 +37,9 @@ typedef enum
     DISP_CALFAIL_STATE,
     DISP_R_SUN_STATE,
     DISP_ON_SUN_STATE,
-    DISP_CAL_END_STATE,    // 전류 표시
-    DISP_CAL_MEM_BK_STATE  // cal end 표시
+    DISP_CAL_END_STATE,          // 전류 표시
+    DISP_CAL_MEM_BK_STATE,       // cal end 표시
+    DISP_SUN_VER_INIT_ERR_STATE  // SUN 버전 초기화 오류 표시
 } disp_state_type;
 
 typedef enum
@@ -984,7 +985,7 @@ bool dsp_is_test_mode_tS(void);
 bool dsp_is_test_smode(void);
 bool dsp_is_test_pvt(void);
 bool dsp_is_test_trawmode(void);
-void dsp_inp_init(date_time_type *pdt);
+void dsp_inp_init(date_time_type* pdt);
 bool dsp_is_input_state(void);
 disp_input_type get_dsp_inputmode(void);
 uint8_t dsp_inp_digit_pos(void);
@@ -992,7 +993,7 @@ void dsp_inp_digit_inc(uint8_t mx);
 void dsp_inp_digit_pos_move(uint8_t limit, uint8_t initval);
 void dsp_inp_mtkind_inc(ratekind_type kind);
 void dsp_inp_mtdir_toggle(void);
-void dsp_inp_tou_rate_time(tou_struct_type *tou);
+void dsp_inp_tou_rate_time(tou_struct_type* tou);
 void dsp_inp_sig_sel(ad_sig_type sg);
 void dsp_inp_digit_pos_move_tou(ratekind_type rtkind);
 void dsp_inp_ts_toggle(uint8_t pos);
@@ -1005,22 +1006,22 @@ void dsp_inp_errpls_toggle(void);
 void dsp_inp_condensor_toggle(void);
 void dsp_inp_commen_toggle(void);
 void dsp_inp_digit_inc_range(uint8_t mn, uint8_t mx);
-void dsp_inp_ts_time(ts_struct_type *ts);
+void dsp_inp_ts_time(ts_struct_type* ts);
 uint8_t get_dispinp_ts_ctrl(void);
 void dsp_key_touched(void);
 disp_state_type get_disp_state(void);
 bool dsp_is_inp_end(void);
 void dsp_circ_state_init(void);
 void dsp_circ_state_mode_init(void);
-void dsp_inp_time_init(date_time_type *pdt);
+void dsp_inp_time_init(date_time_type* pdt);
 void dsp_inp_regrd_init(uint8_t regrd);
 void dsp_inp_sigsel_init(ad_sig_type sg);
-void dsp_inp_ts_init(ts_struct_type *ts);
+void dsp_inp_ts_init(ts_struct_type* ts);
 void dsp_inp_scurr_init(uint16_t scurr);
 void dsp_inp_scurr_2_init(int16_t scurr);
 void dsp_inp_sCurrCnt_init(uint8_t cnt);
 void dsp_inp_ratekind_init(ratekind_type mk);
-void dsp_inp_tou_rate_init(tou_struct_type *tou);
+void dsp_inp_tou_rate_init(tou_struct_type* tou);
 uint8_t dsp_inp_lpintv_init(uint8_t intv);
 void dsp_inp_sn1_init(void);
 void dsp_inp_sn2_init(void);
@@ -1065,8 +1066,8 @@ extern void dsp_test_reg_mr_date_change(void);
 extern bool dsp_is_test_tariff_rate(void);
 extern void dsp_test_tariff_rate_change(void);
 void dsp_test(void);
-void dsp_date(date_time_type *dt);
-void dsp_time(date_time_type *dt);
+void dsp_date(date_time_type* dt);
+void dsp_time(date_time_type* dt);
 void dsp_digit(int32_t val, uint8_t dgt, uint8_t point, bool lead_zero);
 void dsm_dsp_digit_update(void);
 

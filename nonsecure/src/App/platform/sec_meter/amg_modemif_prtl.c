@@ -96,6 +96,8 @@ bool power_notify_tx_set = 0;
 U8 g_zcd_on_ing_sts = 0;
 #endif
 
+uint8_t g_get_hash[IMAGE_HASH_SIZE] = {0};
+
 #if 0
 extern bool g_modem_exist;  // jp.kim 25.01.20
 #endif
@@ -201,6 +203,7 @@ ST_MDM_ID gst_int_modem_id;
 uint8_t g_sun_listen = AT_LISTEN_OFF;
 ST_ATCMD_TMP_BUF gst_atcmd_from_client[MAX_MODEM_TYPE];
 ST_ATCMD_TMP_BUF gst_atcmd_from_modem[MAX_MODEM_TYPE];
+ST_FW_INFO sun_fw_info;
 uint8_t g_atcmd_modem_fwup_retry_cnt = 0;
 ST_AT_BAUD gst_mdm_baud;
 EN_MODEM_BAUD_RATE_VAL gen_imodem_baud_rate = E_MODEM_BAUD_RATE_v115200;
@@ -2071,48 +2074,18 @@ uint32_t dsm_atcmd_rx_proc(ST_AT_CMD_RX_PKT* p_com_pkt)
                     case ATCMD_SHA256:
                         if (dsm_media_get_fsm_if_ATCMD() == MEDIA_RUN_SUN)
                         {
-                            uint8_t i, result = 0;
-
-                            memset((uint8_t*)&fwinfo, 0x00, sizeof(ST_FW_INFO));
-                            dsm_imgtrfr_fwinfo_read((uint8_t*)&fwinfo,
-                                                    FWINFO_CUR_MODEM);
-
+                            uint8_t i;
+                            memset(g_get_hash, 0x00, IMAGE_HASH_SIZE);
                             for (i = 0; i < p_com_pkt->data_cnt; i++)
                             {
-                                uint8_t hexa, ascii;
-
-                                hexa = ((i % 2 == 0)
-                                            ? ((fwinfo.hash[i / 2] & 0xF0) >> 4)
-                                            : (fwinfo.hash[i / 2] & 0x0F));
-                                ascii = ((hexa > 9) ? (hexa - 10 + 'A')
-                                                    : (hexa + '0'));
-
-                                if (ascii != ptr[i])
-                                {
-                                    result = 1;
-                                    break;
-                                }
-                            }
-
-                            if (result)
-                            {
-                                uint8_t get_hash[IMAGE_HASH_SIZE] = {0};
-                                uint8_t byte_data;
-                                for (i = 0; i < p_com_pkt->data_cnt; i++)
-                                {
-                                    byte_data =
-                                        ((ptr[i] > '9') ? (ptr[i] - 'A' + 10)
-                                                        : (ptr[i] - '0'));
-                                    byte_data =
-                                        (byte_data << 4) |
-                                        ((ptr[++i] > '9') ? (ptr[i] - 'A' + 10)
-                                                          : (ptr[i] - '0'));
-                                    get_hash[i / 2] = byte_data;
-                                }
-
-                                memcpy(fwinfo.hash, get_hash, IMAGE_HASH_SIZE);
-                                dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo,
-                                                         FWINFO_CUR_MODEM);
+                                uint8_t byte_data =
+                                    ((ptr[i] > '9') ? (ptr[i] - 'A' + 10)
+                                                    : (ptr[i] - '0'));
+                                byte_data =
+                                    (byte_data << 4) |
+                                    ((ptr[++i] > '9') ? (ptr[i] - 'A' + 10)
+                                                      : (ptr[i] - '0'));
+                                g_get_hash[i / 2] = byte_data;
                             }
                         }
                         else if (dsm_media_get_fsm_if_ATCMD() == MEDIA_RUN_EXT)
@@ -2340,29 +2313,13 @@ uint32_t dsm_atcmd_rx_proc(ST_AT_CMD_RX_PKT* p_com_pkt)
 
                         if (dsm_media_get_fsm_if_ATCMD() == MEDIA_RUN_SUN)
                         {
-                            DPRINT_HEX(DBG_TRACE, "SUN_FWVER", ptr,
-                                       p_com_pkt->data_cnt, DUMP_ALWAYS);
-                            memset((uint8_t*)&fwinfo, 0x00, sizeof(ST_FW_INFO));
-                            dsm_imgtrfr_fwinfo_read((uint8_t*)&fwinfo,
-                                                    FWINFO_CUR_MODEM);
-                            memcpy(&version[0], &ptr[0], 14);
-
-                            DPRINT_HEX(DBG_TRACE, "VERSION", &version[0],
-                                       IMAGE_FW_NAME_MAX_SIZE, DUMP_ALWAYS);
-
-                            if (memcmp(fwinfo.mt_type, version,
-                                       IMAGE_FW_NAME_MAX_SIZE))
-                            {
-                                DPRINTF(DBG_ERR, "F/W Ver Info Updated\r\n");
-                                memcpy(fwinfo.mt_type, version,
-                                       IMAGE_FW_NAME_MAX_SIZE);
-                                dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo,
-                                                         FWINFO_CUR_MODEM);
-                            }
-                            else
-                            {
-                                DPRINTF(DBG_INFO, "F/W Ver Info Same\r\n");
-                            }
+                            memset(sun_fw_info.date_time, 0x00,
+                                   FW_GENERATION_DATE_SIZE);
+                            memcpy(sun_fw_info.date_time, &ptr[8],
+                                   FW_GENERATION_DATE_SIZE);
+                            DPRINT_HEX(DBG_TRACE, " 3  DATE",
+                                       sun_fw_info.date_time,
+                                       FW_GENERATION_DATE_SIZE, DUMP_ALWAYS);
                         }
                         else if (dsm_media_get_fsm_if_ATCMD() == MEDIA_RUN_EXT)
                         {

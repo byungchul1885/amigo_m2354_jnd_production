@@ -45,6 +45,8 @@ extern U16 METER_FW_UP_ING_CNT;
 extern U8 PULSE_DIR_MODIFY_BACK;
 extern bool init_mif_task_firm_up;
 extern U8 g_meter_fw_chk_sum_err;
+extern uint8_t g_get_hash[IMAGE_HASH_SIZE];
+extern ST_FW_INFO sun_fw_info;
 
 uint32_t g_pre_sector = 0;
 
@@ -1864,7 +1866,39 @@ static void ob_fwimage_transfer_cmd(uint8_t method, int idx)
                         appl_resp_result = ACT_RESULT_OTHER;
                     }
                 }
-                else // 내장, 외장
+                else if (fw_type == FW_DL_INT_MDM)  // SUN
+                {
+                    uint8_t* phash =
+                        dsm_imgtrfr_get_hash(IMG__FW);  // get and set hash
+
+                    dsm_atcmd_if_is_valid(MEDIA_RUN_SUN, true);  // sha256
+
+                    memset(g_get_hash, 0x00, IMAGE_HASH_SIZE);
+                    vTaskDelay(100);
+                    dsm_atcmd_if_is_valid(MEDIA_RUN_SUN, true);  // sha256
+                    // 상호간 비교
+                    if (!memcmp(phash, g_get_hash, IMAGE_HASH_SIZE))
+                    {
+                        dsm_imgtrfr_set_transfer_status(
+                            img_type, IMGTR_S_VERIFY_SUCCESSFUL);
+                        DPRINTF(DBG_WARN,
+                                _D "FW image verified HASH SUCCESS!!!\r\n");
+                    }
+                    else  // ERROR // 서로 다르면 verify error
+                    {
+                        dsm_imgtrfr_set_transfer_status(img_type,
+                                                        IMGTR_S_VERIFY_FAILED);
+                        DPRINTF(DBG_ERR,
+                                _D "FW image verify HASH cal fail!!! \r\n");
+                        appl_resp_result = ACT_RESULT_OTHER;
+                    }
+
+                    DPRINT_HEX(DBG_TRACE, "fw_info.hash(AMIGO)", phash,
+                               IMAGE_HASH_SIZE, DUMP_ALWAYS);
+                    DPRINT_HEX(DBG_TRACE, "SUN -> g_get_hash", g_get_hash,
+                               IMAGE_HASH_SIZE, DUMP_ALWAYS);
+                }
+                else  // 외장
                 {
                     dsm_imgtrfr_set_transfer_status(img_type,
                                                     IMGTR_S_VERIFY_SUCCESSFUL);

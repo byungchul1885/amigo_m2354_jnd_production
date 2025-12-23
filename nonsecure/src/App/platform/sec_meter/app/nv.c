@@ -290,8 +290,6 @@ char* dsm_nv_item_string(nv_item_type nv_item)
         return "EXT_MODEM_ID";
     case I_STOCK_OP_TIMES:
         return "STOCK_OP_TIMES";
-    case I_EXTN_CLEAR:
-        return "EXTN CLEAR";
     case I_MT_CONFIG_2:
         return "MT_CONFIG_2";
     case I_ZCD_RESULT_TIME:
@@ -480,12 +478,6 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
         nv_pos = (uint32_t)&(nv_type_ptr->init_start);
         nv_size = (uint16_t)(((uint32_t)&nv_type_ptr->init_stop) - nv_pos);
         DPRINTF(DBG_TRACE, _D "%s I_ALL_CLEAR[%d]\r\n", __func__, nv_size);
-        break;
-
-    case I_EXTN_CLEAR:
-        nv_pos = (uint32_t)&(nv_type_ptr->init_extn_start);
-        nv_size = (uint16_t)(((uint32_t)&nv_type_ptr->init_extn_stop) - nv_pos);
-        DPRINTF(DBG_TRACE, _D "%s I_EXTN_CLEAR[%d]\r\n", __func__, nv_size);
         break;
 
     case I_SAG_FLAG:
@@ -1363,7 +1355,7 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
 
     eep_wp_disable();
 
-    if (nv_item == I_ALL_CLEAR || nv_item == I_EXTN_CLEAR)
+    if (nv_item == I_ALL_CLEAR)
     {
         if (WMStatus_intern & (GE_MEM | GE_MEM1))
         {

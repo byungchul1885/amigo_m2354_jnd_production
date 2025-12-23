@@ -57,14 +57,38 @@
 #define SOFTWARE_METER_PART 0x33
 
 #define SOFTWARE_VERSION_H '3'
-#define SOFTWARE_VERSION_L '6'
+#define SOFTWARE_VERSION_L '8'
 
 #define SOFTWARE_DATE_YYH '2'
 #define SOFTWARE_DATE_YYL '5'
 #define SOFTWARE_DATE_MMH '1'
 #define SOFTWARE_DATE_MML '2'
-#define SOFTWARE_DATE_DDH '1'
-#define SOFTWARE_DATE_DDL '9'
+#define SOFTWARE_DATE_DDH '2'
+#define SOFTWARE_DATE_DDL '3'
+
+#if 1  // jp.kim 251220  계량부 관리 구분
+//==============================================================================
+// meter H/W 버전
+//==============================================================================
+#define METER_HW_VERSION '1'
+#endif
+#if 1  // jp.kim 251219  sun fw_info 관리 방법 변경 -> 운영부가 관리함.
+//==============================================================================
+// sun H/W 버전
+//==============================================================================
+#define INMODEM_HW_VERSION '1'
+//==============================================================================
+// sun F/W 버전및 날짜  업 시 매번 변경
+//==============================================================================
+#define INMODEM_VERSION_H '0'  // 0x30 // '0'
+#define INMODEM_VERSION_L '1'  // 0x30 // '0'
+#define INMODEM_DATE_YYH '2'
+#define INMODEM_DATE_YYL '5'
+#define INMODEM_DATE_MMH '0'
+#define INMODEM_DATE_MML '4'
+#define INMODEM_DATE_DDH '1'
+#define INMODEM_DATE_DDL '6'
+#endif
 
 #define OUT_OF_PERIOD_DEMAND_RESET
 

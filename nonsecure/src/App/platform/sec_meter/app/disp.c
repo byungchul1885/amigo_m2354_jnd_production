@@ -94,6 +94,7 @@ typedef enum /* digit_font_b[LDIGIT_NUM] */
 void mif_meter_parm_set(void);
 void lcd_ASSOCIATED_disp(void);
 void dsp_cal_mem_bk_state(void);
+void dsp_sun_version_error(void);
 
 extern ST_MTP_CON g_st_mtp_con;
 extern ratekind_type rtkind_bakup;
@@ -142,6 +143,7 @@ uint8_t dsp_test_mode_index;
 
 bool dr_dsp, r_sun_dsp, dsp_comm_ing;
 bool on_sun_dsp;
+bool dsp_sun_ver_err_ing;
 uint8_t blink_timer;
 
 bool dispinp_err;
@@ -817,6 +819,7 @@ void disp_init(void)
     dr_dsp = 0;
     dsp_cal_mode_ing = false;
     dsp_cal_mode_end = false;
+    dsp_sun_ver_err_ing = false;
     dsp_cal_st_ing = false;
     r_sun_dsp = 0;
     on_sun_dsp = 0;
@@ -1041,6 +1044,14 @@ static void dsp_state_monitor(void)
             dsp_cal_mode_end = false;
         }
     }
+
+    if (dsp_sun_ver_err_ing)
+    {
+        if (dsp_sun_ver_err_is_ing_timeout())
+        {
+            dsp_sun_ver_err_ing = false;
+        }
+    }
 }
 
 static bool dsp_update_q(void)
@@ -1115,6 +1126,8 @@ void disp_proc(void)
         tdsp = DISP_CAL_END_STATE;
     else if (dsp_cal_mode_end)  // cal 종료 표시
         tdsp = DISP_CAL_MEM_BK_STATE;
+    else if (dsp_sun_ver_err_ing)
+        tdsp = DISP_SUN_VER_INIT_ERR_STATE;
     else
         tdsp = disp_state;
 
@@ -1147,14 +1160,21 @@ void disp_proc(void)
     case DISP_R_SUN_STATE:
         dsp_r_sun_state();
         break;
+
     case DISP_ON_SUN_STATE:
         dsp_on_sun_state();
         break;
+
     case DISP_CAL_END_STATE:  // 전류 표시
         dsp_cal_end_state();
         break;
+
     case DISP_CAL_MEM_BK_STATE:  // cal 종료 표시
         dsp_cal_mem_bk_state();
+        break;
+
+    case DISP_SUN_VER_INIT_ERR_STATE:
+        dsp_sun_version_error();
         break;
     }
 
@@ -1195,6 +1215,18 @@ void dsp_cal_end_state(void)
 
     dsp_digit((int32_t)(get_inst_curr(0) * 1000.0), 6, 3, true);
     dsp_unit = eUnitA;
+}
+
+void dsp_sun_version_error(void)
+{
+    dsp_var_init();
+
+    lcd_digit_buf[2] = LDIGIT_S;
+    lcd_digit_buf[3] = LDIGIT_U;
+    lcd_digit_buf[4] = LDIGIT_n;
+    lcd_digit_buf[5] = LDIGIT_E;
+    lcd_digit_buf[6] = LDIGIT_r;
+    lcd_digit_buf[7] = LDIGIT_r;
 }
 
 void dsp_cal_mem_bk_state(void)

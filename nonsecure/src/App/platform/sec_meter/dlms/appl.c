@@ -100,7 +100,7 @@ static void appl_priv_pwd_retore(void);
 static void appl_485comm_pwd_retore(void);
 void lcd_ASSOCIATED_disp(void);
 void lcd_ASSOCIATED_disp_all_off(void);
-extern void factory_addtional_reset(void);
+extern bool factory_addtional_reset(void);
 
 #define UTIL_PWD_SIZE 8
 const uint8_t util_pwd_default[UTIL_PWD_SIZE] = {'1', 'A', '2', 'B',
@@ -3221,24 +3221,19 @@ void dsm_meter_reset_timer_proc(void)
     }
 }
 
-static void nv_extn_clear(void) { nv_write(I_EXTN_CLEAR, (uint8_t*)NULL); }
-
 void whm_clear_all(bool is_factory)
 {
     DPRINTF(DBG_TRACE, "%s: factory[%d]\r\n", __func__, is_factory);
 
+    bool factory_addtional_reset_err = 0;
     if (is_factory)  // product   //jp.kim 24.11.07
     {
-        factory_addtional_reset();  // jp.kim 24.11.07
+        factory_addtional_reset_err =
+            factory_addtional_reset();  // jp.kim 24.11.07
     }
     else
     {
         no_inst_curr_chk_zon_cnt = 10;
-        DPRINTF(DBG_ERR,
-                _D
-                "%s:  no_inst_curr_chk_zon_cnt = 10; "
-                "no_inst_curr_chk_zon_cnt[%d]\r\n",
-                __func__, no_inst_curr_chk_zon_cnt);
     }
 
     ST_FW_INFO fwinfo = {0};
@@ -3295,10 +3290,12 @@ void whm_clear_all(bool is_factory)
         nv_header_set(NV_COMM_INITED);
     }
 
-    nv_extn_clear();
     lp_clear();
 
     dsm_uart_deq_string(DEBUG_COM);
+
+    if (factory_addtional_reset_err)
+        return;
 
 #if 0 /* bccho, 2023-11-16, 계기 초기화 시 리붓하지 않는다.  --> 다시 리붓 \
          적용 (2023-11-26) */

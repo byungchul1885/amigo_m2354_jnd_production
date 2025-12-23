@@ -89,6 +89,7 @@ enum
     E_TMR_SAGSWE_SET_WAIT_MIF,  // 25.03.12 jp.kim
 #endif
     E_TMR_DSP_CAL_END,
+    E_TMR_DSP_SUN_VER_ERR,
     NUM_TMR
 };
 
@@ -173,6 +174,9 @@ extern uint32_t scurr_limit_timer;
 #define dsp_cal_st_is_ing_timeset(x) (timer_table[E_TMR_DSP_CAL_ST] = x)
 #define dsp_cal_end_is_ing_timeout() (timer_table[E_TMR_DSP_CAL_END] == 0)
 #define dsp_cal_end_is_ing_timeset(x) (timer_table[E_TMR_DSP_CAL_END] = x)
+#define dsp_sun_ver_err_is_ing_timeout() \
+    (timer_table[E_TMR_DSP_SUN_VER_ERR] == 0)
+#define dsp_sun_ver_err_ing_timeset(x) (timer_table[E_TMR_DSP_SUN_VER_ERR] = x)
 #define meter_firmup_delay_timeout() (timer_table[E_TMR_MET_FWUP_ING] == 0)
 #define meter_firmup_delay_timeset(x) (timer_table[E_TMR_MET_FWUP_ING] = x)
 #define init_mif_task_timeout() (timer_table[E_TMR_INIT_MIF_TASK] == 0)
