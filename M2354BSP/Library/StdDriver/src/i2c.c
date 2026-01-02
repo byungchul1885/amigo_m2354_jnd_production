@@ -1345,8 +1345,8 @@ uint32_t I2C_ReadMultiBytesOneReg(I2C_T *i2c, uint8_t u8SlaveAddr, uint8_t u8Dat
     I2C_START(i2c);                                                /* Send START */
     while(u8Xfering && (u8Err == 0u))
     {
-        I2C_WAIT_READY(i2c)
         u32TimeOutCount = I2C_TIMEOUT;
+        I2C_WAIT_READY(i2c)
         {
             if(--u32TimeOutCount == 0)
             {

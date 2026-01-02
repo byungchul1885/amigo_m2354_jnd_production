@@ -60,6 +60,15 @@ extern ST_MTP_CAL_DATA monitor_mtp_caldata;
 extern ST_MIF_METER_PARM monitor_mtp_meter_parm;
 extern ST_MIF_SAGSWELL_SETUP monitor_mtp_sagswell;
 
+#if PHASE_NUM != SINGLE_PHASE
+U8 phase_fail_sts[3] = {
+    0,
+};
+U8 phase_fail_back[3] = {
+    0,
+};
+#endif
+
 bool init_mif_task_set = 0;
 U8 init_mif_task_seq = 0;
 bool init_mif_task_firm_up = 0;
@@ -1413,6 +1422,15 @@ void outputs_for_mon(void)
 #else
     sag_det_cnt = p_pushdata->sag_count;
     swell_det_cnt = p_pushdata->swell_count;
+#endif
+
+#if PHASE_NUM != SINGLE_PHASE
+    phase_fail_back[0] = phase_fail_sts[0];
+    phase_fail_back[1] = phase_fail_sts[1];
+    phase_fail_back[2] = phase_fail_sts[2];
+    phase_fail_sts[0] = p_pushdata->phase_fail_a;
+    phase_fail_sts[1] = p_pushdata->phase_fail_b;
+    phase_fail_sts[2] = p_pushdata->phase_fail_c;
 #endif
 
     /* bccho, 2024-09-05, 삼상 */

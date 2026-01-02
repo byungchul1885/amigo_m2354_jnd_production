@@ -8,6 +8,8 @@
 */
 #include "main.h"
 #include "amg_mif_prtl.h"
+#include "options_def.h"
+
 /*
 ******************************************************************************
 *	DEFINITION
@@ -166,6 +168,12 @@ typedef struct _mtp_push_data_t
     uint8_t swell_count;
     float temp;
     uint8_t cal_disp_sts;
+
+#if PHASE_NUM != SINGLE_PHASE
+    uint8_t phase_fail_a;
+    uint8_t phase_fail_b;
+    uint8_t phase_fail_c;
+#endif
 } ST_MTP_PUSH_DATA;
 
 typedef struct _mtp_cal_start_t

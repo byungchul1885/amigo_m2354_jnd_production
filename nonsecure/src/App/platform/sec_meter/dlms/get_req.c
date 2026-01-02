@@ -129,7 +129,6 @@ static void ob_counter_billing(void);
 static void ob_num_avail_billing(void);
 static void ob_custom_id(void);
 static void ob_manuf_id(void);
-static void ob_manuf_id_old(void);
 static void ob_prog_id(void);
 static void ob_mtconst_active(void);
 static void ob_mtconst_reactive(void);
@@ -7131,10 +7130,6 @@ static void approc_fill_get_resp_normal(void)
         {
             ob_manuf_id();
         }
-        else if (appl_obis.id[GROUP_E] == 0x01)
-        {
-            ob_manuf_id_old();
-        }
         break;
 
     case OBJ_PGM_ID:
@@ -9657,21 +9652,6 @@ static void ob_manuf_id(void)
     fill_octet_string_x(appl_tbuff, MANUF_ID_SIZE);
 }
 
-static void ob_manuf_id_old(void)
-{
-    /*
-    구형 모뎀 연계용 미터 ID (7byte) : byte 4, 5번의 "00"을 ASCII로 표기, 0 0 0
-    0 0 5 3
-    */
-    DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
-
-    memset(appl_tbuff, '0', MANUF_ID_SIZE);
-
-    appl_tbuff[5] = (METER_ID / 10) + '0';
-    appl_tbuff[6] = (METER_ID % 10) + '0';
-
-    fill_octet_string_x(appl_tbuff, MANUF_ID_SIZE_OLD);
-}
 static void ob_prog_id(void)
 {
     /*
@@ -13177,6 +13157,52 @@ static void ob_lcdset_parm(void)
     }
 }
 
+void sap_sec_logical_device_name_r(uint8_t* dev_id)
+{
+    DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
+
+    if (!nv_read(I_DEVICE_ID, dev_id))
+    {
+        memcpy(dev_id, &logical_device_name_r[0], DEVICE_ID_SIZE);
+    }
+    else
+    {
+        ////JP.KIM 24.11.08	1) 생산프로그램 PROTOCOL을 dlms 방식으로 변경
+        dev_id[0] = FLAG_ID1;
+        dev_id[1] = FLAG_ID2;
+        dev_id[2] = FLAG_ID3;
+        // dev_id[3] = '_';
+        // dev_id[14] = '_';
+        // dev_id[15] = '_';
+        dev_id[13] = logical_device_name_r_kepco[13];
+        dev_id[14] = logical_device_name_r_kepco[14];
+        dev_id[15] = logical_device_name_r_kepco[15];
+    }
+}
+
+void sap_nosec_logical_device_name_r(uint8_t* dev_id)
+{
+    DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
+
+    if (!nv_read(I_DEVICE_ID, dev_id))
+    {
+        memcpy(dev_id, &logical_device_name_r[0], DEVICE_ID_SIZE);
+    }
+    else
+    {
+        ////JP.KIM 24.11.08 1) 생산프로그램 PROTOCOL을 dlms 방식으로 변경
+        dev_id[0] = FLAG_ID1;
+        dev_id[1] = FLAG_ID2;
+        dev_id[2] = FLAG_ID3;
+        // dev_id[3] = '_';
+        // dev_id[14] = '_';
+        // dev_id[15] = '_';
+        dev_id[13] = logical_device_name_r[13];
+        dev_id[14] = logical_device_name_r[14];
+        dev_id[15] = logical_device_name_r[15];
+    }
+}
+
 void ob_device_id(void)
 {
     /*
@@ -13187,7 +13213,7 @@ void ob_device_id(void)
 
     LDN: Logical Device Name
     */
-    device_id_type dev;
+    uint8_t dev_id[16];
 
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
 
@@ -13197,44 +13223,18 @@ void ob_device_id(void)
     case SAP_SEC_SITE:
     case SAP_PRIVATE:  ////JP.KIM 24.11.08	1) 생산프로그램 PROTOCOL을 dlms
                        /// 방식으로 변경
-        if (!nv_read(I_DEVICE_ID_KEPCO, (U8*)&dev))
-        {
-            memcpy(dev.devid, &logical_device_name_r_kepco[0], DEVICE_ID_SIZE);
-        }
-        else
-        {
-            ////JP.KIM 24.11.08	1) 생산프로그램 PROTOCOL을 dlms 방식으로
-            /// 변경
-            dev.devid[0] = FLAG_ID1;
-            dev.devid[1] = FLAG_ID2;
-            dev.devid[2] = FLAG_ID3;
-            dev.devid[13] = logical_device_name_r_kepco[13];
-            dev.devid[14] = logical_device_name_r_kepco[14];
-            dev.devid[15] = logical_device_name_r_kepco[15];
-        }
-        break;
+        sap_sec_logical_device_name_r(dev_id);
 
+        break;
     default:
-        if (!nv_read(I_DEVICE_ID, (U8*)&dev))
-        {
-            memcpy(dev.devid, &logical_device_name_r[0], DEVICE_ID_SIZE);
-        }
-        else
-        {
-            ////JP.KIM 24.11.08	1) 생산프로그램 PROTOCOL을 dlms 방식으로
-            /// 변경
-            dev.devid[0] = FLAG_ID1;
-            dev.devid[1] = FLAG_ID2;
-            dev.devid[2] = FLAG_ID3;
-            dev.devid[13] = logical_device_name_r[13];
-            dev.devid[14] = logical_device_name_r[14];
-            dev.devid[15] = logical_device_name_r[15];
-        }
+
+        sap_nosec_logical_device_name_r(dev_id);
 
         break;
     }
-    fill_octet_string_x(dev.devid, DEVICE_ID_SIZE);
-    DPRINT_HEX(DBG_TRACE, "LDN", dev.devid, DEVICE_ID_SIZE,
+
+    fill_octet_string_x(dev_id, DEVICE_ID_SIZE);
+    DPRINT_HEX(DBG_TRACE, "LDN", dev_id, DEVICE_ID_SIZE,
                DUMP_ALWAYS);  // Logical Device Name
 }
 
@@ -15315,10 +15315,9 @@ static void ob_sap_assignment(void)
         t16 = SAP_ASSIGN_DEV_MANAGEMENT;
         FILL_U16(t16);
         FILL_STRING(DEVICE_ID_SIZE);
-        if (!nv_read(I_DEVICE_ID, (uint8_t*)&dev_id[0]))
-        {
-            memcpy(dev_id, &logical_device_name_r[0], DEVICE_ID_SIZE);
-        }
+
+        sap_nosec_logical_device_name_r(dev_id);
+
         memcpy(&pPdu[pPdu_idx], dev_id, DEVICE_ID_SIZE);
         pPdu_idx += DEVICE_ID_SIZE;
 
@@ -15326,10 +15325,9 @@ static void ob_sap_assignment(void)
         t16 = SAP_ASSIGN_KEPCO_MANAGEMENT;
         FILL_U16(t16);
         FILL_STRING(DEVICE_ID_SIZE);
-        if (!nv_read(I_DEVICE_ID_KEPCO, (uint8_t*)&dev_id[0]))
-        {
-            memcpy(dev_id, &logical_device_name_r_kepco[0], DEVICE_ID_SIZE);
-        }
+
+        sap_sec_logical_device_name_r(dev_id);
+        
         memcpy(&pPdu[pPdu_idx], dev_id, DEVICE_ID_SIZE);
         pPdu_idx += DEVICE_ID_SIZE;
 

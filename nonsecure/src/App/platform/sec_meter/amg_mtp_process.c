@@ -170,8 +170,8 @@ void dsp_cal_st_is_ing_set(void);
 void dsp_cal_mode_is_ing_set(void);
 void dsp_cal_end_state(void);
 void dsm_mtp_meter_fw_download_finish(void);
-void dsm_mif_setreq_fw_data(uint8_t *pdata, uint16_t length);
-void dsm_mif_getreq_fw_data(uint8_t *pdata, uint16_t length);
+void dsm_mif_setreq_fw_data(uint8_t* pdata, uint16_t length);
+void dsm_mif_getreq_fw_data(uint8_t* pdata, uint16_t length);
 void afe_init_start(void);
 void dsm_mif_getreq_sagswell_data(void);
 #ifdef MTP_ZCD_ON_OFF
@@ -184,7 +184,7 @@ void dsm_mif_actreq_zcdoff(void);
 ******************************************************************************
 */
 
-char *dsm_mtp_fw_err_string(int32_t mode)
+char* dsm_mtp_fw_err_string(int32_t mode)
 {
     switch (mode)
     {
@@ -229,7 +229,7 @@ char *dsm_mtp_fw_err_string(int32_t mode)
     }
 };
 
-char *dsm_mtp_fw_type_string(uint32_t mode)
+char* dsm_mtp_fw_type_string(uint32_t mode)
 {
     switch (mode)
     {
@@ -247,7 +247,7 @@ char *dsm_mtp_fw_type_string(uint32_t mode)
     }
 }
 
-char *dsm_mtp_op_mode_string(uint32_t mode)
+char* dsm_mtp_op_mode_string(uint32_t mode)
 {
     switch (mode)
     {
@@ -261,7 +261,7 @@ char *dsm_mtp_op_mode_string(uint32_t mode)
     }
 }
 
-char *dsm_mtp_fsm_string(uint32_t fsm)
+char* dsm_mtp_fsm_string(uint32_t fsm)
 {
     switch (fsm)
     {
@@ -296,29 +296,29 @@ char *dsm_mtp_fsm_string(uint32_t fsm)
     }
 }
 
-ST_MIF_CAL_DATA *dsm_mtp_get_cal_data(void)
+ST_MIF_CAL_DATA* dsm_mtp_get_cal_data(void)
 {
-    return (ST_MIF_CAL_DATA *)(&g_mtp_caldata);
+    return (ST_MIF_CAL_DATA*)(&g_mtp_caldata);
 }
 
-ST_MTP_PUSH_DATA *dsm_mtp_get_push_data(void) { return &g_mtp_pushdata; }
+ST_MTP_PUSH_DATA* dsm_mtp_get_push_data(void) { return &g_mtp_pushdata; }
 
-ST_MIF_CAL_START *dsm_mtp_get_cal_start(void) { return &g_mtp_cal_start; }
+ST_MIF_CAL_START* dsm_mtp_get_cal_start(void) { return &g_mtp_cal_start; }
 
-ST_MIF_METER_PARM *dsm_mtp_get_meter_parm(void) { return &g_mtp_meter_parm; }
+ST_MIF_METER_PARM* dsm_mtp_get_meter_parm(void) { return &g_mtp_meter_parm; }
 
-ST_MIF_SAGSWELL_SETUP *dsm_mtp_get_sagswell(void) { return &g_mtp_sagswell; }
+ST_MIF_SAGSWELL_SETUP* dsm_mtp_get_sagswell(void) { return &g_mtp_sagswell; }
 
-ST_MIF_ZBM_FW_DATA *dsm_mtp_get_zbm_fw_data(void)  // sjan 20200911 for zbm
+ST_MIF_ZBM_FW_DATA* dsm_mtp_get_zbm_fw_data(void)  // sjan 20200911 for zbm
 {
     return &g_mtp_zbm_fw;
 }
 
-uint8_t dsm_mtp_rx_cal_data(uint8_t length, uint8_t *p_body)
+uint8_t dsm_mtp_rx_cal_data(uint8_t length, uint8_t* p_body)
 {
     cal_data_type cal;
     uint8_t op_mode = dsm_mtp_get_op_mode();
-    ST_MIF_CAL_DATA_ARR *p_caldata = (ST_MIF_CAL_DATA_ARR *)p_body;
+    ST_MIF_CAL_DATA_ARR* p_caldata = (ST_MIF_CAL_DATA_ARR*)p_body;
     ST_MTP_CAL_DATA st_mtp_caldata;
     ST_MTP_CAL_DATA flash_g_mtp_caldata;
 
@@ -381,7 +381,7 @@ uint8_t dsm_mtp_rx_cal_data(uint8_t length, uint8_t *p_body)
                         cal.T_cal_v2 = g_mtp_caldata.t_voltage_gain;
                         cal.T_cal_p2 = g_mtp_caldata.t_phase_gain;
 
-                        nv_write(I_CAL_DATA, (U8 *)&cal);
+                        nv_write(I_CAL_DATA, (U8*)&cal);
 
                         // LCD 전류 표시 종료
                         dsp_cal_mode_ing = false;
@@ -410,9 +410,9 @@ uint8_t dsm_mtp_rx_cal_data(uint8_t length, uint8_t *p_body)
     return TRUE;
 }
 
-uint8_t dsm_mtp_rx_meterParam_data(uint8_t length, uint8_t *p_body)
+uint8_t dsm_mtp_rx_meterParam_data(uint8_t length, uint8_t* p_body)
 {
-    uint8_t *ptr = p_body;
+    uint8_t* ptr = p_body;
     float fval;
     ST_MIF_METER_PARM p_prm;
 
@@ -420,13 +420,13 @@ uint8_t dsm_mtp_rx_meterParam_data(uint8_t length, uint8_t *p_body)
 
     memcpy(&p_prm.cut_voltage_thr[0], ptr, 4);
     ptr += 4;
-    ToHFloat((U8_Float *)&fval, &p_prm.cut_voltage_thr[0]);
+    ToHFloat((U8_Float*)&fval, &p_prm.cut_voltage_thr[0]);
     DPRINTF(DBG_TRACE, _D "cut_voltage: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
 
     memcpy(&p_prm.start_current_thr[0], ptr, 4);
     ptr += 4;
-    ToHFloat((U8_Float *)&fval, &p_prm.start_current_thr[0]);
+    ToHFloat((U8_Float*)&fval, &p_prm.start_current_thr[0]);
     DPRINTF(DBG_TRACE, _D "start_current_thr: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
 
@@ -453,9 +453,9 @@ uint8_t dsm_mtp_rx_meterParam_data(uint8_t length, uint8_t *p_body)
     return TRUE;
 }
 
-uint8_t dsm_mtp_rx_sagswell_data(uint8_t length, uint8_t *p_body)
+uint8_t dsm_mtp_rx_sagswell_data(uint8_t length, uint8_t* p_body)
 {
-    uint8_t *p_strim;
+    uint8_t* p_strim;
     ST_MIF_SAGSWELL_SETUP l_sagswell;
     float fval;
     uint16_t val;
@@ -465,20 +465,20 @@ uint8_t dsm_mtp_rx_sagswell_data(uint8_t length, uint8_t *p_body)
     DPRINT_HEX(DBG_INFO, "SagSwell:", p_body, length, DUMP_ALWAYS);
 
     memcpy(&l_sagswell.pf_level[0], p_strim, 4);
-    ToHFloat((U8_Float *)&fval, &l_sagswell.pf_level[0]);
+    ToHFloat((U8_Float*)&fval, &l_sagswell.pf_level[0]);
     p_strim += 4;
 
     DPRINTF(DBG_TRACE, _D "pf_level float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
 
-    ToH16((U8_16_32 *)&val, p_strim);
+    ToH16((U8_16_32*)&val, p_strim);
     l_sagswell.pf_continue_time = dsm_htons(val);
     DPRINTF(DBG_INFO, "pf_continue_time:[0x%04X]\r\n",
             l_sagswell.pf_continue_time);
     p_strim += 2;
 
     memcpy(&l_sagswell.sag_level[0], p_strim, 4);
-    ToHFloat((U8_Float *)&fval, &l_sagswell.sag_level[0]);
+    ToHFloat((U8_Float*)&fval, &l_sagswell.sag_level[0]);
     DPRINTF(DBG_TRACE, _D "sag_level float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     p_strim += 4;
@@ -488,7 +488,7 @@ uint8_t dsm_mtp_rx_sagswell_data(uint8_t length, uint8_t *p_body)
     DPRINTF(DBG_TRACE, _D "sag_time: 0x%02X\r\n", l_sagswell.sag_time);
 
     memcpy(&l_sagswell.swell_level[0], p_strim, 4);
-    ToHFloat((U8_Float *)&fval, &l_sagswell.swell_level[0]);
+    ToHFloat((U8_Float*)&fval, &l_sagswell.swell_level[0]);
     DPRINTF(DBG_TRACE, _D "swell_level float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     p_strim += 4;
@@ -507,18 +507,18 @@ uint8_t dsm_mtp_rx_sagswell_data(uint8_t length, uint8_t *p_body)
     return TRUE;
 }
 
-uint8_t dsm_mtp_meter_fwinfo_update(uint8_t length, uint8_t *p_body)
+uint8_t dsm_mtp_meter_fwinfo_update(uint8_t length, uint8_t* p_body)
 {
     ST_FW_INFO fwinfo;
 
     DPRINT_HEX(DBG_INFO, "Rx Meter firm ver:", p_body, length, DUMP_ALWAYS);
 
-    dsm_imgtrfr_fwinfo_read((uint8_t *)&fwinfo, FWINFO_CUR_METER);
+    dsm_imgtrfr_fwinfo_read((uint8_t*)&fwinfo, FWINFO_CUR_METER);
 
-    if (memcmp(p_body, (uint8_t *)&fwinfo.mt_type[0], IMAGE_FW_NAME_MAX_SIZE))
+    if (memcmp(p_body, (uint8_t*)&fwinfo.mt_type[0], IMAGE_FW_NAME_MAX_SIZE))
     {
-        memcpy((uint8_t *)&fwinfo.mt_type[0], p_body, IMAGE_FW_NAME_MAX_SIZE);
-        dsm_imgtrfr_fwinfo_write((uint8_t *)&fwinfo, FWINFO_CUR_METER);
+        memcpy((uint8_t*)&fwinfo.mt_type[0], p_body, IMAGE_FW_NAME_MAX_SIZE);
+        dsm_imgtrfr_fwinfo_write((uint8_t*)&fwinfo, FWINFO_CUR_METER);
     }
     return TRUE;
 }
@@ -576,12 +576,12 @@ void push_data_user_back_up_data_for_meter_fwup(void)
     }
 }
 
-uint8_t dsm_mtp_rx_push_measure_data(uint8_t length, uint8_t *p_body)
+uint8_t dsm_mtp_rx_push_measure_data(uint8_t length, uint8_t* p_body)
 {
     uint8_t cnt;
 
-    float *pfloat = &g_mtp_pushdata.r_voltage;
-    float *fval;  // g_mtp_pushdata
+    float* pfloat = &g_mtp_pushdata.r_voltage;
+    float* fval;  // g_mtp_pushdata
     uint32_t ch_count = dsm_get_dm_out_measure_print_chkcount();
 
 #if 0 /* bccho, 2024-06-24, delete */
@@ -614,7 +614,7 @@ uint8_t dsm_mtp_rx_push_measure_data(uint8_t length, uint8_t *p_body)
     for (cnt = 0; cnt < 47; cnt++)  // 47 is float count of measured data
     {
         fval = (pfloat + cnt);
-        ToHFloat((U8_Float *)fval, (p_body + cnt * 4));
+        ToHFloat((U8_Float*)fval, (p_body + cnt * 4));
 
 #if 0 /* bccho, 2024-06-24, delete */
         /* bccho, 2024-06-17, 김종필대표 패치 적용 */
@@ -677,7 +677,7 @@ uint8_t dsm_mtp_rx_push_measure_data(uint8_t length, uint8_t *p_body)
 
     pfloat = &g_mtp_pushdata.temp;
     fval = (pfloat);
-    ToHFloat((U8_Float *)fval, (p_body + cnt * 4 + 2));
+    ToHFloat((U8_Float*)fval, (p_body + cnt * 4 + 2));
 
     push_data_user_back_up_data_for_meter_fwup();
 
@@ -690,6 +690,20 @@ uint8_t dsm_mtp_rx_push_measure_data(uint8_t length, uint8_t *p_body)
     {
         dsp_cal_mode_is_ing_set();
     }
+
+#if PHASE_NUM != SINGLE_PHASE
+    //(p_body 읽기) 지우면 안됨 -> 동작안함.
+    g_mtp_pushdata.phase_fail_a = *(p_body + cnt * 4 + 7);
+    g_mtp_pushdata.phase_fail_b = *(p_body + cnt * 4 + 8);
+    g_mtp_pushdata.phase_fail_c = *(p_body + cnt * 4 + 9);
+
+    DPRINTF(
+        DBG_INFO,
+        _D
+        "phase_fail_a[0x%02X], phase_fail_b[0x%02X] phase_fail_c[0x%02X] \r\n",
+        g_mtp_pushdata.phase_fail_a, g_mtp_pushdata.phase_fail_b,
+        g_mtp_pushdata.phase_fail_c);
+#endif
 
     return TRUE;
 }
@@ -725,10 +739,10 @@ void dsm_mtp_fsm_tx_proc_fw_data_act_runbank(uint8_t bank)
     dsm_mtp_fsm_tx_proc_fw_data_set(1, bank);
 }
 
-uint8_t dsm_mtp_rx_fw_get_data(uint8_t length, uint8_t *p_body, uint8_t type,
+uint8_t dsm_mtp_rx_fw_get_data(uint8_t length, uint8_t* p_body, uint8_t type,
                                uint8_t index)
 {
-    uint8_t *p_strim;
+    uint8_t* p_strim;
     uint32_t val;
     p_strim = p_body;
 
@@ -744,7 +758,7 @@ uint8_t dsm_mtp_rx_fw_get_data(uint8_t length, uint8_t *p_body, uint8_t type,
                     g_mtp_curr_running_bank);
         }
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         if ((int32_t)val > ZBM_ERROR_MAX)
         {
             DPRINTF(DBG_INFO, _D "ZBM Result: %ld\r\n", (int32_t)val);
@@ -758,7 +772,7 @@ uint8_t dsm_mtp_rx_fw_get_data(uint8_t length, uint8_t *p_body, uint8_t type,
     }
     else if (type == 1)
     {
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         if ((int32_t)val > ZBM_ERROR_MAX)
         {
             DPRINTF(DBG_INFO, _D "ZBM Result: %ld\r\n", (int32_t)val);
@@ -774,31 +788,31 @@ uint8_t dsm_mtp_rx_fw_get_data(uint8_t length, uint8_t *p_body, uint8_t type,
     {
         DPRINTF(DBG_INFO, _D "ZBDT(%d)\r\n", index);
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Table ID  : 0x%08X\r\n", val);
         p_strim += 4;
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Table Type: 0x%08X\r\n", val);
         p_strim += 4;
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Address   : 0x%08X\r\n", val);
         p_strim += 4;
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Length    : 0x%08X\r\n", val);
         p_strim += 4;
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Revision  : 0x%08X\r\n", val);
         p_strim += 4;
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Hardware  : 0x%08X\r\n", val);
         p_strim += 4;
 
-        ToH32((U8_16_32 *)&val, p_strim);
+        ToH32((U8_16_32*)&val, p_strim);
         DPRINTF(DBG_INFO, "Checksum  : 0x%08X\r\n", val);
         p_strim += 4;
     }
@@ -806,13 +820,13 @@ uint8_t dsm_mtp_rx_fw_get_data(uint8_t length, uint8_t *p_body, uint8_t type,
     return TRUE;
 }
 
-uint16_t dsm_mtp_rx_fw_set_data(uint8_t length, uint8_t *p_body)
+uint16_t dsm_mtp_rx_fw_set_data(uint8_t length, uint8_t* p_body)
 {
-    uint8_t *p_strim;
+    uint8_t* p_strim;
     uint16_t val;
     p_strim = p_body;
 
-    ToH16((U8_16_32 *)&val, p_strim);
+    ToH16((U8_16_32*)&val, p_strim);
     p_strim += 2;
 
     g_st_mtp_con.TO_retry = 0;
@@ -895,26 +909,26 @@ void dsm_mtp_init(void)
     memset(&g_mtp_sagswell, 0x00, sizeof(g_mtp_sagswell));
     memset(&g_mtp_sagswell_stop, 0x00, sizeof(g_mtp_sagswell_stop));
 
-    if (!nv_read(I_MTP_CAL_POINT, (uint8_t *)&st_mtp_cal_point))
+    if (!nv_read(I_MTP_CAL_POINT, (uint8_t*)&st_mtp_cal_point))
     {
         dsm_mtp_default_cal_point(&st_mtp_cal_point);
     }
 
-    memcpy((uint8_t *)&g_mtp_cal_start, (uint8_t *)&st_mtp_cal_point.val,
+    memcpy((uint8_t*)&g_mtp_cal_start, (uint8_t*)&st_mtp_cal_point.val,
            sizeof(g_mtp_cal_start));
-    if (!nv_read(I_MTP_PARM, (uint8_t *)&st_mtp_parm))
+    if (!nv_read(I_MTP_PARM, (uint8_t*)&st_mtp_parm))
     {
         dsm_mtp_default_parm(&st_mtp_parm);
         PwOn_1st_parm_set = TRUE;
     }
 
-    ToHFloat((U8_Float *)&fval, (uint8_t *)&st_mtp_parm.val.cut_voltage_thr[0]);
+    ToHFloat((U8_Float*)&fval, (uint8_t*)&st_mtp_parm.val.cut_voltage_thr[0]);
     if (fval <= 10.0)
     {
         dsm_mtp_default_parm(&st_mtp_parm);
         PwOn_1st_parm_set = TRUE;
     }
-    memcpy((uint8_t *)&g_mtp_meter_parm, (uint8_t *)&st_mtp_parm.val,
+    memcpy((uint8_t*)&g_mtp_meter_parm, (uint8_t*)&st_mtp_parm.val,
            sizeof(g_mtp_meter_parm));
     DPRINTF(DBG_TRACE, _D "cut_Vol hex: %02X:%02X:%02X:%02X\r\n",
             g_mtp_meter_parm.cut_voltage_thr[0],
@@ -922,27 +936,27 @@ void dsm_mtp_init(void)
             g_mtp_meter_parm.cut_voltage_thr[2],
             g_mtp_meter_parm.cut_voltage_thr[3]);
 
-    if (!nv_read(I_MTP_SAG_SWELL, (uint8_t *)&st_mtp_sagswell))
+    if (!nv_read(I_MTP_SAG_SWELL, (uint8_t*)&st_mtp_sagswell))
     {
         dsm_mtp_default_sagswell(&st_mtp_sagswell);
         PwOn_1st_parm_set = TRUE;
     }
 
-    ToHFloat((U8_Float *)&fval, (uint8_t *)&st_mtp_sagswell.val.pf_level[0]);
+    ToHFloat((U8_Float*)&fval, (uint8_t*)&st_mtp_sagswell.val.pf_level[0]);
     if (fval < 30.0)
     {
         dsm_mtp_default_sagswell(&st_mtp_sagswell);
         PwOn_1st_parm_set = TRUE;
     }
-    memcpy((uint8_t *)&g_mtp_sagswell, (uint8_t *)&st_mtp_sagswell.val,
+    memcpy((uint8_t*)&g_mtp_sagswell, (uint8_t*)&st_mtp_sagswell.val,
            sizeof(g_mtp_sagswell));
 }
 
-void dsm_mtp_rx_process(uint8_t rsp, uint8_t length, uint8_t *p_body)
+void dsm_mtp_rx_process(uint8_t rsp, uint8_t length, uint8_t* p_body)
 {
     U8 i = 0;
     float fval = 0;
-    ST_MTP_PUSH_DATA *pushd = dsm_mtp_get_push_data();
+    ST_MTP_PUSH_DATA* pushd = dsm_mtp_get_push_data();
 
     uint16_t fw_len;
     uint8_t type = dsm_mtp_get_fw_type();
@@ -1126,7 +1140,7 @@ void dsm_mtp_rx_process(uint8_t rsp, uint8_t length, uint8_t *p_body)
     dsm_mtp_fsm_rx_proc(rsp);
 }
 
-void dsm_mtp_default_cal_point(ST_MTP_CAL_POINT *pst_mtp_cal_point)
+void dsm_mtp_default_cal_point(ST_MTP_CAL_POINT* pst_mtp_cal_point)
 {
     float fval;
     ST_MIF_CAL_START st_mif_cal_start;
@@ -1136,21 +1150,21 @@ void dsm_mtp_default_cal_point(ST_MTP_CAL_POINT *pst_mtp_cal_point)
     cal_point_init();
 
     fval = Vcal;
-    ToCommFloat(&st_mif_cal_start.ref_voltage[0], (U8_Float *)&fval);
+    ToCommFloat(&st_mif_cal_start.ref_voltage[0], (U8_Float*)&fval);
     DPRINTF(DBG_TRACE, _D "Vol hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_cal_start.ref_voltage[0], st_mif_cal_start.ref_voltage[1],
             st_mif_cal_start.ref_voltage[2], st_mif_cal_start.ref_voltage[3]);
     DPRINTF(DBG_TRACE, _D "Vol float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     fval = Ical;
-    ToCommFloat(&st_mif_cal_start.ref_current[0], (U8_Float *)&fval);
+    ToCommFloat(&st_mif_cal_start.ref_current[0], (U8_Float*)&fval);
     DPRINTF(DBG_TRACE, _D "Curr hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_cal_start.ref_current[0], st_mif_cal_start.ref_current[1],
             st_mif_cal_start.ref_current[2], st_mif_cal_start.ref_current[3]);
     DPRINTF(DBG_TRACE, _D "Curr float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     fval = theta_cal;
-    ToCommFloat(&st_mif_cal_start.ref_phase[0], (U8_Float *)&fval);
+    ToCommFloat(&st_mif_cal_start.ref_phase[0], (U8_Float*)&fval);
     DPRINTF(DBG_TRACE, _D "ref_phase hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_cal_start.ref_phase[0], st_mif_cal_start.ref_phase[1],
             st_mif_cal_start.ref_phase[2], st_mif_cal_start.ref_phase[3]);
@@ -1175,15 +1189,15 @@ void dsm_mtp_default_cal_point(ST_MTP_CAL_POINT *pst_mtp_cal_point)
             st_mif_cal_start.react_const, st_mif_cal_start.act_const,
             st_mif_cal_start.app_const);
 
-    memcpy((uint8_t *)&pst_mtp_cal_point->val, (uint8_t *)&st_mif_cal_start,
+    memcpy((uint8_t*)&pst_mtp_cal_point->val, (uint8_t*)&st_mif_cal_start,
            sizeof(ST_MIF_CAL_START));
 #if 1  // 부팅시 항상 NV에 write 함으로 제거 , metering part 에서 실제 cal point
        // 사용하지 않음.
-    nv_write(I_MTP_CAL_POINT, (uint8_t *)pst_mtp_cal_point);
+    nv_write(I_MTP_CAL_POINT, (uint8_t*)pst_mtp_cal_point);
 #endif
 }
 
-void dsm_mtp_default_parm(ST_MTP_PARM *pst_mtp_parm)
+void dsm_mtp_default_parm(ST_MTP_PARM* pst_mtp_parm)
 {
     float fval;
     ST_MIF_METER_PARM st_mif_meter_parm;
@@ -1192,7 +1206,7 @@ void dsm_mtp_default_parm(ST_MTP_PARM *pst_mtp_parm)
 
     fval = (80.0);
     ToCommFloat(&st_mif_meter_parm.cut_voltage_thr[0],
-                (U8_Float *)&fval);  // 80%
+                (U8_Float*)&fval);  // 80%
     DPRINTF(DBG_TRACE, _D "cut_Vol hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_meter_parm.cut_voltage_thr[0],
             st_mif_meter_parm.cut_voltage_thr[1],
@@ -1203,7 +1217,7 @@ void dsm_mtp_default_parm(ST_MTP_PARM *pst_mtp_parm)
 
     fval = (0.015);
     ToCommFloat(&st_mif_meter_parm.start_current_thr[0],
-                (U8_Float *)&fval);  // 15mA
+                (U8_Float*)&fval);  // 15mA
     DPRINTF(DBG_TRACE, _D "cut_Curr hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_meter_parm.start_current_thr[0],
             st_mif_meter_parm.start_current_thr[1],
@@ -1224,12 +1238,12 @@ void dsm_mtp_default_parm(ST_MTP_PARM *pst_mtp_parm)
             st_mif_meter_parm.direct_reverse, st_mif_meter_parm.reactive_select,
             st_mif_meter_parm.meter_method, st_mif_meter_parm.pulse_select);
 
-    memcpy((uint8_t *)&pst_mtp_parm->val, (uint8_t *)&st_mif_meter_parm,
+    memcpy((uint8_t*)&pst_mtp_parm->val, (uint8_t*)&st_mif_meter_parm,
            sizeof(ST_MIF_METER_PARM));
-    nv_write(I_MTP_PARM, (uint8_t *)pst_mtp_parm);
+    nv_write(I_MTP_PARM, (uint8_t*)pst_mtp_parm);
 }
 
-void dsm_mtp_default_sagswell(ST_MTP_SAGSWELL *pst_mtp_sagswell)
+void dsm_mtp_default_sagswell(ST_MTP_SAGSWELL* pst_mtp_sagswell)
 {
     float fval;
     ST_MIF_SAGSWELL_SETUP st_mif_sagswell;
@@ -1237,7 +1251,7 @@ void dsm_mtp_default_sagswell(ST_MTP_SAGSWELL *pst_mtp_sagswell)
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
 
     fval = (176.0);
-    ToCommFloat(&st_mif_sagswell.pf_level[0], (U8_Float *)&fval);  // 80%
+    ToCommFloat(&st_mif_sagswell.pf_level[0], (U8_Float*)&fval);  // 80%
     DPRINTF(DBG_TRACE, _D "pf_level hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_sagswell.pf_level[0], st_mif_sagswell.pf_level[1],
             st_mif_sagswell.pf_level[2], st_mif_sagswell.pf_level[3]);
@@ -1247,7 +1261,7 @@ void dsm_mtp_default_sagswell(ST_MTP_SAGSWELL *pst_mtp_sagswell)
     st_mif_sagswell.pf_continue_time = dsm_htons(2000);  // 2
     fval = (220.0 * 90.0 / 100.0);
     ToCommFloat(&st_mif_sagswell.sag_level[0],
-                (U8_Float *)&fval);  // 90%(198) ~ 30%(66V)
+                (U8_Float*)&fval);  // 90%(198) ~ 30%(66V)
     DPRINTF(DBG_TRACE, _D "sag_level hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_sagswell.sag_level[0], st_mif_sagswell.sag_level[1],
             st_mif_sagswell.sag_level[2], st_mif_sagswell.sag_level[3]);
@@ -1256,7 +1270,7 @@ void dsm_mtp_default_sagswell(ST_MTP_SAGSWELL *pst_mtp_sagswell)
     st_mif_sagswell.sag_time = 5;
     fval = (220.0 * 120.0 / 100.0);
     ToCommFloat(&st_mif_sagswell.swell_level[0],
-                (U8_Float *)&fval);  // 120%(264V) ~ 110(242V)
+                (U8_Float*)&fval);  // 120%(264V) ~ 110(242V)
     DPRINTF(DBG_TRACE, _D "swell_level hex: %02X:%02X:%02X:%02X\r\n",
             st_mif_sagswell.swell_level[0], st_mif_sagswell.swell_level[1],
             st_mif_sagswell.swell_level[2], st_mif_sagswell.swell_level[3]);
@@ -1267,9 +1281,9 @@ void dsm_mtp_default_sagswell(ST_MTP_SAGSWELL *pst_mtp_sagswell)
             st_mif_sagswell.pf_continue_time, st_mif_sagswell.sag_time,
             st_mif_sagswell.swell_time);
 
-    memcpy((uint8_t *)&pst_mtp_sagswell->val, (uint8_t *)&st_mif_sagswell,
+    memcpy((uint8_t*)&pst_mtp_sagswell->val, (uint8_t*)&st_mif_sagswell,
            sizeof(ST_MIF_SAGSWELL_SETUP));
-    nv_write(I_MTP_SAG_SWELL, (uint8_t *)pst_mtp_sagswell);
+    nv_write(I_MTP_SAG_SWELL, (uint8_t*)pst_mtp_sagswell);
 }
 
 void dsm_mtp_fsm_tx_proc_eoipulse(void) { dsm_mif_actreq_eoipulse(); }
@@ -1282,17 +1296,17 @@ void dsm_mtp_fsm_tx_proc_zcdoff(void) { dsm_mif_actreq_zcdoff(); }
 void dsm_mtp_fsm_tx_proc_calstart(void)
 {
     float fval;
-    ST_MIF_CAL_START *pst_mif_cal_start = dsm_mtp_get_cal_start();
+    ST_MIF_CAL_START* pst_mif_cal_start = dsm_mtp_get_cal_start();
     ;
 
     DPRINTF(DBG_TRACE, _D "CalStart_ActionRequest\r\n");
-    ToHFloat((U8_Float *)&fval, &pst_mif_cal_start->ref_voltage[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_cal_start->ref_voltage[0]);
     DPRINTF(DBG_TRACE, _D "voltage: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
-    ToHFloat((U8_Float *)&fval, &pst_mif_cal_start->ref_current[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_cal_start->ref_current[0]);
     DPRINTF(DBG_TRACE, _D "current: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
-    ToHFloat((U8_Float *)&fval, &pst_mif_cal_start->ref_phase[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_cal_start->ref_phase[0]);
     DPRINTF(DBG_TRACE, _D "phase: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     DPRINTF(DBG_TRACE, _D "process_time: %02d SEC\r\n",
@@ -1301,7 +1315,7 @@ void dsm_mtp_fsm_tx_proc_calstart(void)
             pst_mif_cal_start->react_const, pst_mif_cal_start->act_const,
             pst_mif_cal_start->app_const);
 
-    dsm_mif_actreq_cal_start((uint8_t *)pst_mif_cal_start,
+    dsm_mif_actreq_cal_start((uint8_t*)pst_mif_cal_start,
                              sizeof(ST_MIF_CAL_START));  // send actreq calstart
 }
 
@@ -1338,7 +1352,7 @@ void dsm_mtp_fsm_tx_proc_caldataset(void)
             "phase_gain[0x%08X]\r\n",
             g_mtp_caldata.t_current_gain, g_mtp_caldata.t_voltage_gain,
             g_mtp_caldata.t_phase_gain);
-    dsm_mif_setreq_cal_data((uint8_t *)&st_mif_cal_data,
+    dsm_mif_setreq_cal_data((uint8_t*)&st_mif_cal_data,
                             sizeof(ST_MIF_CAL_DATA));
 
     no_inst_curr_chk_zon_cnt = 7;
@@ -1347,13 +1361,13 @@ void dsm_mtp_fsm_tx_proc_caldataset(void)
 void dsm_mtp_fsm_tx_proc_parmset(void)
 {
     float fval;
-    ST_MIF_METER_PARM *pst_mif_meter_parm = dsm_mtp_get_meter_parm();
+    ST_MIF_METER_PARM* pst_mif_meter_parm = dsm_mtp_get_meter_parm();
 
     DPRINTF(DBG_TRACE, _D "ParmData_SetRequest\r\n");
-    ToHFloat((U8_Float *)&fval, &pst_mif_meter_parm->cut_voltage_thr[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_meter_parm->cut_voltage_thr[0]);
     DPRINTF(DBG_TRACE, _D "cut_vol_thres: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
-    ToHFloat((U8_Float *)&fval, &pst_mif_meter_parm->start_current_thr[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_meter_parm->start_current_thr[0]);
     DPRINTF(DBG_TRACE, _D "start_curr_thres: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     DPRINTF(DBG_TRACE,
@@ -1364,7 +1378,7 @@ void dsm_mtp_fsm_tx_proc_parmset(void)
             pst_mif_meter_parm->reactive_select,
             pst_mif_meter_parm->meter_method, pst_mif_meter_parm->pulse_select);
 
-    dsm_mif_setreq_meter_setup_parm((uint8_t *)pst_mif_meter_parm,
+    dsm_mif_setreq_meter_setup_parm((uint8_t*)pst_mif_meter_parm,
                                     sizeof(ST_MIF_METER_PARM));
 
     // jp.kim 25.03.13
@@ -1374,25 +1388,25 @@ void dsm_mtp_fsm_tx_proc_parmset(void)
 void dsm_mtp_fsm_tx_proc_sagswellset(void)
 {
     float fval;
-    ST_MIF_SAGSWELL_SETUP *pst_mif_sagswell = dsm_mtp_get_sagswell();
+    ST_MIF_SAGSWELL_SETUP* pst_mif_sagswell = dsm_mtp_get_sagswell();
 
     DPRINTF(DBG_TRACE, _D "SagSwell_SetRequest\r\n");
-    ToHFloat((U8_Float *)&fval, &pst_mif_sagswell->pf_level[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_sagswell->pf_level[0]);
     DPRINTF(DBG_TRACE, _D "pf_level float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     DPRINTF(DBG_TRACE, _D "pf_contiue_time: 0x%04X\r\n",
             pst_mif_sagswell->pf_continue_time);
-    ToHFloat((U8_Float *)&fval, &pst_mif_sagswell->sag_level[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_sagswell->sag_level[0]);
     DPRINTF(DBG_TRACE, _D "sag_level float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     DPRINTF(DBG_TRACE, _D "sag_time: 0x%02X\r\n", pst_mif_sagswell->sag_time);
-    ToHFloat((U8_Float *)&fval, &pst_mif_sagswell->swell_level[0]);
+    ToHFloat((U8_Float*)&fval, &pst_mif_sagswell->swell_level[0]);
     DPRINTF(DBG_TRACE, _D "swell_level float: %d.%03d\r\n", (uint32_t)(fval),
             (uint32_t)((fval - (uint32_t)(fval)) * 1000));
     DPRINTF(DBG_TRACE, _D "swell_time: 0x%02X\r\n",
             pst_mif_sagswell->swell_time);
 
-    dsm_mif_setreq_sagswell_data((uint8_t *)pst_mif_sagswell,
+    dsm_mif_setreq_sagswell_data((uint8_t*)pst_mif_sagswell,
                                  sizeof(ST_MIF_SAGSWELL_SETUP));
 
     // jp.kim 25.03.13
@@ -1407,8 +1421,8 @@ void dsm_mtp_meter_fw_down_init(void)
     g_fw_file_start = 0;
 }
 
-uint8_t dsm_mtp_meter_fw_read_parser(uint8_t *pData, uint32_t len,
-                                     uint8_t *dest)
+uint8_t dsm_mtp_meter_fw_read_parser(uint8_t* pData, uint32_t len,
+                                     uint8_t* dest)
 {
     uint8_t *pos, *porg;
     uint8_t sposi = 0;
@@ -1518,7 +1532,7 @@ uint8_t dsm_mtp_meter_fw_read_parser(uint8_t *pData, uint32_t len,
     return ret;
 }
 
-uint8_t dsm_mtp_meter_fw_download(uint8_t *pTdata, uint8_t opt)
+uint8_t dsm_mtp_meter_fw_download(uint8_t* pTdata, uint8_t opt)
 {
     uint8_t buf[256] = {
         0,

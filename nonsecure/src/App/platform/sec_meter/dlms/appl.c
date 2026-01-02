@@ -1044,11 +1044,13 @@ static const myobj_struct_type
          all_n},
         {OBJ_ASSOCIATION_LN, CLS_AssLN, OBIS_ASSOCIATION_LN, VER_3, 11, all_r,
          all_r, all_n, all_n},
-        {OBJ_MANUFACT_ID, CLS_DATA, OBIS_MANUFACT_ID, VER_0, 2, all_n, all_r,
+        {OBJ_SAP_ASSIGNM, CLS_SapAsg, OBIS_SAP_ASSIGNM, VER_0, 2, all_r, all_n,
          all_n, all_n},
         {OBJ_CUSTOM_ID, CLS_DATA, OBIS_CUSTOM_ID, VER_0, 2, all_n, all_r, all_n,
          all_n},
-        {OBJ_SAP_ASSIGNM, CLS_SapAsg, OBIS_SAP_ASSIGNM, VER_0, 2, all_r, all_n,
+        {OBJ_NMS_DMS_ID, CLS_DATA, OBIS_NMS_ID, VER_0, 2, all_n, all_r, all_n,
+         all_n},
+        {OBJ_MANUFACT_ID, CLS_DATA, OBIS_MANUFACT_ID, VER_0, 2, all_n, all_r,
          all_n, all_n},
         {OBJ_MTCONST_ACTIVE, CLS_Reg, OBIS_MTCONST_ACTIVE, VER_0, 3, all_n,
          all_r, all_n, all_n},
@@ -1058,8 +1060,6 @@ static const myobj_struct_type
          all_n, all_n},
         {OBJ_PERIOD_BILLDATE, CLS_SglActS, OBIS_PERIOD_BILLDATE, VER_0, 4,
          all_n, all_r, all_n, all_n},
-        {OBJ_NMS_DMS_ID, CLS_DATA, OBIS_NMS_ID, VER_0, 2, all_n, all_r, all_n,
-         all_n},
 };
 
 extern uint8_t* touset_parse_buf;
@@ -1987,13 +1987,39 @@ void object_list_element_proc(void)
             // 이벤트 그룹
             idx_max = NUM_GRPEN;
             inst_id[GROUP_E] = groupe_n[appl_idx2_for_block];
-            ;
         }
         else if (inst_id[GROUP_E] == 't')
         {
             // tariff
             idx_max = numRates;
             inst_id[GROUP_E] = (uint8_t)appl_idx2_for_block;
+        }
+        else if (inst_id[GROUP_D] == 44 && inst_id[GROUP_E] == 'e')
+        {
+            // “Image transfe type
+            idx_max = NUM_FW_GRPE;
+            inst_id[GROUP_E] = groupe_fw_e[appl_idx2_for_block];
+        }
+        else if (inst_id[GROUP_D] == 0 && inst_id[GROUP_E] == 'e')
+        {
+            // association type
+            // idx_max = NUM_ASSO_GRPEN;  //1,2,3,4
+            if (appl_is_sap_utility())
+            {
+                inst_id[GROUP_E] = 2;
+            }
+            else if (appl_is_sap_sec_utility())
+            {
+                inst_id[GROUP_E] = 3;
+            }
+            else if (appl_is_sap_sec_site())
+            {
+                inst_id[GROUP_E] = 4;
+            }
+            else
+            {
+                inst_id[GROUP_E] = 1;
+            }
         }
     }
     if (inst_id[GROUP_F] == 'Z')

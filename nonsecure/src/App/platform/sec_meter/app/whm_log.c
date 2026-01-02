@@ -16,15 +16,15 @@
 extern date_time_type sr_log_dt;
 
 static void imax_var_init(void);
-static void log_dt_data(elog_kind_type elog, date_time_type *dt);
+static void log_dt_data(elog_kind_type elog, date_time_type* dt);
 static void log_dt_dur_data(elog_kind_type elog, elog_durtime_kind_type edurlog,
-                            date_time_type *pdt, uint32_t dur);
+                            date_time_type* pdt, uint32_t dur);
 static void v_abnormal_chk(uint32_t _linests);
 static void wrong_neut_chk(uint32_t _linests);
 static void i_abnormal_chk(uint32_t _linests);
 static void w_abnormal_chk(uint32_t _linests);
 static void wrong_conn_chk(void);
-static void log_dt_cert_data(elog_cert_kind_type elog, date_time_type *pdt,
+static void log_dt_cert_data(elog_cert_kind_type elog, date_time_type* pdt,
                              uint8_t cert_ng);
 void LOWVOT_trigger(uint8_t line);
 void OVERVOT_trigger(uint8_t line);
@@ -36,13 +36,13 @@ void log_data_reset(void)
     for (i = 0; i < numLogs; i++) whm_op.logcnt[i] = 0;
 }
 
-void log_mt_initialization(uint8_t *tptr)
+void log_mt_initialization(uint8_t* tptr)
 {
     uint8_t logcnt;
-    mtinit_log_data_type *mtinit;
+    mtinit_log_data_type* mtinit;
 
-    mtinit = (mtinit_log_data_type *)tptr;
-    if (nv_read(I_MTINIT_LOG, (uint8_t *)mtinit))
+    mtinit = (mtinit_log_data_type*)tptr;
+    if (nv_read(I_MTINIT_LOG, (uint8_t*)mtinit))
     {
         logcnt = mtinit->cnt;
     }
@@ -54,23 +54,23 @@ void log_mt_initialization(uint8_t *tptr)
     mtinit->log.dt[logcnt % LOG_BUFF_SIZE] = cur_rtc;
     mtinit->cnt = logcnt + 1;
 
-    nv_write(I_MTINIT_LOG, (uint8_t *)mtinit);
+    nv_write(I_MTINIT_LOG, (uint8_t*)mtinit);
 }
 
-void log_mt_init_clear(uint8_t *tptr)
+void log_mt_init_clear(uint8_t* tptr)
 {
-    mtinit_log_data_type *mtinit;
+    mtinit_log_data_type* mtinit;
 
-    mtinit = (mtinit_log_data_type *)tptr;
+    mtinit = (mtinit_log_data_type*)tptr;
     mtinit->cnt = 0;
-    nv_write(I_MTINIT_LOG, (uint8_t *)mtinit);
+    nv_write(I_MTINIT_LOG, (uint8_t*)mtinit);
 }
 
-uint16_t get_mtinit_log_cnt(uint8_t *tptr)
+uint16_t get_mtinit_log_cnt(uint8_t* tptr)
 {
-    mtinit_log_data_type *mtinit;
+    mtinit_log_data_type* mtinit;
 
-    mtinit = (mtinit_log_data_type *)tptr;
+    mtinit = (mtinit_log_data_type*)tptr;
 
     if (nv_read(I_MTINIT_LOG, tptr))
     {
@@ -97,7 +97,7 @@ void log_sag_swell(elog_kind_type elog)
     log_dt_data(elog, &cur_rtc);
 }
 
-void log_sr_dr(date_time_type *dt, uint8_t srdr)
+void log_sr_dr(date_time_type* dt, uint8_t srdr)
 {
     DPRINTF(DBG_TRACE, _D "%s: %d\r\n", __func__, srdr);
     if (srdr & MR_SR_BIT)
@@ -114,15 +114,15 @@ void log_sr_dr(date_time_type *dt, uint8_t srdr)
     }
 }
 
-void log_mDR(date_time_type *dt) { log_dt_data(eLogDRm, dt); }
+void log_mDR(date_time_type* dt) { log_dt_data(eLogDRm, dt); }
 
-void log_prog_chg(date_time_type *pdt)
+void log_prog_chg(date_time_type* pdt)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
     log_dt_data(eLogPgmChg, pdt);
 }
 
-void log_rtc_chg(date_time_type *fr_dt, date_time_type *to_dt)
+void log_rtc_chg(date_time_type* fr_dt, date_time_type* to_dt)
 {
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
     log_dt_data(eLogRtcF, fr_dt);
@@ -140,13 +140,13 @@ void log_scurr_limit(void)
     scur.limitcnt = scurr_autortn_cnt;
     scur.limitcnt_n1 = scurr_cnt_n1;
     nv_sub_info.ch[0] = log_cnt[eLogSCurrLimit] % LOG_BUFF_SIZE;
-    nv_write(I_LOG_SCURR, (uint8_t *)&scur);
+    nv_write(I_LOG_SCURR, (uint8_t*)&scur);
     log_cnt[eLogSCurrLimit] += 1;
 }
 
 void log_scurr_nonsel(void) { log_dt_data(eLogSCurrNonSel, &cur_rtc); }
 
-void log_pwr_FR(pwrfail_info_type *pfinfo)
+void log_pwr_FR(pwrfail_info_type* pfinfo)
 {
     Work_PwrF_data_type _val_flag;
     //    DPRINTF(DBG_ERR, _D"%s\r\n", __func__);
@@ -155,7 +155,7 @@ void log_pwr_FR(pwrfail_info_type *pfinfo)
     log_dt_data(eLogPwrR_WorkPwrR, &cur_rtc);
 
 #if 1  // jp.kim 24.10.28
-    if (nv_read(I_WORKPWR_FLAG, (U8 *)&_val_flag))
+    if (nv_read(I_WORKPWR_FLAG, (U8*)&_val_flag))
     {
         if (_val_flag._val != 'T')
         {
@@ -187,7 +187,7 @@ void log_pwr_FR(pwrfail_info_type *pfinfo)
 
 void log_rLoad_ctrl(void) { log_dt_data(eLogrLoadCtrl, &cur_rtc); }
 
-void log_magnet_det(date_time_type *pdt, uint32_t dur)
+void log_magnet_det(date_time_type* pdt, uint32_t dur)
 {
     log_dt_dur_data(eLogMagnetDet, eLogMagnetDetOcur, pdt, dur);
 }
@@ -214,9 +214,9 @@ void imax_log_init(void)
     for (i = 0; i < PHASE_NUM; i++)
     {
         nv_sub_info.ch[0] = i;
-        if (!nv_read(I_IMAX_LOG, (uint8_t *)&imax))
+        if (!nv_read(I_IMAX_LOG, (uint8_t*)&imax))
         {
-            memset((uint8_t *)&imax, 0, sizeof(imax_log_type));
+            memset((uint8_t*)&imax, 0, sizeof(imax_log_type));
         }
 
         imax_val_set(i, &imax);
@@ -229,7 +229,7 @@ void temp_over_log_init(void)
 
     b_temp_mon_ready = false;
 
-    if (nv_read(I_TOVER_LOG, (uint8_t *)&tover))
+    if (nv_read(I_TOVER_LOG, (uint8_t*)&tover))
     {
         temp_over_val = tover.val;
     }
@@ -239,7 +239,7 @@ void temp_over_log_init(void)
     }
 }
 
-void imax_val_set(uint8_t ch, imax_log_type *imax)
+void imax_val_set(uint8_t ch, imax_log_type* imax)
 {
     imax_int[ch] = imax->imaxint;
     imax_ce[ch] = imax->imaxce;
@@ -269,7 +269,7 @@ void imax_log_proc_line(float curr_in, uint8_t i)
                 imax.dt = cur_rtc;
 
                 nv_sub_info.ch[0] = i;
-                nv_write(I_IMAX_LOG, (U8 *)&imax);
+                nv_write(I_IMAX_LOG, (U8*)&imax);
             }
         }
 
@@ -321,7 +321,7 @@ void imax_log_proc(void)
                     imax.dt = cur_rtc;
 
                     nv_sub_info.ch[0] = i;
-                    nv_write(I_IMAX_LOG, (uint8_t *)&imax);
+                    nv_write(I_IMAX_LOG, (uint8_t*)&imax);
                 }
             }
             imax_sum[i] = 0L;
@@ -417,7 +417,7 @@ void temp_over_mon(void)
             {
                 tover.val = (tempval < 85) ? tempval : 85;
                 tover.dt = cur_rtc;
-                nv_write(I_TOVER_LOG, (uint8_t *)&tover);
+                nv_write(I_TOVER_LOG, (uint8_t*)&tover);
 
                 temp_over_val = tempval;
             }
@@ -651,31 +651,24 @@ static void v_abnormal_chk(uint32_t _linests)
     }
 
     /* 결상 체크 */
+    extern U8 phase_fail_back[3];
+    extern U8 phase_fail_sts[3];
+
     for (i = 0; i < PHASE_NUM; i++)
     {
-        if (_linests & (LA_VDROP << i))
+        for (i = 0; i < PHASE_NUM; i++)
         {
-            if (vdrop_cnt[i] == 0)
+            if (!phase_fail_back[i] && phase_fail_sts[i])
             {
                 // 결상 시작 push
                 NO_PHASE_set_trigger(i);
+                // WMStatus |= (SAGVA << i);
             }
-            else
-            {
-                vdrop_cnt[i] -= 1;
-            }
-        }
-        else
-        {
-            if (vdrop_cnt[i] >= DROP_V_CNT)
+            else if (phase_fail_back[i] && !phase_fail_sts[i])
             {
                 // 결상 복구 push
                 NO_PHASE_rcv_trigger(i);
-                vdrop_cnt[i] = DROP_V_CNT;
-            }
-            else
-            {
-                vdrop_cnt[i] += 1;
+                // WMStatus &= ~(SAGVA << i);
             }
         }
     }
@@ -797,30 +790,30 @@ static void imax_var_init(void)
     for (i = 0; i < PHASE_NUM; i++) imax_sum[i] = 0.0;
 }
 
-static void log_dt_data(elog_kind_type elog, date_time_type *pdt)
+static void log_dt_data(elog_kind_type elog, date_time_type* pdt)
 {
     date_time_type dt;
 
     dt = *pdt;
     nv_sub_info.ch[0] = elog;
     nv_sub_info.ch[1] = log_cnt[elog] % LOG_BUFF_SIZE;
-    nv_write(I_LOG_DATA, (uint8_t *)&dt);
+    nv_write(I_LOG_DATA, (uint8_t*)&dt);
     log_cnt[elog] += 1;
 }
 
 static void log_dt_dur_data(elog_kind_type elog, elog_durtime_kind_type edurlog,
-                            date_time_type *pdt, uint32_t dur)
+                            date_time_type* pdt, uint32_t dur)
 {
     evt_durtime_type evt;
 
     evt.dt = *pdt;
     evt.durtime = dur;
     nv_sub_info.ch[0] = log_cnt[elog] % LOG_BUFF_SIZE;
-    nv_write(I_LOG_DATA1, (uint8_t *)&evt);
+    nv_write(I_LOG_DATA1, (uint8_t*)&evt);
     log_cnt[elog] += 1;
 }
 
-static void log_dt_cert_data(elog_cert_kind_type elog, date_time_type *pdt,
+static void log_dt_cert_data(elog_cert_kind_type elog, date_time_type* pdt,
                              uint8_t cert_ng)
 {
     evt_cert_time_type evt;
@@ -830,7 +823,7 @@ static void log_dt_cert_data(elog_cert_kind_type elog, date_time_type *pdt,
 
     nv_sub_info.ch[0] = elog;
     nv_sub_info.ch[1] = log_cert_cnt[elog] % LOG_CERT_BUFF_SIZE;
-    nv_write(I_LOG_CERT_DATA, (uint8_t *)&evt);
+    nv_write(I_LOG_CERT_DATA, (uint8_t*)&evt);
     log_cert_cnt[elog] += 1;
 }
 
