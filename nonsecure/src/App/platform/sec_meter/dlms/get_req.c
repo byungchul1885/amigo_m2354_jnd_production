@@ -129,6 +129,7 @@ static void ob_counter_billing(void);
 static void ob_num_avail_billing(void);
 static void ob_custom_id(void);
 static void ob_manuf_id(void);
+static void ob_manuf_id_old(void);
 static void ob_prog_id(void);
 static void ob_mtconst_active(void);
 static void ob_mtconst_reactive(void);
@@ -7130,6 +7131,10 @@ static void approc_fill_get_resp_normal(void)
         {
             ob_manuf_id();
         }
+        else if (appl_obis.id[GROUP_E] == 0x01)
+        {
+            ob_manuf_id_old();
+        }        
         break;
 
     case OBJ_PGM_ID:
@@ -9650,6 +9655,22 @@ static void ob_manuf_id(void)
     DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
     get_manuf_id(appl_tbuff);
     fill_octet_string_x(appl_tbuff, MANUF_ID_SIZE);
+}
+
+static void ob_manuf_id_old(void)
+{
+    /*
+    구형 모뎀 연계용 미터 ID (7byte) : byte 4, 5번의 "00"을 ASCII로 표기, 0 0 0
+    0 0 5 3
+    */
+    DPRINTF(DBG_TRACE, _D "%s\r\n", __func__);
+
+    memset(appl_tbuff, '0', MANUF_ID_SIZE);
+
+    appl_tbuff[5] = (METER_ID / 10) + '0';
+    appl_tbuff[6] = (METER_ID % 10) + '0';
+
+    fill_octet_string_x(appl_tbuff, MANUF_ID_SIZE_OLD);
 }
 
 static void ob_prog_id(void)
