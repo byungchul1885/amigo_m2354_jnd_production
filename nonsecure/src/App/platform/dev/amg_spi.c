@@ -53,7 +53,11 @@ void dsm_spi_init(void)
 
     /* as a master, MSB first, 8-bit transaction, SPI Mode-0 timing, clock is
      * 2MHz */
+#if HARDWARE_VERSION == 0x32
     SPI_Flash_Open_S(SPI0, 10000000); /* bccho, 2023-12-14, 10 Mhz */
+#elif HARDWARE_VERSION == 0x34
+    SPI_Flash_Open_S(SPI0, 8000000);
+#endif
 
     /* Disable auto SS function, control SS signal manually. */
     SPI_DisableAutoSS(SPI0);
