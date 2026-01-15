@@ -57,14 +57,14 @@
 #define SOFTWARE_METER_PART 0x33
 
 #define SOFTWARE_VERSION_H '4'
-#define SOFTWARE_VERSION_L '0'
+#define SOFTWARE_VERSION_L '4'
 
 #define SOFTWARE_DATE_YYH '2'
 #define SOFTWARE_DATE_YYL '6'
 #define SOFTWARE_DATE_MMH '0'
 #define SOFTWARE_DATE_MML '1'
-#define SOFTWARE_DATE_DDH '0'
-#define SOFTWARE_DATE_DDL '2'
+#define SOFTWARE_DATE_DDH '1'
+#define SOFTWARE_DATE_DDL '5'
 
 #if 1  // jp.kim 251220  계량부 관리 구분
 //==============================================================================

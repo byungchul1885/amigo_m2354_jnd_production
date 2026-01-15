@@ -1430,6 +1430,9 @@ static void ob_touimage_transfer_cmd(uint8_t method, int idx)
 #if defined(FEATURE_JP_MLIST_CHECK_TOU_DOWN_LOAD)
     parser_imagetrfr_no_activate:
 #endif
+#if 1  // jp.kim 26.01.14
+        act_devcmd = DEVICE_CMD_NULL;
+#endif
         break;
     }
 }
@@ -1477,49 +1480,27 @@ bool dsm_fw_is_valid(uint8_t fw_type, uint8_t* pname, date_time_type* pst,
     switch (fw_type)
     {
     case FW_DL_SYS_PART:
-        if (pname[3] == '0')
+        if (pname[2] == HARDWARE_VERSION && pname[3] == '0')
             ret = true;
-
         break;
+
     case FW_DL_INT_MDM:
-#if 0
-		if(pname[0] != '7')
-			return false;
-		if(pname[2] == '1' && pname[3] == '1')
-				ret = true;
-#else
         if (pname[0] != '5')
             return false;
-        if (pname[3] == '1')
+        if (pname[2] == '1' && pname[3] == '1')
             ret = true;
-#endif
         break;
+
     case FW_DL_EXT_MDM:
-#if 0 /* bccho, 2024-11-01 */
-        if (pname[0] != '8')
-            return false;
-#endif
         if (pname[3] == '2')
             ret = true;
-
         break;
+
     case FW_DL_METER_PART:
-        if (pname[3] == '3')
+        if (pname[2] == '1' && pname[3] == '3')
             ret = true;
-
-#if 0  // JP.KIM 24.10.23
-        if (cmp_date_time(&cur_rtc, pst) >= 0 &&
-            cmp_date_time(psp, &cur_rtc) > 0)
-        {
-            ret = true;
-        }
-        else
-        {
-            ret = false;
-            DPRINTF(DBG_TRACE, "TIME FAIL!!!\r\n");
-        }
-#endif
         break;
+
     default:
         break;
     }
