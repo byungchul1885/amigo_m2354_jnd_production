@@ -210,7 +210,7 @@ static const /*__code*/ uint8_t aare[AARE_SIZE] = {
     0x5f, 0x1f, 0x04,
     0x00,              // 32: tag and length ... of negotiated conformance block
     0x00, 0x00, 0x00,  // 36: conformance block (filled in the processing)
-    0x3a, 0xb3,  // 39: server-max-receive size (calendar size =  15027 byte)
+    0x08, 0x00,  // 39: server-max-receive size (calendar size =  2048 byte)
     0x00, 0x07   // 41: vaa-name
 };
 
@@ -250,7 +250,7 @@ uint8_t app_resp_usr_info[APP_RESP_USR_INFORMATION_LEN] = {
     0x5f, 0x1f, 0x04,
     0x00,              // 32: tag and length ... of negotiated conformance block
     0x00, 0x00, 0x00,  // 36: conformance block (filled in the processing)
-    0x3a, 0xb3,  // 39: server-max-receive size (calendar size =  15027 byte)
+    0x08, 0x00,  // 39: server-max-receive size (calendar size =  2048 byte)
     0x00, 0x07   // 41: vaa-name
 };
 

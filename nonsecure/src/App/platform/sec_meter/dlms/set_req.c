@@ -4413,7 +4413,7 @@ static void obset_inst_cert(int idx)
     if (FMC_ReadBytes_S(KEPCO_CERT_ADDRESS, (uint32_t*)&kcs,
                         sizeof(kepco_cert_storage_t)) != 0)
     {
-        MSG10("[Cert] Error!!! FMC_ReadBytes_S\r\n");
+        MSG10("[Cert] Error!!! FMC_ReadBytes_S");
         appl_resp_result = SET_RESULT_DATA_NG;
         return;
     }
@@ -4421,7 +4421,7 @@ static void obset_inst_cert(int idx)
     // Erase flash sector
     if (FMC_Erase_S(KEPCO_CERT_ADDRESS) != 0)
     {
-        MSG10("[Cert] Error!!! FMC_Erase_S\r\n");
+        MSG10("[Cert] Error!!! FMC_Erase_S");
         appl_resp_result = SET_RESULT_DATA_NG;
         return;
     }
@@ -4441,6 +4441,8 @@ static void obset_inst_cert(int idx)
 // bccho, 2024-12-06
 static void obset_inst_key(int idx)
 {
+    MSG10("[KEY] obset_inst_key");
+
     // Validate OCTSTRING_TAG
     if (appl_msg[idx] != OCTSTRING_TAG)
     {
@@ -4462,34 +4464,51 @@ static void obset_inst_key(int idx)
     memcpy(kcs.kepco_cert.sign_prikey, &appl_msg[idx], key_len);
 
     // Write certificate storage to flash with retry mechanism
-    uint8_t* addr = (uint8_t*)&kcs;
+    const uint8_t* addr = (const uint8_t*)&kcs;
     const uint32_t MAX_RETRIES = 5;
+    const uint32_t total_len = sizeof(kepco_cert_storage_t);
+    const uint32_t padded_len = (total_len + 3U) & ~3U;
     bool write_success = false;
 
     for (uint32_t retry = 0; retry < MAX_RETRIES && !write_success; retry++)
     {
         if (retry > 0)
         {
-            MSG10("[KEY] Retry attempt %d/%d\r\n", retry, MAX_RETRIES - 1);
-
-            // Erase flash sector before retry
-            if (FMC_Erase_S(KEPCO_CERT_ADDRESS) != 0)
-            {
-                MSG10("[KEY] Error!!! FMC_Erase_S on retry %d\r\n", retry);
-                continue;
-            }
+            MSG10("[KEY] Retry attempt %d/%d", retry, MAX_RETRIES - 1);
         }
 
-        // Write data in 512-byte chunks
-        bool write_failed = false;
-        for (uint32_t i = 0; i < 2; i++)
+        // Erase flash sector before each attempt
+        if (FMC_Erase_S(KEPCO_CERT_ADDRESS) != 0)
         {
-            uint32_t offset = i * 512;
-            if (FMC_WriteMultiple_S(KEPCO_CERT_ADDRESS + offset,
-                                    (uint32_t*)(addr + offset), 512) <= 0)
+            MSG10("[KEY] Error!!! FMC_Erase_S on attempt %d", retry + 1);
+            continue;
+        }
+
+        // Write data word-by-word to avoid multi-program hang
+        bool write_failed = false;
+        for (uint32_t offset = 0; offset < padded_len; offset += 4U)
+        {
+            if ((offset % 256U) == 0U)
             {
-                MSG10("[KEY] Error!!! FMC_WriteMultiple_S_%d (attempt %d)\r\n",
-                      i + 1, retry + 1);
+                MSG10("[KEY] write %lu/%lu", (unsigned long)offset,
+                      (unsigned long)padded_len);
+            }
+
+            uint32_t word = 0xFFFFFFFFU;
+            uint32_t remain = total_len - offset;
+            if (remain >= 4U)
+            {
+                memcpy(&word, addr + offset, 4U);
+            }
+            else
+            {
+                memcpy(&word, addr + offset, remain);
+            }
+
+            if (XMD_Write_S(KEPCO_CERT_ADDRESS + offset, word) != 0U)
+            {
+                MSG10("[KEY] Error!!! XMD_Write_S (attempt %d, offset %lu)",
+                      retry + 1, (unsigned long)offset);
                 write_failed = true;
                 break;
             }
@@ -4504,7 +4523,7 @@ static void obset_inst_key(int idx)
         if (FMC_ReadBytes_S(KEPCO_CERT_ADDRESS, (uint32_t*)&kcs2,
                             sizeof(kepco_cert_storage_t)) != 0)
         {
-            MSG10("[KEY] Error!!! FMC_ReadBytes_S (attempt %d)\r\n", retry + 1);
+            MSG10("[KEY] Error!!! FMC_ReadBytes_S (attempt %d)", retry + 1);
             continue;
         }
 
@@ -4512,23 +4531,23 @@ static void obset_inst_key(int idx)
         if (memcmp(&kcs, &kcs2, sizeof(kepco_cert_storage_t)) == 0)
         {
             write_success = true;
-            MSG10("[KEY] Write verified successfully on attempt %d\r\n",
-                  retry + 1);
+            MSG10("[KEY] Write verified successfully on attempt %d", retry + 1);
         }
         else
         {
-            MSG10("[KEY] Verification failed on attempt %d\r\n", retry + 1);
+            MSG10("[KEY] Verification failed on attempt %d (len %lu)",
+                  retry + 1, (unsigned long)total_len);
         }
     }
 
     if (!write_success)
     {
-        MSG10("[KEY] Error!!! Failed after %d attempts\r\n", MAX_RETRIES);
+        MSG10("[KEY] Error!!! Failed after %d attempts", MAX_RETRIES);
         appl_resp_result = SET_RESULT_DATA_NG;
         return;
     }
 
-    MSG10("[KEY] insert OK\r\n");
+    MSG10("[KEY] insert OK");
 }
 
 static bool check_obj_TSscript(uint8_t* cp)

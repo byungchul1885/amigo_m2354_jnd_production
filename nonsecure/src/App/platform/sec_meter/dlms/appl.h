@@ -123,9 +123,8 @@ extern const /*__code*/ U8 priv_pwd_default[PRIV_PWD_SIZE];
 #define SN_SUPPORTED_CONFORMANCE_3 0x20  // parameterized-access
 
 // ctt 3.1
-#define MAX_RXPDU_SIZE \
-    0x3ab3  // sync with static const /*__code*/ uint8_t aare[AARE_SIZE]
-#define MAX_TXPDU_SIZE 0x3ab3
+#define MAX_RXPDU_SIZE 0x0800
+#define MAX_TXPDU_SIZE 0x0800
 
 // ---------- request and response and result -----------------
 

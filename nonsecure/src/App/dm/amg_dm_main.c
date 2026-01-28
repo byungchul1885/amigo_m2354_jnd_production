@@ -13,7 +13,7 @@
 * 	LOCAL CONSTANTS
 ******************************************************************************
 */
-#define DM_TASK_STACK_SIZE ((2048 + 1024 + 1024) / 4)
+#define DM_TASK_STACK_SIZE ((4096 + 2048) / 4)
 #define DM_MSGQ_SIZE 32
 #define EVENT_MASK_DEBUG_RX (1UL << 0)
 
@@ -34,7 +34,7 @@
 *	LOCAL VARIABLES
 ******************************************************************************
 */
-static OS_FLAG_GRP *dm_event;
+static OS_FLAG_GRP* dm_event;
 
 /*
 ******************************************************************************
@@ -47,7 +47,7 @@ void dsm_dm_debug_uart_rx_cb(void)
     OSFlagPost(dm_event, EVENT_MASK_DEBUG_RX, OS_FLAG_SET, &err);
 }
 
-static void dsm_dm_task_main(void *pdata)
+static void dsm_dm_task_main(void* pdata)
 {
 #if 1 /* bccho, 2023-07-07 */
     portALLOCATE_SECURE_CONTEXT(configMINIMAL_SECURE_STACK_SIZE);
@@ -102,8 +102,8 @@ void dsm_dm_initialize(void)
                     TASK_DM, dm_task_stack, DM_TASK_STACK_SIZE, (void *)0, 0);
 #else
     /* Create the APP Task */
-    OSTaskCreateExt("dm", dsm_dm_task_main, (void *)0, 0, TASK_PRI_DM, TASK_DM,
-                    0, DM_TASK_STACK_SIZE, (void *)0, 0);
+    OSTaskCreateExt("dm", dsm_dm_task_main, (void*)0, 0, TASK_PRI_DM, TASK_DM,
+                    0, DM_TASK_STACK_SIZE, (void*)0, 0);
 #endif
 
 #if 0 /* bccho, 2023-07-07. 사용하지 않음 */
