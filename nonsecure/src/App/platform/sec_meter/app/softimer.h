@@ -90,6 +90,7 @@ enum
 #endif
     E_TMR_DSP_CAL_END,
     E_TMR_DSP_SUN_VER_ERR,
+    E_PF_STS_MON,
     NUM_TMR
 };
 
@@ -197,6 +198,9 @@ extern uint32_t scurr_limit_timer;
     (timer_table[E_MmodeCHG_sr_dr] == 0)
 #define MmodeCHG_sr_dr_type_sr_dr_time_set(x) \
     (timer_table[E_MmodeCHG_sr_dr] = x)
+
+#define power_fail_mon_is_timeout() (timer_table[E_PF_STS_MON] == 0)
+#define power_fail_mon_set_timeout(x) (timer_table[E_PF_STS_MON] = x)
 
 extern int timer_table[NUM_TMR];
 extern int sag_exit_timer;

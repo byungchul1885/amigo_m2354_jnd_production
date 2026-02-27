@@ -63,6 +63,7 @@ extern ST_MTP_SAGSWELL monitor_mtp_sagswell;
 
 U8 first_pulse_delete_flag = 0;
 U8 first_pulse_delete_cnt = 0;
+U8 power_fail_sts_mon_ing = 0;
 
 int run_mode;
 buff_struct_type ubuff;
@@ -644,6 +645,31 @@ void whm_proc(void)
     wrong_conn_mon();
     prepay_info_save(false);
     monitor_sag_swell();
+
+    bool is_dc33_off(void);
+    if (!is_dc33_off())
+    {
+        if (power_fail_sts_mon_ing)
+        {
+            if (power_fail_mon_is_timeout())  // 종료 ?
+            {
+                power_fail_sts_mon_ing = 0;
+                error_code_event_clear();  // 정전 ,  작업정전 clear
+                DPRINTF(DBG_ERR,
+                        _D
+                        "%s: -1 power_fail_sts_mon_ing[%d] WMStatus[0x%x]\r\n",
+                        __func__, power_fail_sts_mon_ing, WMStatus);
+            }
+        }
+        else if ((WMStatus & POWER_FAIL_STS) || (WMStatus & WORK_BLACKOUT))
+        {
+            power_fail_sts_mon_ing = 1;  // 시작
+            power_fail_mon_set_timeout(T5SEC);
+            DPRINTF(DBG_ERR,
+                    _D "%s: -2 power_fail_sts_mon_ing[%d] WMStatus[0x%x]\r\n",
+                    __func__, power_fail_sts_mon_ing, WMStatus);
+        }
+    }
 
 #if 1  // jp.kim 25.02.04
     void dsm_mtp_fsm_send(void);
