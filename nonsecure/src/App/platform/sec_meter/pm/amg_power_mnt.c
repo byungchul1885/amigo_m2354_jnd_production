@@ -48,6 +48,7 @@
 #include "boot_restore.h"
 #include "rtc.h"
 #include "amg_secu_main.h"
+#include "xmd_write_helper.h"
 #ifdef M2354_CAN /* bccho, 2023-11-28 */
 #include "amg_can.h"
 #include "amg_isotp_user.h"
@@ -709,7 +710,7 @@ bool dsm_pmnt_power_save_func(uint32_t lowpwr, uint32_t w_evt)
 #endif
 
 #if 1 /* bccho, 2023-08-29, FMC */
-    BOOT_RESTORE br;
+    BOOT_RESTORE br = {0};
 #ifdef STOCK_OP /* bccho, 2024-09-26 */
     ST_RAND_TX_INFO* p_rand_txinfo = dsm_stock_op_get_rand_txinfo();
     br.fsm = dsm_stock_op_get_fsm();
@@ -722,15 +723,10 @@ bool dsm_pmnt_power_save_func(uint32_t lowpwr, uint32_t w_evt)
     br.bank = get_current_bank_S();
     br.goto_dpd = true;
 
-    if (FMC_Erase_S(BOOT_RESTORE_BASE) != 0)
+    if (dsm_xmd_write_words(BOOT_RESTORE_BASE, &br,
+                            sizeof(BOOT_RESTORE)) != 0U)
     {
-        MSGERROR("FMC_Erase Data Flash\n");
-        return FALSE;
-    }
-    if (FMC_WriteMultiple_S(BOOT_RESTORE_BASE, (uint32_t*)&br,
-                            sizeof(BOOT_RESTORE)) <= 0)
-    {
-        MSGERROR("FMC_WriteMultiple_S\n");
+        MSGERROR("dsm_xmd_write_words\n");
         return FALSE;
     }
     MSG06("W__%d %d %d %d %d %d", br.fsm, br.sec_1, br.ms_1, br.sec_2, br.ms_2,
@@ -941,7 +937,7 @@ void dsm_pmnt_peri_initialize(uint32_t op)
         whm_init();
 
 #if 1 /* bccho, 2023-08-29, FMC */
-        BOOT_RESTORE br;
+        BOOT_RESTORE br = {0};
         if (FMC_ReadBytes_S(BOOT_RESTORE_BASE, (uint32_t*)&br,
                             sizeof(BOOT_RESTORE)) != 0)
         {
@@ -956,14 +952,10 @@ void dsm_pmnt_peri_initialize(uint32_t op)
             dsm_stock_op_init();
 
             memset((uint8_t*)&br, 0x00, sizeof(BOOT_RESTORE));
-            if (FMC_Erase_S(BOOT_RESTORE_BASE) != 0)
+            if (dsm_xmd_write_words(BOOT_RESTORE_BASE, &br,
+                                    sizeof(BOOT_RESTORE)) != 0U)
             {
-                MSGERROR("FMC_Erase Data Flash\n");
-            }
-            if (FMC_WriteMultiple_S(BOOT_RESTORE_BASE, (uint32_t*)&br,
-                                    sizeof(BOOT_RESTORE)) <= 0)
-            {
-                MSGERROR("FMC_WriteMultiple_S\n");
+                MSGERROR("dsm_xmd_write_words\n");
             }
         }
         else

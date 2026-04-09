@@ -13,7 +13,7 @@
 #define MX25_SPI_READ 0xFF
 
 #if 1 /* bccho, 2023-08-02 */
-void wait_SPI_IS_BUSY(SPI_T *spi)
+void wait_SPI_IS_BUSY(SPI_T* spi)
 {
     uint32_t u32TimeOutCnt = SystemCoreClock / 10;
 
@@ -50,17 +50,20 @@ __STATIC_INLINE int32_t SpiFlash_WaitReady(void)
 
 void mx25r4035f_init(void)
 {
+#ifdef REMOVE_SPI_FLASH
+    return;
+#else
     MSG05("mx25r4035f_init()");
 
     mx25r4035f_interface_init();
     CMD_WRDI();
 
     uint32_t rdid;
-    CMD_RDID((uint32_t *)&rdid);
+    CMD_RDID((uint32_t*)&rdid);
     DPRINTF(DBG_TRACE, "READ RDID 0x%06X\r\n", (unsigned int)rdid);
 
     uint8_t res;
-    CMD_RES((uint8_t *)&res);
+    CMD_RES((uint8_t*)&res);
     DPRINTF(DBG_TRACE, "READ RES 0x%X\r\n", res);
 
     uint16_t rems;
@@ -68,8 +71,9 @@ void mx25r4035f_init(void)
     DPRINTF(DBG_TRACE, "READ REMS 0x%04X\r\n", rems);
 
     uint8_t rdsr;
-    CMD_RDSR((uint8_t *)&rdsr);
+    CMD_RDSR((uint8_t*)&rdsr);
     DPRINTF(DBG_TRACE, "READ RDSR 0x%X\r\n", rdsr);
+#endif
 }
 
 /*
@@ -124,8 +128,11 @@ void CMD_WRDI(void)
  *                 of 1-byte and followed by Device ID of 2-byte.
  * Return Message: FlashOperationSuccess
  */
-ReturnMsg CMD_RDID(uint32_t *Identification)
+ReturnMsg CMD_RDID(uint32_t* Identification)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_RDID()");
 
     uint8_t u8RxData[6] = {0}, u8IDCnt = 0;
@@ -158,6 +165,7 @@ ReturnMsg CMD_RDID(uint32_t *Identification)
     *Identification = (temp << 8) | (uint32_t)u8RxData[3];
 
     return FlashOperationSuccess;
+#endif
 }
 
 /*
@@ -167,8 +175,11 @@ ReturnMsg CMD_RDID(uint32_t *Identification)
  *                 electric identification of 1-byte.
  * Return Message: FlashOperationSuccess
  */
-ReturnMsg CMD_RES(uint8_t *ElectricIdentification)
+ReturnMsg CMD_RES(uint8_t* ElectricIdentification)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_RES()");
 
     uint8_t u8RxData[6] = {0}, u8IDCnt = 0;
@@ -200,6 +211,7 @@ ReturnMsg CMD_RES(uint8_t *ElectricIdentification)
     MSG05("count:%d, data:%02X", u8IDCnt, u8RxData[4]);
 
     return FlashOperationSuccess;
+#endif
 }
 
 /*
@@ -210,8 +222,11 @@ ReturnMsg CMD_RES(uint8_t *ElectricIdentification)
  *                 manufacturer ID and electric ID of 1-byte.
  * Return Message: FlashOperationSuccess
  */
-ReturnMsg CMD_REMS(uint16_t *REMS_Identification)
+ReturnMsg CMD_REMS(uint16_t* REMS_Identification)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_REMS()");
     uint8_t u8RxData[6] = {0}, u8IDCnt = 0;
 
@@ -244,6 +259,7 @@ ReturnMsg CMD_REMS(uint16_t *REMS_Identification)
     *REMS_Identification = (uint16_t)(u8RxData[4] << 8) | u8RxData[5];
 
     return FlashOperationSuccess;
+#endif
 }
 
 /*
@@ -256,8 +272,11 @@ ReturnMsg CMD_REMS(uint16_t *REMS_Identification)
  * Description:    The RDSR instruction is for reading Status Register Bits.
  * Return Message: FlashOperationSuccess
  */
-ReturnMsg CMD_RDSR(uint8_t *StatusReg)
+ReturnMsg CMD_RDSR(uint8_t* StatusReg)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_RDSR()");
 
     uint8_t u8RxData[6] = {0}, u8IDCnt = 0;
@@ -283,6 +302,7 @@ ReturnMsg CMD_RDSR(uint8_t *StatusReg)
     *StatusReg = u8RxData[1];
 
     return FlashOperationSuccess;
+#endif
 }
 
 #define BUSY_CHECK()       \
@@ -306,6 +326,9 @@ ReturnMsg CMD_RDSR(uint8_t *StatusReg)
  */
 uint8_t CMD_SE(uint32_t flash_address)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     ReturnMsg ret;
     MSG05("CMD_SE()");
 
@@ -347,6 +370,7 @@ complete:;
     }
 
     return ret;
+#endif
 }
 
 /*
@@ -359,6 +383,9 @@ complete:;
  */
 ReturnMsg CMD_BE32K(uint32_t flash_address)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     ReturnMsg ret;
     MSG05("CMD_BE32K()");
 
@@ -400,6 +427,7 @@ complete:;
     }
 
     return ret;
+#endif
 }
 
 /*
@@ -411,6 +439,9 @@ complete:;
  */
 ReturnMsg CMD_CE(void)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_CE()");
     ReturnMsg ret;
 
@@ -442,6 +473,7 @@ complete:;
     }
 
     return ret;
+#endif
 }
 
 /*
@@ -456,9 +488,12 @@ complete:;
  * Description:    The READ instruction is for reading data out.
  * Return Message: FlashAddressInvalid, FlashOperationSuccess
  */
-ReturnMsg CMD_READ(uint32_t flash_address, uint8_t *target_address,
+ReturnMsg CMD_READ(uint32_t flash_address, uint8_t* target_address,
                    uint32_t byte_length)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_READ()");
     uint32_t index;
 
@@ -493,6 +528,7 @@ ReturnMsg CMD_READ(uint32_t flash_address, uint8_t *target_address,
     SPI_SET_SS_HIGH(SPI0);
 
     return FlashOperationSuccess;
+#endif
 }
 
 /*
@@ -507,9 +543,12 @@ ReturnMsg CMD_READ(uint32_t flash_address, uint8_t *target_address,
  * Description:    The READ instruction is for reading data out.
  * Return Message: FlashAddressInvalid, FlashOperationSuccess
  */
-ReturnMsg CMD_FASTREAD(uint32_t flash_address, uint8_t *target_address,
+ReturnMsg CMD_FASTREAD(uint32_t flash_address, uint8_t* target_address,
                        uint32_t byte_length)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_FASTREAD()");
 
     uint32_t index;
@@ -546,6 +585,7 @@ ReturnMsg CMD_FASTREAD(uint32_t flash_address, uint8_t *target_address,
     SPI_SET_SS_HIGH(SPI0);
 
     return FlashOperationSuccess;
+#endif
 }
 
 /*
@@ -562,9 +602,12 @@ ReturnMsg CMD_FASTREAD(uint32_t flash_address, uint8_t *target_address,
  * Return Message: FlashAddressInvalid, FlashIsBusy, FlashOperationSuccess,
  *                 FlashTimeOut
  */
-ReturnMsg CMD_PP(uint32_t flash_address, uint8_t *source_address,
+ReturnMsg CMD_PP(uint32_t flash_address, uint8_t* source_address,
                  uint32_t byte_length)
 {
+#ifdef REMOVE_SPI_FLASH
+    return FlashOperationSuccess;
+#else
     MSG05("CMD_PP()");
     uint32_t index = 0;
     uint8_t addr_4byte_mode;
@@ -616,6 +659,7 @@ complete:;
     }
 
     return ret;
+#endif
 }
 
 void dsm_sflash_fw_erase(uint8_t type)

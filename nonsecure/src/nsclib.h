@@ -10,8 +10,6 @@ void NVIC_SystemReset_S(void);
 uint32_t SPI_Flash_Open_S(SPI_T *spi, uint32_t u32BusClock);
 uint32_t CheckPowerSource_S(void);
 uint32_t get_reset_cause_S(void);
-int32_t FMC_WriteMultiple_S(uint32_t u32Addr, uint32_t pu32Buf[],
-                            uint32_t u32Len);
 int32_t FMC_Erase_S(uint32_t u32PageAddr);
 int32_t FMC_ReadBytes_S(uint32_t u32Addr, uint32_t pu32Buf[], uint32_t u32Len);
 void goto_loader_S(void);
@@ -20,6 +18,10 @@ uint32_t get_current_bank_S(void);
 void CLK_SysTickLongDelay_S(uint32_t us);
 uint32_t GetSystemCoreClock_S(void);
 uint8_t XMD_Write_S(uint32_t u32Addr, uint32_t u32Data);
+uint8_t APROM_WriteInactiveBank_S(uint32_t u32Address,
+                                  const uint8_t *pu8Buff, uint32_t u32Size);
+void APROM_ReadInactiveBank_S(uint32_t u32Address, uint8_t *pu8Buff,
+                              uint32_t u32Size);
 uint8_t OTA_WriteNewFW_S(uint32_t u32Address, const uint8_t *pu8Buff,
                          uint32_t u32Size);
 void OTA_ReadNewFW_S(uint32_t u32Address, uint8_t *pu8Buff, uint32_t u32Size);

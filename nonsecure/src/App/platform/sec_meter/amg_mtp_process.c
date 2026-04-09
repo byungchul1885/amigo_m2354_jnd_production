@@ -166,6 +166,27 @@ bool PwOn_1st_parm_set, meter_firmup_delay_ing = 0;
 
 extern void dsm_mtp_fsm_send(void);
 
+enum
+{
+    MTP_FW_READ_SIZE = 256U,
+    MTP_FW_READ_ALIGNED_SIZE = MTP_FW_READ_SIZE + 4U
+};
+
+#ifdef REMOVE_SPI_FLASH
+static void dsm_mtp_read_aprom_fw_block(uint32_t flash_addr, uint8_t* buf)
+{
+    uint32_t aligned_addr = flash_addr & ~0x3U;
+    uint32_t prefix = flash_addr - aligned_addr;
+    uint32_t aligned_len = (prefix + MTP_FW_READ_SIZE + 3U) & ~0x3U;
+    uint8_t aligned_buf[MTP_FW_READ_ALIGNED_SIZE] = {
+        0,
+    };
+
+    APROM_ReadInactiveBank_S(aligned_addr, aligned_buf, aligned_len);
+    memcpy(buf, &aligned_buf[prefix], MTP_FW_READ_SIZE);
+}
+#endif
+
 void dsp_cal_st_is_ing_set(void);
 void dsp_cal_mode_is_ing_set(void);
 void dsp_cal_end_state(void);
@@ -1534,13 +1555,21 @@ uint8_t dsm_mtp_meter_fw_read_parser(uint8_t* pData, uint32_t len,
 
 uint8_t dsm_mtp_meter_fw_download(uint8_t* pTdata, uint8_t opt)
 {
-    uint8_t buf[256] = {
+    uint8_t buf[MTP_FW_READ_SIZE] = {
         0,
     };
+#ifdef REMOVE_SPI_FLASH
+    uint32_t flash_addr = SFLASH_SYS_FW_1_ADDR;
+#else
     uint32_t flash_addr = SFLASH_METER_FW_BLK_ADDR;
+#endif
     uint8_t pkt_len = 0;
 
+#ifdef REMOVE_SPI_FLASH
+/* remove */
+#else
     dsm_spi_init();
+#endif
 
     if (opt == 0)
     {
@@ -1551,9 +1580,14 @@ uint8_t dsm_mtp_meter_fw_download(uint8_t* pTdata, uint8_t opt)
         g_flash_posi = g_fw.pre_posi;
     }
     DPRINTF(DBG_INFO, _D "g_flash_posi(%d)\r\n", g_flash_posi);
-    CMD_READ(flash_addr + g_flash_posi, buf, 256);
 
-    pkt_len = dsm_mtp_meter_fw_read_parser(buf, 256, pTdata);
+#ifdef REMOVE_SPI_FLASH
+    dsm_mtp_read_aprom_fw_block(flash_addr + g_flash_posi, buf);
+#else
+    CMD_READ(flash_addr + g_flash_posi, buf, sizeof(buf));
+#endif
+
+    pkt_len = dsm_mtp_meter_fw_read_parser(buf, sizeof(buf), pTdata);
 
     if (pkt_len != 0)
     {

@@ -744,6 +744,9 @@ void prod_control_cal_begin(int idx)
 
 bool factory_addtional_reset(void)
 {
+#ifdef REMOVE_SPI_FLASH
+    return true;
+#else
     // U8 i =0;
     // ST_FW_INFO fwinfo = {0};
     fw_info_t fw_info_bank1;
@@ -774,6 +777,7 @@ bool factory_addtional_reset(void)
     error = dsm_sys_fwinfo_initial_set(true);  // external flash info
 
     return error;
+#endif
 }
 
 #if 0

@@ -28,6 +28,7 @@
 
 /* bccho, 2024-09-05, 삼상 */
 #include "amg_gpio.h"
+#include "xmd_write_helper.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -1095,11 +1096,17 @@ bool dsm_imgtrfr_fwimage_act_init_process(uint8_t fw_type)
 
     case FW_DL_METER_PART:
         DPRINTF(DBG_WARN, "METER FW: act init\r\n");
+
+#ifdef REMOVE_SPI_FLASH
+        flash_addr = SFLASH_SYS_FW_1_ADDR;
+        dsm_imgtrfr_fwimage_set_sys_flash_addr(flash_addr);
+        dsm_imgtrfr_set_start_dl_addr(flash_addr);
+#else
         dsm_sflash_fw_erase(E_SFLASH_METER_FW_BLK_T);
         flash_addr = dsm_sflash_fw_get_startaddr(E_SFLASH_METER_FW_BLK_T);
         dsm_imgtrfr_fwimage_set_sys_flash_addr(flash_addr);
         dsm_imgtrfr_set_start_dl_addr(flash_addr);
-
+#endif
         break;
     }
 
@@ -1195,6 +1202,7 @@ bool dsm_imgtrfr_fwimage_update(uint8_t fw_type, bool force, uint8_t* pblk,
             ret = dsm_imgtrfr_fw_subimage_buff_update_force();
         }
         break;
+
     case FW_DL_INT_MDM:
         if (dsm_mdm_mic_fwup_direct_fsm_tx_proc(pblk, blk_size))
         {
@@ -1205,7 +1213,6 @@ bool dsm_imgtrfr_fwimage_update(uint8_t fw_type, bool force, uint8_t* pblk,
         break;
 
     case FW_DL_EXT_MDM:
-
         if (dsm_mdm_mic_fwup_direct_fsm_tx_proc(pblk, blk_size))
         {
             return true;
@@ -1214,9 +1221,21 @@ bool dsm_imgtrfr_fwimage_update(uint8_t fw_type, bool force, uint8_t* pblk,
 
     case FW_DL_METER_PART:
         flash_addr = dsm_imgtrfr_fwimage_get_sys_flash_addr();
+#ifdef REMOVE_SPI_FLASH
+        ret = (APROM_WriteInactiveBank_S(flash_addr, pblk, blk_size) == 0) ? 0
+                                                                           : -1;
+        if (ret != 0)
+        {
+            DPRINTF(DBG_ERR,
+                    "%s: APROM write error :: addr[0x%08X], len[%d]\r\n",
+                    __func__, flash_addr, blk_size);
+        }
+#else
         ret = dsm_sflash_img_write(flash_addr, pblk, blk_size);
+#endif
         dsm_imgtrfr_fwimage_set_sys_flash_addr((flash_addr + blk_size));
 
+        /* 성공이면 true 리턴 */
         if (ret == 0)
             ret = true;
 
@@ -1516,8 +1535,12 @@ void dsm_imgtrfr_fwimage_act_run_process(uint8_t fw_type)
         uint16_t crc;
         uint8_t temp[/*256*/ 64];
 
+#ifdef REMOVE_SPI_FLASH
+/* do nothing */
+#else
         crc = extflash_crc16_ccitt(gst_fw_image_dlinfo.start_dl_addr,
                                    gst_fw_image_dlinfo.image_size);
+#endif
         CMD_SE(0x2000);
         CMD_PP(0x2000, (uint8_t*)&gst_fw_image_dlinfo.image_size, 4);
         CMD_PP(0x2004, (uint8_t*)&crc, 2);
@@ -1550,9 +1573,9 @@ void dsm_imgtrfr_fwimage_act_run_process(uint8_t fw_type)
         whm_data_save_sag();
 
         dsm_uart_deq_string(DEBUG_COM);
-#if 1 /* bccho, NVIC_SystemReset, 2023-07-15 */
+
 #include "boot_restore.h"
-        BOOT_RESTORE br;
+        BOOT_RESTORE br = {0};
 #ifdef STOCK_OP /* bccho, 2024-09-26 */
         ST_RAND_TX_INFO* p_rand_txinfo = dsm_stock_op_get_rand_txinfo();
         br.fsm = dsm_stock_op_get_fsm();
@@ -1562,24 +1585,19 @@ void dsm_imgtrfr_fwimage_act_run_process(uint8_t fw_type)
         br.ms_2 = p_rand_txinfo->ms_2;
         br.seed = p_rand_txinfo->seed;
 #endif
-        br.bank = get_current_bank_S() ? 0 : 1;
 
-        if (FMC_Erase_S(BOOT_RESTORE_BASE) != 0)
+        br.bank = get_current_bank_S() ? 0 : 1;
+        br.goto_dpd = 0;
+
+        if (dsm_xmd_write_words(BOOT_RESTORE_BASE, &br,
+                                sizeof(BOOT_RESTORE)) != 0U)
         {
-            MSGERROR("FMC_Erase Data Flash\n");
-        }
-        if (FMC_WriteMultiple_S(BOOT_RESTORE_BASE, (uint32_t*)&br,
-                                sizeof(BOOT_RESTORE)) <= 0)
-        {
-            MSGERROR("FMC_WriteMultiple_S\n");
+            MSGERROR("dsm_xmd_write_words\n");
         }
 
         goto_loader_S();
-#else
-        NVIC_SystemReset();
-        while (1);
-#endif
         break;
+
     case FW_DL_INT_MDM:
     case FW_DL_EXT_MDM:
     case FW_DL_METER_PART:

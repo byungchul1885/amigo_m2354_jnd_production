@@ -15,7 +15,8 @@
 #define MTP_ZCD_ON_OFF /* bccho, 2025-10-15 */
 #define MAIN_TASK_NO_DELAY
 
-#define ADD_DC_LOW_PIN /* bccho, 2024-09-11 */
+#define ADD_DC_LOW_PIN   /* bccho, 2024-09-11 */
+#define REMOVE_SPI_FLASH /* bccho, 2026-04-09 */
 
 #if 1 /* -------------bccho, ADD, 2023-07-20 */
 #include "NuMicro.h"
@@ -45,26 +46,27 @@
 #define MT_3P4W_SINGLE 3
 #define MT_3P4W_TRANS 4
 
-// #define METER_TYPE MT_1P2W_60A
+#define METER_TYPE MT_1P2W_60A
 // #define METER_TYPE MT_1P2W_120A
-#define METER_TYPE MT_3P4W_SINGLE
+// #define METER_TYPE MT_3P4W_SINGLE
 
-#define HARDWARE_VERSION 0x32
+// #define HARDWARE_VERSION 0x32
+#define HARDWARE_VERSION 0x34
 
 #define SOFTWARE_SYSTEM_PART 0x30
 #define SOFTWARE_INMODEM_PART 0x31
 #define SOFTWARE_EXMODEM_PART 0x32
 #define SOFTWARE_METER_PART 0x33
 
-#define SOFTWARE_VERSION_H '4'
-#define SOFTWARE_VERSION_L '8'
+#define SOFTWARE_VERSION_H '5'
+#define SOFTWARE_VERSION_L '4'
 
 #define SOFTWARE_DATE_YYH '2'
 #define SOFTWARE_DATE_YYL '6'
 #define SOFTWARE_DATE_MMH '0'
-#define SOFTWARE_DATE_MML '1'
-#define SOFTWARE_DATE_DDH '2'
-#define SOFTWARE_DATE_DDL '8'
+#define SOFTWARE_DATE_MML '4'
+#define SOFTWARE_DATE_DDH '0'
+#define SOFTWARE_DATE_DDL '9'
 
 #if 1  // jp.kim 251220  계량부 관리 구분
 //==============================================================================

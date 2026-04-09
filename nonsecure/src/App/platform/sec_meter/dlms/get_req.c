@@ -7134,7 +7134,7 @@ static void approc_fill_get_resp_normal(void)
         else if (appl_obis.id[GROUP_E] == 0x01)
         {
             ob_manuf_id_old();
-        }        
+        }
         break;
 
     case OBJ_PGM_ID:
@@ -11363,7 +11363,7 @@ void LOWVOT_trigger(uint8_t line)
 
         if (!(WMStatus & LA_V_LOW))
         {
-            if (Is_push_LOWVOT_B_act_mask())
+            if (Is_push_LOWVOT_A_act_mask())
                 dsm_data_noti_errcode_evt_send();
         }
         WMStatus |= LA_V_LOW;
@@ -15348,7 +15348,7 @@ static void ob_sap_assignment(void)
         FILL_STRING(DEVICE_ID_SIZE);
 
         sap_sec_logical_device_name_r(dev_id);
-        
+
         memcpy(&pPdu[pPdu_idx], dev_id, DEVICE_ID_SIZE);
         pPdu_idx += DEVICE_ID_SIZE;
 

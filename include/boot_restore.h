@@ -13,7 +13,7 @@ typedef struct _boot_restore
     uint8_t bank;
     uint8_t goto_dpd;
     uint8_t reserved[2];
-} __attribute__((__packed__)) BOOT_RESTORE;
+} __attribute__((__packed__, aligned(4))) BOOT_RESTORE;
 
 #define BOOT_RESTORE_BASE (FMC_APROM_END - FMC_FLASH_PAGE_SIZE)
 #endif
