@@ -17,6 +17,7 @@
 
 #define ADD_DC_LOW_PIN    /* bccho, 2024-09-11 */
 #define REMOVE_SPI_FLASHx /* bccho, 2026-04-09 */
+#define FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION
 
 #if 1 /* -------------bccho, ADD, 2023-07-20 */
 #include "NuMicro.h"

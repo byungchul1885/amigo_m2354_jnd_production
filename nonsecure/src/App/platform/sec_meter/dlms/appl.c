@@ -18,9 +18,6 @@
 #include "amg_rtc.h"
 #include "amg_media_mnt.h"
 #include "amg_uart.h"
-#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
-#include "cmsis_os.h"
-#endif
 
 #define _D "[APPL] "
 
@@ -1043,8 +1040,8 @@ static const /*__code*/ myobj_struct_type
          r_rw_r_r_r_r_r_r_r_r, r_rw_r_r_r_r_r_r_r_r, r_rw_r_r_r_r_r_r_r_r},
         {OBJ_GPS_LATITUDE, CLS_Reg, OBIS_GPS_LATITUDE, VER_0, 3, all_r, all_r,
          all_rC, all_rC},
-        {OBJ_GPS_LONGITUDE, CLS_Reg, OBIS_GPS_LONGITUDE, VER_0, 3, all_r,
-         all_r, all_rC, all_rC},
+        {OBJ_GPS_LONGITUDE, CLS_Reg, OBIS_GPS_LONGITUDE, VER_0, 3, all_r, all_r,
+         all_rC, all_rC},
 };
 
 /* 장치 관리자용 (Management) Logical Device */
@@ -3263,7 +3260,7 @@ void dsm_meter_reset_timer_proc(void)
         {
             DPRINTF(DBG_ERR, _D ">>> LAB reset timer fired <<<\r\n");
             dsm_uart_q_flush(DEBUG_COM);
-            osDelay(50);
+            vTaskDelay(50);
             amr_disc_ind_end_proc();
         }
 #endif

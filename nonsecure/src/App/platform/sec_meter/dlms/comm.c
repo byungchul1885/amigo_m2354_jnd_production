@@ -14,13 +14,12 @@
 #include "STM32_EEPROM_SPI.h"
 #include "amg_uart.h"
 #include "amg_wdt.h"
-#include "cmsis_os.h"
 #define LAB_EEPROM_CLEAR_CHUNK 0x4000u
 #define LAB_LOG_FLUSH()              \
     do                               \
     {                                \
         dsm_uart_q_flush(DEBUG_COM); \
-        osDelay(50);                 \
+        vTaskDelay(50);                 \
     } while (0)
 #endif
 
@@ -133,7 +132,7 @@ void amr_disc_ind_end_proc(void)
 
         DPRINTF(DBG_ERR, ">>> LAB EEPROM FULL CLEAR DONE, reset now <<<\r\n");
         LAB_LOG_FLUSH();
-        osDelay(500);
+        vTaskDelay(500);
         NVIC_SystemReset();
     }
 #endif
