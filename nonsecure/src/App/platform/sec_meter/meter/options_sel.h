@@ -56,7 +56,7 @@
 #define BATCHK_BY_LEVEL 1
 
 /* get_ver_fw_nv(), get_nv_version() */
-#define VERSION_FW_NV "1.01.01_01"
+#define VERSION_FW_NV "1.02.00_01"
 
 #define LCDMAPSEL0 0xfffc0000L
 #define LCDMAPSEL1 0x000003ffL

@@ -3704,3 +3704,71 @@ bool dsm_atcmd_if_is_valid(uint32_t ifstate, uint8_t get_sha256)
     DPRINTF(DBG_TRACE, "%s ret[%d]\r\n", __func__, ret);
     return ret;
 }
+
+bool dsm_atcmd_if_is_valid_mmid(uint32_t ifstate)
+{
+    uint8_t modem_type;
+    ST_ATCMD_TMP_BUF st_atmcd_from_modem;
+    ST_AT_CMD_RX_PKT atcmd_com_pkt;
+    uint8_t cnt = 0;
+    bool ret = false;
+
+    DPRINTF(DBG_TRACE, "%s\r\n", __func__);
+
+    if (ifstate == MEDIA_RUN_SUN)
+    {
+        dsm_media_set_fsm_if_ATCMD(MEDIA_RUN_SUN);
+        modem_type = INT_MODEM_TYPE;
+    }
+    else
+    {
+        dsm_media_set_fsm_if_ATCMD(MEDIA_RUN_EXT);
+        modem_type = EXT_MODEM_TYPE;
+    }
+
+    while (cnt < 2)
+    {
+        ret = false;
+        dsm_atcmd_get_modem_id(TRUE);
+        dsm_atcmd_tx_pkt_init();
+        memset(&st_atmcd_from_modem, 0x00, sizeof(ST_ATCMD_TMP_BUF));
+
+        if (dsm_atcmd_if_rx_polling_valid_check(modem_type,
+                                                &st_atmcd_from_modem) &&
+            st_atmcd_from_modem.len)
+        {
+            if (dsm_atcmd_rx_parser((uint8_t*)st_atmcd_from_modem.string,
+                                    st_atmcd_from_modem.len,
+                                    &atcmd_com_pkt) == AT_ERR_NONE_PARSER_OK)
+            {
+                if (st_atmcd_from_modem.len > 5)
+                {
+                    dsm_atcmd_rx_proc(&atcmd_com_pkt);
+                    ret = true;
+                    dsm_atcmd_rx_pkt_init();
+                    atcmd_com_pkt.len = 0;
+                    break;
+                }
+            }
+            else
+            {
+                DPRINTF(DBG_TRACE, "%s dsm_atcmd_rx_parser fail cnt[%d]\r\n",
+                        __func__, cnt);
+            }
+
+            OSTimeDly(OS_MS2TICK(MODEM_RX_POLL_RETRY_TIME));
+        }
+        else
+        {
+            DPRINTF(DBG_TRACE, "%s dsm_atcmd_if_rx_polling fail cnt[%d]\r\n",
+                    __func__, cnt);
+        }
+
+        dsm_atcmd_rx_pkt_init();
+        atcmd_com_pkt.len = 0;
+        cnt++;
+    }
+
+    DPRINTF(DBG_TRACE, "%s ret[%d]\r\n", __func__, ret);
+    return ret;
+}

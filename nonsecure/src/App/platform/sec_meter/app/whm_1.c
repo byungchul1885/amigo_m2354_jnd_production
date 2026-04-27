@@ -254,6 +254,7 @@ void relay_ctrl(bool ctrl)
         relay_set_on();
         relay_load_state = LOAD_ON;
         whm_op_save();
+        nv_write(I_RELAY_STATE, (uint8_t *)&relay_nv_data);
     }
     else
     {
@@ -269,6 +270,7 @@ void relay_ctrl(bool ctrl)
         relay_set_off();
         relay_load_state = LOAD_OFF;
         whm_op_save();
+        nv_write(I_RELAY_STATE, (uint8_t *)&relay_nv_data);
     }
 
     relay_onff_timer = /*T50MS*/ T100MS;
@@ -1302,7 +1304,12 @@ void mif_meter_sagswell_set(void)
 
     ST_MIF_SAGSWELL_SETUP *pst_mif_sagswell = dsm_mtp_get_sagswell();
 
-    nv_write(I_MTP_SAG_SWELL, (uint8_t *)pst_mif_sagswell);
+    {
+        ST_MTP_SAGSWELL st_mtp_sagswell;
+        memcpy((uint8_t *)&st_mtp_sagswell.val, (uint8_t *)pst_mif_sagswell,
+               sizeof(ST_MIF_SAGSWELL_SETUP));
+        nv_write(I_MTP_SAG_SWELL, (uint8_t *)&st_mtp_sagswell);
+    }
 
     DPRINTF(DBG_TRACE, _D "SagSwell_moniter\r\n");
     ToHFloat((U8_Float *)&fval, &pst_mif_sagswell->pf_level[0]);
@@ -1708,7 +1715,11 @@ bool dst_mon(bool _normal, date_time_type *dt, uint8_t *tptr)
 
                     if (_normal)
                     {
+#if defined(FEATURE_TOU_8RATE)
+                        rt = get_lowest_rate_from_mask(cur_selector_before);
+#else
                         rt = cur_rate_before;
+#endif
                         eoi_proc_timechg(dt, rt, tptr, false);
 
                         dst_dt = _bakdt;

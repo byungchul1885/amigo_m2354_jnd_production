@@ -4,6 +4,7 @@
 #include "cal.h"
 #include "ce.h"
 #include "afe.h"
+#include "meter.h"
 #include "amg_mtp_process.h"
 
 // uint16_t ce_samples;
@@ -211,7 +212,7 @@ float afe_frequency(void) /* mains frequency, in Hz */
 {
     ST_MTP_PUSH_DATA *pushd = dsm_mtp_get_push_data();
 
-    return pushd->freq;
+    return filter_mtp_freq(pushd->freq);
 }
 
 float rtn_inst_irms(float sq) { return sq; }

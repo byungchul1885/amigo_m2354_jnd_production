@@ -365,6 +365,18 @@ extern outputs_mon_type outputs_mon;
 #define PH_AtoC_mon outputs_mon.phAC
 #define temp_raw_mon outputs_mon.traw
 
+#define DEFAULT_FREQ_F 60.0f
+#define FREQ_MIN_F 40.0f
+#define FREQ_MAX_F 70.0f
+
+static inline float filter_mtp_freq(float raw)
+{
+    if ((raw < FREQ_MIN_F) || (raw > FREQ_MAX_F))
+        return DEFAULT_FREQ_F;
+
+    return raw;
+}
+
 typedef struct
 {
     float v0;

@@ -83,6 +83,7 @@ void dsm_atcmd_set_trap_power_notify(uint32_t poll_flag, uint8_t sel);
 #define EVENT_MASK_FWUP_FSM (1UL << 11)
 #define EVENT_MASK_DATA_NOTI_ERRCODE (1UL << 12)
 #define EVENT_MASK_DATA_NOTI_LASTLP (1UL << 13)
+#define EVENT_MASK_DATA_NOTI_LAST_RT_LP (1UL << 17)
 #define EVENT_MASK_EMODEM_RX (1UL << 14)
 #define EVENT_MASK_PMNT_ETC (1UL << 15)
 #if 0 /* bccho, 2025-04-09 */
@@ -202,6 +203,13 @@ void dsm_data_noti_lastLP_evt_send(void)
     OSFlagPost(meter_event, EVENT_MASK_DATA_NOTI_LASTLP, OS_FLAG_SET, &err);
 }
 
+void dsm_data_noti_lastRtLP_evt_send(void)
+{
+    uint8_t err;
+    OSFlagPost(meter_event, EVENT_MASK_DATA_NOTI_LAST_RT_LP, OS_FLAG_SET,
+               &err);
+}
+
 void dsm_pmnt_etc_evt_send(void)
 {
     uint8_t err;
@@ -264,6 +272,10 @@ static void meter_timer_event_handler(void *pTmrCntx, uint32_t timerId)
 
     case MT_SW_TIMER_PUSH_LP_TO:
         appl_push_msg_lastLP();
+        break;
+
+    case MT_SW_TIMER_PUSH_RT_LP_TO:
+        appl_push_msg_lastRtLP();
         break;
 
     case MT_SW_TIMER_I_MODEM_RX_INTER_FRAME_TO:
@@ -1003,7 +1015,8 @@ static void dsm_meter_task_main(void *pdata)
         EVENT_MASK_RS485_RX | EVENT_MASK_METER_IC_RX | EVENT_MASK_MTP_FSM |
         EVENT_MASK_CAN_RX | EVENT_MASK_IMODEM_RX | EVENT_MASK_EMODEM_RX |
         EVENT_MASK_FWUP_FSM | EVENT_MASK_DATA_NOTI_ERRCODE |
-        EVENT_MASK_DATA_NOTI_LASTLP | EVENT_MASK_PMNT_ETC,
+        EVENT_MASK_DATA_NOTI_LASTLP | EVENT_MASK_DATA_NOTI_LAST_RT_LP |
+        EVENT_MASK_PMNT_ETC;
 #if 0 /* bccho, 2025-04-09 */
         | EVENT_MASK_SECU_INITED | EVENT_MASK_CAN_RX2;
 #endif
@@ -1132,6 +1145,11 @@ static void dsm_meter_task_main(void *pdata)
         {
             MSG03("EVENT_MASK_DATA_NOTI_LASTLP");
             dsm_push_data_noti_proc(PUSH_SCRIPT_ID_LAST_LP);
+        }
+        if (masked_event & EVENT_MASK_DATA_NOTI_LAST_RT_LP)
+        {
+            MSG03("EVENT_MASK_DATA_NOTI_LAST_RT_LP");
+            dsm_push_data_noti_proc(PUSH_SCRIPT_ID_LAST_RT_LP);
         }
         if (masked_event & EVENT_MASK_MTP_FSM)
         {

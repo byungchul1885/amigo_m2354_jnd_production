@@ -142,6 +142,7 @@ void Id_Current(void);
 void default_min_max_val(void);
 void min_max_load(void);
 char *dsm_rate_string(rate_type rate);
+char *dsm_rate_mask_string(uint8_t mask);
 void background(void);
 void foreground(void);
 

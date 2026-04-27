@@ -2074,7 +2074,7 @@ int16_t dsm_sec_g_signing_xDLMS_APDU_build(uint8_t *p_o_apdu,
 {
     uint16_t frame_len, msg_idx = 0;
     uint16_t idx = 0;
-    uint8_t msg[512];
+    uint8_t msg[1024];
 
     dsm_wdt_ext_toggle_immd();
 
@@ -2210,7 +2210,7 @@ int16_t dsm_sec_g_signing_xDLMS_APDU_parser(uint8_t *p_i_apdu,
     int16_t sRv = 0;
     uint16_t length, sign_len, o_msgidx = 0;
     uint32_t idx = 0, len_offset = 0, sign_idx = 0;
-    uint8_t msg[512];
+    uint8_t msg[1024];
 
     dsm_wdt_ext_toggle_immd();
 

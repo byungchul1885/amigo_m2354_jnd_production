@@ -717,6 +717,7 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
                          릴레이 사용 시 */
     DSPMODE_TEST_REG_DATE, /* 정기검침일, [메뉴] 버튼으로 설정 가능(01 ~ 28) */
     DSPMODE_TARIFF_RATE, /* 종별설정(1~2종), [메뉴] 버튼으로 설정 가능(1 ~ 2) */
+    DSPMODE_SPEC_VER,    /* v1.4: 규격 버전 표시 (vEr X.X) */
     NUM_DSPMODE          // end of table
 };
 #else /* bccho, 2024-09-05, 삼상 */
@@ -761,6 +762,7 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
                             */
     DSPMODE_TARIFF_RATE, /* 종별 설정 (1~2종), [메뉴] 버튼으로 설정 가능 (1 ~ 2)
                           */
+    DSPMODE_SPEC_VER, /* v1.4: 규격 버전 표시 (vEr X.X) */
     NUM_DSPMODE  // end of table
 };
 #endif
@@ -1752,6 +1754,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_ACT_C: /* 현월 누적 수전 유효전력량 (kWh)_최대부하
                                 */
     case DSPMODE_CU_IMP_ACT_D:
+    case DSPMODE_CU_IMP_ACT_E:
+    case DSPMODE_CU_IMP_ACT_F:
+    case DSPMODE_CU_IMP_ACT_G:
+    case DSPMODE_CU_IMP_ACT_H:
     case DSPMODE_CU_IMP_ACT_T: /* 현월(현재) 누적 수전 유효전력량 (kWh)_전체
                                 */
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_ACT_A);
@@ -1766,6 +1772,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_ACT_C: /* 현월 누적 송전 유효전력량 (kWh)_최대부하
                                 */
     case DSPMODE_CU_EXP_ACT_D:
+    case DSPMODE_CU_EXP_ACT_E:
+    case DSPMODE_CU_EXP_ACT_F:
+    case DSPMODE_CU_EXP_ACT_G:
+    case DSPMODE_CU_EXP_ACT_H:
     case DSPMODE_CU_EXP_ACT_T: /* 현월(현재) 누적 송전 유효전력량 (kWh)_전체
                                 */
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_ACT_A);
@@ -1778,6 +1788,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_REACT_B:
     case DSPMODE_CU_IMP_REACT_C:
     case DSPMODE_CU_IMP_REACT_D:
+    case DSPMODE_CU_IMP_REACT_E:
+    case DSPMODE_CU_IMP_REACT_F:
+    case DSPMODE_CU_IMP_REACT_G:
+    case DSPMODE_CU_IMP_REACT_H:
     case DSPMODE_CU_IMP_REACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_REACT_A);
         val = get_ch_val(0, rt, eDeliAct, eReactEn, tptr);
@@ -1789,6 +1803,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_lagREACT_B:
     case DSPMODE_CU_IMP_lagREACT_C:
     case DSPMODE_CU_IMP_lagREACT_D:
+    case DSPMODE_CU_IMP_lagREACT_E:
+    case DSPMODE_CU_IMP_lagREACT_F:
+    case DSPMODE_CU_IMP_lagREACT_G:
+    case DSPMODE_CU_IMP_lagREACT_H:
     case DSPMODE_CU_IMP_lagREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_lagREACT_A);
         val = get_ch_val(0, rt, eDeliAct, eLagReactEn, tptr);
@@ -1800,6 +1818,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_leadREACT_B:
     case DSPMODE_CU_IMP_leadREACT_C:
     case DSPMODE_CU_IMP_leadREACT_D:
+    case DSPMODE_CU_IMP_leadREACT_E:
+    case DSPMODE_CU_IMP_leadREACT_F:
+    case DSPMODE_CU_IMP_leadREACT_G:
+    case DSPMODE_CU_IMP_leadREACT_H:
     case DSPMODE_CU_IMP_leadREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_leadREACT_A);
         val = get_ch_val(0, rt, eDeliAct, eLeadReactEn, tptr);
@@ -1811,6 +1833,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_REACT_B:
     case DSPMODE_CU_EXP_REACT_C:
     case DSPMODE_CU_EXP_REACT_D:
+    case DSPMODE_CU_EXP_REACT_E:
+    case DSPMODE_CU_EXP_REACT_F:
+    case DSPMODE_CU_EXP_REACT_G:
+    case DSPMODE_CU_EXP_REACT_H:
     case DSPMODE_CU_EXP_REACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_REACT_A);
         val = get_ch_val(0, rt, eReceiAct, eReactEn, tptr);
@@ -1822,6 +1848,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_lagREACT_B:
     case DSPMODE_CU_EXP_lagREACT_C:
     case DSPMODE_CU_EXP_lagREACT_D:
+    case DSPMODE_CU_EXP_lagREACT_E:
+    case DSPMODE_CU_EXP_lagREACT_F:
+    case DSPMODE_CU_EXP_lagREACT_G:
+    case DSPMODE_CU_EXP_lagREACT_H:
     case DSPMODE_CU_EXP_lagREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_lagREACT_A);
         val = get_ch_val(0, rt, eReceiAct, eLagReactEn, tptr);
@@ -1833,6 +1863,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_leadREACT_B:
     case DSPMODE_CU_EXP_leadREACT_C:
     case DSPMODE_CU_EXP_leadREACT_D:
+    case DSPMODE_CU_EXP_leadREACT_E:
+    case DSPMODE_CU_EXP_leadREACT_F:
+    case DSPMODE_CU_EXP_leadREACT_G:
+    case DSPMODE_CU_EXP_leadREACT_H:
     case DSPMODE_CU_EXP_leadREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_leadREACT_A);
         val = get_ch_val(0, rt, eReceiAct, eLeadReactEn, tptr);
@@ -1844,6 +1878,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_APP_B:
     case DSPMODE_CU_IMP_APP_C:
     case DSPMODE_CU_IMP_APP_D:
+    case DSPMODE_CU_IMP_APP_E:
+    case DSPMODE_CU_IMP_APP_F:
+    case DSPMODE_CU_IMP_APP_G:
+    case DSPMODE_CU_IMP_APP_H:
     case DSPMODE_CU_IMP_APP_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_APP_A);
         val = get_ch_val(0, rt, eDeliAct, eAppEn, tptr);
@@ -1855,6 +1893,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_APP_B:
     case DSPMODE_CU_EXP_APP_C:
     case DSPMODE_CU_EXP_APP_D:
+    case DSPMODE_CU_EXP_APP_E:
+    case DSPMODE_CU_EXP_APP_F:
+    case DSPMODE_CU_EXP_APP_G:
+    case DSPMODE_CU_EXP_APP_H:
     case DSPMODE_CU_EXP_APP_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_APP_A);
         val = get_ch_val(0, rt, eReceiAct, eAppEn, tptr);
@@ -1866,6 +1908,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_ACT_MX_B:
     case DSPMODE_CU_IMP_ACT_MX_C:
     case DSPMODE_CU_IMP_ACT_MX_D:
+    case DSPMODE_CU_IMP_ACT_MX_E:
+    case DSPMODE_CU_IMP_ACT_MX_F:
+    case DSPMODE_CU_IMP_ACT_MX_G:
+    case DSPMODE_CU_IMP_ACT_MX_H:
     case DSPMODE_CU_IMP_ACT_MX_T: /* 현월 수전 유효 최대수요전력(kW) */
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_ACT_MX_A);
         val = get_cur_mxdm(rt, eDmChDeliAct);
@@ -1877,6 +1923,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_ACT_MX_B:
     case DSPMODE_CU_EXP_ACT_MX_C:
     case DSPMODE_CU_EXP_ACT_MX_D:
+    case DSPMODE_CU_EXP_ACT_MX_E:
+    case DSPMODE_CU_EXP_ACT_MX_F:
+    case DSPMODE_CU_EXP_ACT_MX_G:
+    case DSPMODE_CU_EXP_ACT_MX_H:
     case DSPMODE_CU_EXP_ACT_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_ACT_MX_A);
         val = get_cur_mxdm(rt, eDmChReceiAct);
@@ -1888,6 +1938,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_APP_MX_B:
     case DSPMODE_CU_IMP_APP_MX_C:
     case DSPMODE_CU_IMP_APP_MX_D:
+    case DSPMODE_CU_IMP_APP_MX_E:
+    case DSPMODE_CU_IMP_APP_MX_F:
+    case DSPMODE_CU_IMP_APP_MX_G:
+    case DSPMODE_CU_IMP_APP_MX_H:
     case DSPMODE_CU_IMP_APP_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_APP_MX_A);
         val = get_cur_mxdm(rt, eDmChDeliApp);
@@ -1899,6 +1953,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_APP_MX_B:
     case DSPMODE_CU_EXP_APP_MX_C:
     case DSPMODE_CU_EXP_APP_MX_D:
+    case DSPMODE_CU_EXP_APP_MX_E:
+    case DSPMODE_CU_EXP_APP_MX_F:
+    case DSPMODE_CU_EXP_APP_MX_G:
+    case DSPMODE_CU_EXP_APP_MX_H:
     case DSPMODE_CU_EXP_APP_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_APP_MX_A);
         val = get_cur_mxdm(rt, eDmChReceiApp);
@@ -1910,6 +1968,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_ACT_MXTIM_B:
     case DSPMODE_CU_IMP_ACT_MXTIM_C:
     case DSPMODE_CU_IMP_ACT_MXTIM_D:
+    case DSPMODE_CU_IMP_ACT_MXTIM_E:
+    case DSPMODE_CU_IMP_ACT_MXTIM_F:
+    case DSPMODE_CU_IMP_ACT_MXTIM_G:
+    case DSPMODE_CU_IMP_ACT_MXTIM_H:
     case DSPMODE_CU_IMP_ACT_MXTIM_T: /* 현월 수전 유효 최대수요전력 발생
                                         날짜/시간 */
         if (!b_dsp_mxdm_time)
@@ -1930,6 +1992,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_ACT_MXTIM_B:
     case DSPMODE_CU_EXP_ACT_MXTIM_C:
     case DSPMODE_CU_EXP_ACT_MXTIM_D:
+    case DSPMODE_CU_EXP_ACT_MXTIM_E:
+    case DSPMODE_CU_EXP_ACT_MXTIM_F:
+    case DSPMODE_CU_EXP_ACT_MXTIM_G:
+    case DSPMODE_CU_EXP_ACT_MXTIM_H:
     case DSPMODE_CU_EXP_ACT_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -1949,6 +2015,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_APP_MXTIM_B:
     case DSPMODE_CU_IMP_APP_MXTIM_C:
     case DSPMODE_CU_IMP_APP_MXTIM_D:
+    case DSPMODE_CU_IMP_APP_MXTIM_E:
+    case DSPMODE_CU_IMP_APP_MXTIM_F:
+    case DSPMODE_CU_IMP_APP_MXTIM_G:
+    case DSPMODE_CU_IMP_APP_MXTIM_H:
     case DSPMODE_CU_IMP_APP_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -1968,6 +2038,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_APP_MXTIM_B:
     case DSPMODE_CU_EXP_APP_MXTIM_C:
     case DSPMODE_CU_EXP_APP_MXTIM_D:
+    case DSPMODE_CU_EXP_APP_MXTIM_E:
+    case DSPMODE_CU_EXP_APP_MXTIM_F:
+    case DSPMODE_CU_EXP_APP_MXTIM_G:
+    case DSPMODE_CU_EXP_APP_MXTIM_H:
     case DSPMODE_CU_EXP_APP_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -1987,6 +2061,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_ACT_CUMMX_B:
     case DSPMODE_CU_IMP_ACT_CUMMX_C:
     case DSPMODE_CU_IMP_ACT_CUMMX_D:
+    case DSPMODE_CU_IMP_ACT_CUMMX_E:
+    case DSPMODE_CU_IMP_ACT_CUMMX_F:
+    case DSPMODE_CU_IMP_ACT_CUMMX_G:
+    case DSPMODE_CU_IMP_ACT_CUMMX_H:
     case DSPMODE_CU_IMP_ACT_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_ACT_CUMMX_A);
         val = get_cur_cumdm(rt, eDmChDeliAct);
@@ -1998,6 +2076,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_ACT_CUMMX_B:
     case DSPMODE_CU_EXP_ACT_CUMMX_C:
     case DSPMODE_CU_EXP_ACT_CUMMX_D:
+    case DSPMODE_CU_EXP_ACT_CUMMX_E:
+    case DSPMODE_CU_EXP_ACT_CUMMX_F:
+    case DSPMODE_CU_EXP_ACT_CUMMX_G:
+    case DSPMODE_CU_EXP_ACT_CUMMX_H:
     case DSPMODE_CU_EXP_ACT_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_ACT_CUMMX_A);
         val = get_cur_cumdm(rt, eDmChReceiAct);
@@ -2009,6 +2091,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_APP_CUMMX_B:
     case DSPMODE_CU_IMP_APP_CUMMX_C:
     case DSPMODE_CU_IMP_APP_CUMMX_D:
+    case DSPMODE_CU_IMP_APP_CUMMX_E:
+    case DSPMODE_CU_IMP_APP_CUMMX_F:
+    case DSPMODE_CU_IMP_APP_CUMMX_G:
+    case DSPMODE_CU_IMP_APP_CUMMX_H:
     case DSPMODE_CU_IMP_APP_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_APP_CUMMX_A);
         val = get_cur_cumdm(rt, eDmChDeliApp);
@@ -2020,6 +2106,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_APP_CUMMX_B:
     case DSPMODE_CU_EXP_APP_CUMMX_C:
     case DSPMODE_CU_EXP_APP_CUMMX_D:
+    case DSPMODE_CU_EXP_APP_CUMMX_E:
+    case DSPMODE_CU_EXP_APP_CUMMX_F:
+    case DSPMODE_CU_EXP_APP_CUMMX_G:
+    case DSPMODE_CU_EXP_APP_CUMMX_H:
     case DSPMODE_CU_EXP_APP_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_APP_CUMMX_A);
         val = get_cur_cumdm(rt, eDmChReceiApp);
@@ -2031,6 +2121,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_IMP_PF_B:
     case DSPMODE_CU_IMP_PF_C:
     case DSPMODE_CU_IMP_PF_D:
+    case DSPMODE_CU_IMP_PF_E:
+    case DSPMODE_CU_IMP_PF_F:
+    case DSPMODE_CU_IMP_PF_G:
+    case DSPMODE_CU_IMP_PF_H:
     case DSPMODE_CU_IMP_PF_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_IMP_PF_A);
         dsp_pf(get_cur_pf(rt, eDeliAct));
@@ -2041,6 +2135,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_CU_EXP_PF_B:
     case DSPMODE_CU_EXP_PF_C:
     case DSPMODE_CU_EXP_PF_D:
+    case DSPMODE_CU_EXP_PF_E:
+    case DSPMODE_CU_EXP_PF_F:
+    case DSPMODE_CU_EXP_PF_G:
+    case DSPMODE_CU_EXP_PF_H:
     case DSPMODE_CU_EXP_PF_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_CU_EXP_PF_A);
         dsp_pf(get_cur_pf(rt, eReceiAct));
@@ -2053,6 +2151,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_ACT_C: /* 전월 누적 수전 유효전력량 (kWh)_최대부하
                                 */
     case DSPMODE_BF_IMP_ACT_D:
+    case DSPMODE_BF_IMP_ACT_E:
+    case DSPMODE_BF_IMP_ACT_F:
+    case DSPMODE_BF_IMP_ACT_G:
+    case DSPMODE_BF_IMP_ACT_H:
     case DSPMODE_BF_IMP_ACT_T: /* 전월 누적 수전 유효전력량(kWh)_전체 */
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_ACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2083,6 +2185,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_ACT_B:
     case DSPMODE_BBF_IMP_ACT_C:
     case DSPMODE_BBF_IMP_ACT_D:
+    case DSPMODE_BBF_IMP_ACT_E:
+    case DSPMODE_BBF_IMP_ACT_F:
+    case DSPMODE_BBF_IMP_ACT_G:
+    case DSPMODE_BBF_IMP_ACT_H:
     case DSPMODE_BBF_IMP_ACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_ACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2098,6 +2204,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_ACT_B: /* 전월 누적 송전 유효전력량(kWh)_중간부하 */
     case DSPMODE_BF_EXP_ACT_C: /* 전월 누적 송전 유효전력량(kWh)_최대부하 */
     case DSPMODE_BF_EXP_ACT_D:
+    case DSPMODE_BF_EXP_ACT_E:
+    case DSPMODE_BF_EXP_ACT_F:
+    case DSPMODE_BF_EXP_ACT_G:
+    case DSPMODE_BF_EXP_ACT_H:
     case DSPMODE_BF_EXP_ACT_T: /* 전월 누적 송전 유효전력량(kWh)_전체 */
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_ACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2129,6 +2239,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_ACT_B:
     case DSPMODE_BBF_EXP_ACT_C:
     case DSPMODE_BBF_EXP_ACT_D:
+    case DSPMODE_BBF_EXP_ACT_E:
+    case DSPMODE_BBF_EXP_ACT_F:
+    case DSPMODE_BBF_EXP_ACT_G:
+    case DSPMODE_BBF_EXP_ACT_H:
     case DSPMODE_BBF_EXP_ACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_ACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2144,6 +2258,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_REACT_B:
     case DSPMODE_BF_IMP_REACT_C:
     case DSPMODE_BF_IMP_REACT_D:
+    case DSPMODE_BF_IMP_REACT_E:
+    case DSPMODE_BF_IMP_REACT_F:
+    case DSPMODE_BF_IMP_REACT_G:
+    case DSPMODE_BF_IMP_REACT_H:
     case DSPMODE_BF_IMP_REACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_REACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2159,6 +2277,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_lagREACT_B:
     case DSPMODE_BF_IMP_lagREACT_C:
     case DSPMODE_BF_IMP_lagREACT_D:
+    case DSPMODE_BF_IMP_lagREACT_E:
+    case DSPMODE_BF_IMP_lagREACT_F:
+    case DSPMODE_BF_IMP_lagREACT_G:
+    case DSPMODE_BF_IMP_lagREACT_H:
     case DSPMODE_BF_IMP_lagREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_lagREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2174,6 +2296,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_leadREACT_B:
     case DSPMODE_BF_IMP_leadREACT_C:
     case DSPMODE_BF_IMP_leadREACT_D:
+    case DSPMODE_BF_IMP_leadREACT_E:
+    case DSPMODE_BF_IMP_leadREACT_F:
+    case DSPMODE_BF_IMP_leadREACT_G:
+    case DSPMODE_BF_IMP_leadREACT_H:
     case DSPMODE_BF_IMP_leadREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_leadREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2189,6 +2315,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_REACT_B:
     case DSPMODE_BBF_IMP_REACT_C:
     case DSPMODE_BBF_IMP_REACT_D:
+    case DSPMODE_BBF_IMP_REACT_E:
+    case DSPMODE_BBF_IMP_REACT_F:
+    case DSPMODE_BBF_IMP_REACT_G:
+    case DSPMODE_BBF_IMP_REACT_H:
     case DSPMODE_BBF_IMP_REACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_REACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2204,6 +2334,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_lagREACT_B:
     case DSPMODE_BBF_IMP_lagREACT_C:
     case DSPMODE_BBF_IMP_lagREACT_D:
+    case DSPMODE_BBF_IMP_lagREACT_E:
+    case DSPMODE_BBF_IMP_lagREACT_F:
+    case DSPMODE_BBF_IMP_lagREACT_G:
+    case DSPMODE_BBF_IMP_lagREACT_H:
     case DSPMODE_BBF_IMP_lagREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_lagREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2219,6 +2353,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_leadREACT_B:
     case DSPMODE_BBF_IMP_leadREACT_C:
     case DSPMODE_BBF_IMP_leadREACT_D:
+    case DSPMODE_BBF_IMP_leadREACT_E:
+    case DSPMODE_BBF_IMP_leadREACT_F:
+    case DSPMODE_BBF_IMP_leadREACT_G:
+    case DSPMODE_BBF_IMP_leadREACT_H:
     case DSPMODE_BBF_IMP_leadREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_leadREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2234,6 +2372,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_REACT_B:
     case DSPMODE_BF_EXP_REACT_C:
     case DSPMODE_BF_EXP_REACT_D:
+    case DSPMODE_BF_EXP_REACT_E:
+    case DSPMODE_BF_EXP_REACT_F:
+    case DSPMODE_BF_EXP_REACT_G:
+    case DSPMODE_BF_EXP_REACT_H:
     case DSPMODE_BF_EXP_REACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_REACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2249,6 +2391,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_lagREACT_B:
     case DSPMODE_BF_EXP_lagREACT_C:
     case DSPMODE_BF_EXP_lagREACT_D:
+    case DSPMODE_BF_EXP_lagREACT_E:
+    case DSPMODE_BF_EXP_lagREACT_F:
+    case DSPMODE_BF_EXP_lagREACT_G:
+    case DSPMODE_BF_EXP_lagREACT_H:
     case DSPMODE_BF_EXP_lagREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_lagREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2264,6 +2410,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_leadREACT_B:
     case DSPMODE_BF_EXP_leadREACT_C:
     case DSPMODE_BF_EXP_leadREACT_D:
+    case DSPMODE_BF_EXP_leadREACT_E:
+    case DSPMODE_BF_EXP_leadREACT_F:
+    case DSPMODE_BF_EXP_leadREACT_G:
+    case DSPMODE_BF_EXP_leadREACT_H:
     case DSPMODE_BF_EXP_leadREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_leadREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2279,6 +2429,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_REACT_B:
     case DSPMODE_BBF_EXP_REACT_C:
     case DSPMODE_BBF_EXP_REACT_D:
+    case DSPMODE_BBF_EXP_REACT_E:
+    case DSPMODE_BBF_EXP_REACT_F:
+    case DSPMODE_BBF_EXP_REACT_G:
+    case DSPMODE_BBF_EXP_REACT_H:
     case DSPMODE_BBF_EXP_REACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_REACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2294,6 +2448,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_lagREACT_B:
     case DSPMODE_BBF_EXP_lagREACT_C:
     case DSPMODE_BBF_EXP_lagREACT_D:
+    case DSPMODE_BBF_EXP_lagREACT_E:
+    case DSPMODE_BBF_EXP_lagREACT_F:
+    case DSPMODE_BBF_EXP_lagREACT_G:
+    case DSPMODE_BBF_EXP_lagREACT_H:
     case DSPMODE_BBF_EXP_lagREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_lagREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2309,6 +2467,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_leadREACT_B:
     case DSPMODE_BBF_EXP_leadREACT_C:
     case DSPMODE_BBF_EXP_leadREACT_D:
+    case DSPMODE_BBF_EXP_leadREACT_E:
+    case DSPMODE_BBF_EXP_leadREACT_F:
+    case DSPMODE_BBF_EXP_leadREACT_G:
+    case DSPMODE_BBF_EXP_leadREACT_H:
     case DSPMODE_BBF_EXP_leadREACT_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_leadREACT_A);
 #if 1  // jp.kim 25.06.22
@@ -2324,6 +2486,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_APP_B:
     case DSPMODE_BF_IMP_APP_C:
     case DSPMODE_BF_IMP_APP_D:
+    case DSPMODE_BF_IMP_APP_E:
+    case DSPMODE_BF_IMP_APP_F:
+    case DSPMODE_BF_IMP_APP_G:
+    case DSPMODE_BF_IMP_APP_H:
     case DSPMODE_BF_IMP_APP_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_APP_A);
 #if 1  // jp.kim 25.06.22
@@ -2339,6 +2505,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_APP_B:
     case DSPMODE_BBF_IMP_APP_C:
     case DSPMODE_BBF_IMP_APP_D:
+    case DSPMODE_BBF_IMP_APP_E:
+    case DSPMODE_BBF_IMP_APP_F:
+    case DSPMODE_BBF_IMP_APP_G:
+    case DSPMODE_BBF_IMP_APP_H:
     case DSPMODE_BBF_IMP_APP_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_APP_A);
 #if 1  // jp.kim 25.06.22
@@ -2354,6 +2524,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_APP_B:
     case DSPMODE_BF_EXP_APP_C:
     case DSPMODE_BF_EXP_APP_D:
+    case DSPMODE_BF_EXP_APP_E:
+    case DSPMODE_BF_EXP_APP_F:
+    case DSPMODE_BF_EXP_APP_G:
+    case DSPMODE_BF_EXP_APP_H:
     case DSPMODE_BF_EXP_APP_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_APP_A);
 #if 1  // jp.kim 25.06.22
@@ -2369,6 +2543,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_APP_B:
     case DSPMODE_BBF_EXP_APP_C:
     case DSPMODE_BBF_EXP_APP_D:
+    case DSPMODE_BBF_EXP_APP_E:
+    case DSPMODE_BBF_EXP_APP_F:
+    case DSPMODE_BBF_EXP_APP_G:
+    case DSPMODE_BBF_EXP_APP_H:
     case DSPMODE_BBF_EXP_APP_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_APP_A);
 #if 1  // jp.kim 25.06.22
@@ -2384,6 +2562,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_ACT_MX_B:
     case DSPMODE_BF_IMP_ACT_MX_C:
     case DSPMODE_BF_IMP_ACT_MX_D:
+    case DSPMODE_BF_IMP_ACT_MX_E:
+    case DSPMODE_BF_IMP_ACT_MX_F:
+    case DSPMODE_BF_IMP_ACT_MX_G:
+    case DSPMODE_BF_IMP_ACT_MX_H:
     case DSPMODE_BF_IMP_ACT_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_ACT_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2399,6 +2581,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_ACT_MX_B:
     case DSPMODE_BF_EXP_ACT_MX_C:
     case DSPMODE_BF_EXP_ACT_MX_D:
+    case DSPMODE_BF_EXP_ACT_MX_E:
+    case DSPMODE_BF_EXP_ACT_MX_F:
+    case DSPMODE_BF_EXP_ACT_MX_G:
+    case DSPMODE_BF_EXP_ACT_MX_H:
     case DSPMODE_BF_EXP_ACT_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_ACT_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2414,6 +2600,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_ACT_MXTIM_B:
     case DSPMODE_BF_IMP_ACT_MXTIM_C:
     case DSPMODE_BF_IMP_ACT_MXTIM_D:
+    case DSPMODE_BF_IMP_ACT_MXTIM_E:
+    case DSPMODE_BF_IMP_ACT_MXTIM_F:
+    case DSPMODE_BF_IMP_ACT_MXTIM_G:
+    case DSPMODE_BF_IMP_ACT_MXTIM_H:
     case DSPMODE_BF_IMP_ACT_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2437,6 +2627,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_ACT_MXTIM_B:
     case DSPMODE_BF_EXP_ACT_MXTIM_C:
     case DSPMODE_BF_EXP_ACT_MXTIM_D:
+    case DSPMODE_BF_EXP_ACT_MXTIM_E:
+    case DSPMODE_BF_EXP_ACT_MXTIM_F:
+    case DSPMODE_BF_EXP_ACT_MXTIM_G:
+    case DSPMODE_BF_EXP_ACT_MXTIM_H:
     case DSPMODE_BF_EXP_ACT_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2460,6 +2654,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_ACT_MX_B:
     case DSPMODE_BBF_IMP_ACT_MX_C:
     case DSPMODE_BBF_IMP_ACT_MX_D:
+    case DSPMODE_BBF_IMP_ACT_MX_E:
+    case DSPMODE_BBF_IMP_ACT_MX_F:
+    case DSPMODE_BBF_IMP_ACT_MX_G:
+    case DSPMODE_BBF_IMP_ACT_MX_H:
     case DSPMODE_BBF_IMP_ACT_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_ACT_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2475,6 +2673,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_ACT_MX_B:
     case DSPMODE_BBF_EXP_ACT_MX_C:
     case DSPMODE_BBF_EXP_ACT_MX_D:
+    case DSPMODE_BBF_EXP_ACT_MX_E:
+    case DSPMODE_BBF_EXP_ACT_MX_F:
+    case DSPMODE_BBF_EXP_ACT_MX_G:
+    case DSPMODE_BBF_EXP_ACT_MX_H:
     case DSPMODE_BBF_EXP_ACT_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_ACT_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2490,6 +2692,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_ACT_MXTIM_B:
     case DSPMODE_BBF_IMP_ACT_MXTIM_C:
     case DSPMODE_BBF_IMP_ACT_MXTIM_D:
+    case DSPMODE_BBF_IMP_ACT_MXTIM_E:
+    case DSPMODE_BBF_IMP_ACT_MXTIM_F:
+    case DSPMODE_BBF_IMP_ACT_MXTIM_G:
+    case DSPMODE_BBF_IMP_ACT_MXTIM_H:
     case DSPMODE_BBF_IMP_ACT_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2513,6 +2719,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_ACT_MXTIM_B:
     case DSPMODE_BBF_EXP_ACT_MXTIM_C:
     case DSPMODE_BBF_EXP_ACT_MXTIM_D:
+    case DSPMODE_BBF_EXP_ACT_MXTIM_E:
+    case DSPMODE_BBF_EXP_ACT_MXTIM_F:
+    case DSPMODE_BBF_EXP_ACT_MXTIM_G:
+    case DSPMODE_BBF_EXP_ACT_MXTIM_H:
     case DSPMODE_BBF_EXP_ACT_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2536,6 +2746,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_APP_MX_B:
     case DSPMODE_BF_IMP_APP_MX_C:
     case DSPMODE_BF_IMP_APP_MX_D:
+    case DSPMODE_BF_IMP_APP_MX_E:
+    case DSPMODE_BF_IMP_APP_MX_F:
+    case DSPMODE_BF_IMP_APP_MX_G:
+    case DSPMODE_BF_IMP_APP_MX_H:
     case DSPMODE_BF_IMP_APP_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_APP_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2551,6 +2765,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_APP_MX_B:
     case DSPMODE_BF_EXP_APP_MX_C:
     case DSPMODE_BF_EXP_APP_MX_D:
+    case DSPMODE_BF_EXP_APP_MX_E:
+    case DSPMODE_BF_EXP_APP_MX_F:
+    case DSPMODE_BF_EXP_APP_MX_G:
+    case DSPMODE_BF_EXP_APP_MX_H:
     case DSPMODE_BF_EXP_APP_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_APP_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2566,6 +2784,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_APP_MXTIM_B:
     case DSPMODE_BF_IMP_APP_MXTIM_C:
     case DSPMODE_BF_IMP_APP_MXTIM_D:
+    case DSPMODE_BF_IMP_APP_MXTIM_E:
+    case DSPMODE_BF_IMP_APP_MXTIM_F:
+    case DSPMODE_BF_IMP_APP_MXTIM_G:
+    case DSPMODE_BF_IMP_APP_MXTIM_H:
     case DSPMODE_BF_IMP_APP_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2589,6 +2811,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_APP_MXTIM_B:
     case DSPMODE_BF_EXP_APP_MXTIM_C:
     case DSPMODE_BF_EXP_APP_MXTIM_D:
+    case DSPMODE_BF_EXP_APP_MXTIM_E:
+    case DSPMODE_BF_EXP_APP_MXTIM_F:
+    case DSPMODE_BF_EXP_APP_MXTIM_G:
+    case DSPMODE_BF_EXP_APP_MXTIM_H:
     case DSPMODE_BF_EXP_APP_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2612,6 +2838,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_APP_MX_B:
     case DSPMODE_BBF_IMP_APP_MX_C:
     case DSPMODE_BBF_IMP_APP_MX_D:
+    case DSPMODE_BBF_IMP_APP_MX_E:
+    case DSPMODE_BBF_IMP_APP_MX_F:
+    case DSPMODE_BBF_IMP_APP_MX_G:
+    case DSPMODE_BBF_IMP_APP_MX_H:
     case DSPMODE_BBF_IMP_APP_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_APP_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2627,6 +2857,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_APP_MX_B:
     case DSPMODE_BBF_EXP_APP_MX_C:
     case DSPMODE_BBF_EXP_APP_MX_D:
+    case DSPMODE_BBF_EXP_APP_MX_E:
+    case DSPMODE_BBF_EXP_APP_MX_F:
+    case DSPMODE_BBF_EXP_APP_MX_G:
+    case DSPMODE_BBF_EXP_APP_MX_H:
     case DSPMODE_BBF_EXP_APP_MX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_APP_MX_A);
 #if 1  // jp.kim 25.06.22
@@ -2642,6 +2876,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_APP_MXTIM_B:
     case DSPMODE_BBF_IMP_APP_MXTIM_C:
     case DSPMODE_BBF_IMP_APP_MXTIM_D:
+    case DSPMODE_BBF_IMP_APP_MXTIM_E:
+    case DSPMODE_BBF_IMP_APP_MXTIM_F:
+    case DSPMODE_BBF_IMP_APP_MXTIM_G:
+    case DSPMODE_BBF_IMP_APP_MXTIM_H:
     case DSPMODE_BBF_IMP_APP_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2665,6 +2903,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_APP_MXTIM_B:
     case DSPMODE_BBF_EXP_APP_MXTIM_C:
     case DSPMODE_BBF_EXP_APP_MXTIM_D:
+    case DSPMODE_BBF_EXP_APP_MXTIM_E:
+    case DSPMODE_BBF_EXP_APP_MXTIM_F:
+    case DSPMODE_BBF_EXP_APP_MXTIM_G:
+    case DSPMODE_BBF_EXP_APP_MXTIM_H:
     case DSPMODE_BBF_EXP_APP_MXTIM_T:
         if (!b_dsp_mxdm_time)
         {
@@ -2688,6 +2930,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_ACT_CUMMX_B:
     case DSPMODE_BF_IMP_ACT_CUMMX_C:
     case DSPMODE_BF_IMP_ACT_CUMMX_D:
+    case DSPMODE_BF_IMP_ACT_CUMMX_E:
+    case DSPMODE_BF_IMP_ACT_CUMMX_F:
+    case DSPMODE_BF_IMP_ACT_CUMMX_G:
+    case DSPMODE_BF_IMP_ACT_CUMMX_H:
     case DSPMODE_BF_IMP_ACT_CUMMX_T: /* 전월 누적 수전 유효 최대수요전력
                                         (kW) */
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_ACT_CUMMX_A);
@@ -2718,6 +2964,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_ACT_CUMMX_B:
     case DSPMODE_BBF_IMP_ACT_CUMMX_C:
     case DSPMODE_BBF_IMP_ACT_CUMMX_D:
+    case DSPMODE_BBF_IMP_ACT_CUMMX_E:
+    case DSPMODE_BBF_IMP_ACT_CUMMX_F:
+    case DSPMODE_BBF_IMP_ACT_CUMMX_G:
+    case DSPMODE_BBF_IMP_ACT_CUMMX_H:
     case DSPMODE_BBF_IMP_ACT_CUMMX_T: /* 전전월 누적 수전 유효 최대수요전력
                                        * (kW)
                                        */
@@ -2735,6 +2985,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_APP_CUMMX_B:
     case DSPMODE_BF_IMP_APP_CUMMX_C:
     case DSPMODE_BF_IMP_APP_CUMMX_D:
+    case DSPMODE_BF_IMP_APP_CUMMX_E:
+    case DSPMODE_BF_IMP_APP_CUMMX_F:
+    case DSPMODE_BF_IMP_APP_CUMMX_G:
+    case DSPMODE_BF_IMP_APP_CUMMX_H:
     case DSPMODE_BF_IMP_APP_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_APP_CUMMX_A);
 #if 1  // jp.kim 25.06.22
@@ -2749,6 +3003,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_APP_CUMMX_B:
     case DSPMODE_BBF_IMP_APP_CUMMX_C:
     case DSPMODE_BBF_IMP_APP_CUMMX_D:
+    case DSPMODE_BBF_IMP_APP_CUMMX_E:
+    case DSPMODE_BBF_IMP_APP_CUMMX_F:
+    case DSPMODE_BBF_IMP_APP_CUMMX_G:
+    case DSPMODE_BBF_IMP_APP_CUMMX_H:
     case DSPMODE_BBF_IMP_APP_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_APP_CUMMX_A);
 #if 1  // jp.kim 25.06.22
@@ -2764,6 +3022,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_ACT_CUMMX_B:
     case DSPMODE_BF_EXP_ACT_CUMMX_C:
     case DSPMODE_BF_EXP_ACT_CUMMX_D:
+    case DSPMODE_BF_EXP_ACT_CUMMX_E:
+    case DSPMODE_BF_EXP_ACT_CUMMX_F:
+    case DSPMODE_BF_EXP_ACT_CUMMX_G:
+    case DSPMODE_BF_EXP_ACT_CUMMX_H:
     case DSPMODE_BF_EXP_ACT_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_ACT_CUMMX_A);
 #if 1  // jp.kim 25.06.22
@@ -2779,6 +3041,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_ACT_CUMMX_B:
     case DSPMODE_BBF_EXP_ACT_CUMMX_C:
     case DSPMODE_BBF_EXP_ACT_CUMMX_D:
+    case DSPMODE_BBF_EXP_ACT_CUMMX_E:
+    case DSPMODE_BBF_EXP_ACT_CUMMX_F:
+    case DSPMODE_BBF_EXP_ACT_CUMMX_G:
+    case DSPMODE_BBF_EXP_ACT_CUMMX_H:
     case DSPMODE_BBF_EXP_ACT_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_ACT_CUMMX_A);
 #if 1  // jp.kim 25.06.22
@@ -2794,6 +3060,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_APP_CUMMX_B:
     case DSPMODE_BF_EXP_APP_CUMMX_C:
     case DSPMODE_BF_EXP_APP_CUMMX_D:
+    case DSPMODE_BF_EXP_APP_CUMMX_E:
+    case DSPMODE_BF_EXP_APP_CUMMX_F:
+    case DSPMODE_BF_EXP_APP_CUMMX_G:
+    case DSPMODE_BF_EXP_APP_CUMMX_H:
     case DSPMODE_BF_EXP_APP_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_APP_CUMMX_A);
 #if 1  // jp.kim 25.06.22
@@ -2809,6 +3079,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_APP_CUMMX_B:
     case DSPMODE_BBF_EXP_APP_CUMMX_C:
     case DSPMODE_BBF_EXP_APP_CUMMX_D:
+    case DSPMODE_BBF_EXP_APP_CUMMX_E:
+    case DSPMODE_BBF_EXP_APP_CUMMX_F:
+    case DSPMODE_BBF_EXP_APP_CUMMX_G:
+    case DSPMODE_BBF_EXP_APP_CUMMX_H:
     case DSPMODE_BBF_EXP_APP_CUMMX_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_APP_CUMMX_A);
 #if 1  // jp.kim 25.06.22
@@ -2824,6 +3098,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_IMP_PF_B:
     case DSPMODE_BF_IMP_PF_C:
     case DSPMODE_BF_IMP_PF_D:
+    case DSPMODE_BF_IMP_PF_E:
+    case DSPMODE_BF_IMP_PF_F:
+    case DSPMODE_BF_IMP_PF_G:
+    case DSPMODE_BF_IMP_PF_H:
     case DSPMODE_BF_IMP_PF_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_IMP_PF_A);
 #if 1  // jp.kim 25.06.22
@@ -2838,6 +3116,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_IMP_PF_B:
     case DSPMODE_BBF_IMP_PF_C:
     case DSPMODE_BBF_IMP_PF_D:
+    case DSPMODE_BBF_IMP_PF_E:
+    case DSPMODE_BBF_IMP_PF_F:
+    case DSPMODE_BBF_IMP_PF_G:
+    case DSPMODE_BBF_IMP_PF_H:
     case DSPMODE_BBF_IMP_PF_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_IMP_PF_A);
 #if 1  // jp.kim 25.06.22
@@ -2852,6 +3134,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BF_EXP_PF_B:
     case DSPMODE_BF_EXP_PF_C:
     case DSPMODE_BF_EXP_PF_D:
+    case DSPMODE_BF_EXP_PF_E:
+    case DSPMODE_BF_EXP_PF_F:
+    case DSPMODE_BF_EXP_PF_G:
+    case DSPMODE_BF_EXP_PF_H:
     case DSPMODE_BF_EXP_PF_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BF_EXP_PF_A);
 #if 1  // jp.kim 25.06.22
@@ -2866,6 +3152,10 @@ static void dsp_all_mode(uint8_t* tptr)
     case DSPMODE_BBF_EXP_PF_B:
     case DSPMODE_BBF_EXP_PF_C:
     case DSPMODE_BBF_EXP_PF_D:
+    case DSPMODE_BBF_EXP_PF_E:
+    case DSPMODE_BBF_EXP_PF_F:
+    case DSPMODE_BBF_EXP_PF_G:
+    case DSPMODE_BBF_EXP_PF_H:
     case DSPMODE_BBF_EXP_PF_T:
         rt = (rate_type)(dsp_mode_in_state - DSPMODE_BBF_EXP_PF_A);
 #if 1  // jp.kim 25.06.22
@@ -3152,6 +3442,21 @@ static void dsp_all_mode(uint8_t* tptr)
         if (dsp_mode_in_state != gen_pre_dsp_mode_in_state)
         {
             dsp_SWVER_mtp();
+        }
+        break;
+
+    case DSPMODE_SPEC_VER: /* v1.4: 규격 버전 표시 (vEr X.X) */
+        if (dsp_mode_in_state != gen_pre_dsp_mode_in_state)
+        {
+            // vEr X.X from COSEM_METER_ID_VER[1].[2]
+            extern const U8 COSEM_METER_ID_VER[];
+            lcd_digit_buf[2] = LDIGIT_u;      // v (7seg: u=v)
+            lcd_digit_buf[3] = LDIGIT_E;      // E
+            lcd_digit_buf[4] = LDIGIT_r;      // r
+            lcd_digit_buf[5] = LDIGIT_SPACE;
+            lcd_digit_buf[6] = COSEM_METER_ID_VER[1] - '0';  // major
+            lcd_digit_buf[7] = COSEM_METER_ID_VER[2] - '0';  // minor
+            LCD_DP4_ON;                                     // dot between major.minor
         }
         break;
 
@@ -3688,7 +3993,7 @@ static bool dsp_fill_error_item(uint8_t* dgt_buf)
 
     *(dgt_buf + 0) = LDIGIT_SPACE;
     *(dgt_buf + 1) = LDIGIT_SPACE;
-    memset(dgt_buf + 2, LDIGIT_BAR, (NUM_MODE_DIGIT - 2));
+    memset(dgt_buf + 2, LDIGIT_BAR, (NUM_MODE_DIGIT - 2));  // v1.4: 오류 항목 외 나머지는 BAR
 
     if (line_is_wrong_connected())
     {
@@ -4819,6 +5124,20 @@ void dsp_inp_tou_rate(rate_type rt)
     case eDrate:
         lcd_input_buf[1] = LDIGIT_d;
         break;
+#if defined(FEATURE_TOU_8RATE)
+    case eErate:
+        lcd_input_buf[1] = LDIGIT_E;
+        break;
+    case eFrate:
+        lcd_input_buf[1] = LDIGIT_F;
+        break;
+    case eGrate:
+        lcd_input_buf[1] = LDIGIT_G;
+        break;
+    case eHrate:
+        lcd_input_buf[1] = LDIGIT_H;
+        break;
+#endif
     default:
         break;
     }
@@ -4829,7 +5148,11 @@ void dsp_inp_tou_rate_time(tou_struct_type *tou)
     digit_pos = 5;
 
     lcd_input_buf[0] = LDIGIT_SPACE;
+#if defined(FEATURE_TOU_8RATE)
+    dsp_inp_tou_rate(get_lowest_rate_from_mask(tou->script_selector));
+#else
     dsp_inp_tou_rate(SELECTOR_TO_RATE(tou->rate));
+#endif
     lcd_input_buf[2] = tou->hour / 10;
     lcd_input_buf[3] = tou->hour % 10;
     lcd_input_buf[4] = tou->min / 10;
@@ -5188,6 +5511,25 @@ static void dsp_drive_digit(void)
         }
         else
             LCD_DERR_ON;
+#if defined(FEATURE_TOU_8RATE)
+        tbuf[0] = (U8)mt_rtkind + 1; /* front: TOU type */
+        {
+            U8 mask = cur_script_selector;
+            U8 low = (U8)get_lowest_rate_from_mask(mask);
+            /* V27: single tariff -> digit '1'..'8' (KEPCO spec ex: "51").
+             *      multi tariff -> letter 'A'..'H' (KEPCO spec ex: "5C", "8D").
+             * LDIGIT: A=10, b=11, C=12, d=13, E=14, F=15, G=16, H=17.
+             */
+            if ((mask & (U8)(mask - 1U)) != 0U)
+            {
+                tbuf[1] = (U8)(LDIGIT_A + low); /* letter 'A'..'H' */
+            }
+            else
+            {
+                tbuf[1] = (U8)(low + 1U); /* digit '1'..'8' */
+            }
+        }
+#endif
     }
     else
     {
@@ -5823,6 +6165,7 @@ static void dsp_dot_rate(void)
     rate_type rt;
 
     // A-type: rate ( bit3=D, bit2=C, bit1=B, bit0=A )
+    // TOU 8rate: 5~8 rate kind shows ABCD all ON
     mtkind = mt_rtkind;
     switch (mtkind)
     {
@@ -5839,6 +6182,10 @@ static void dsp_dot_rate(void)
         LCD_DRATE_C_ON;
         break;
     case FOUR_RATE_KIND:
+    case FIVE_RATE_KIND:
+    case SIX_RATE_KIND:
+    case SEVEN_RATE_KIND:
+    case EIGHT_RATE_KIND:
         LCD_DRATE_A_ON;
         LCD_DRATE_B_ON;
         LCD_DRATE_C_ON;
@@ -5847,6 +6194,7 @@ static void dsp_dot_rate(void)
     default:
         break;
     }
+    // cur_rate A~D blink, E~H no blink (ABCD stays ON)
     if (mtkind != ONE_RATE_KIND && !(blink_timer & 0x01))
     {
         rt = cur_rate;

@@ -10,6 +10,19 @@
 #include "comm.h"
 #include "delay.h"
 #include "amg_media_mnt.h"
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+#include "STM32_EEPROM_SPI.h"
+#include "amg_uart.h"
+#include "amg_wdt.h"
+#include "cmsis_os.h"
+#define LAB_EEPROM_CLEAR_CHUNK 0x4000u
+#define LAB_LOG_FLUSH()              \
+    do                               \
+    {                                \
+        dsm_uart_q_flush(DEBUG_COM); \
+        osDelay(50);                 \
+    } while (0)
+#endif
 
 #define _D "[COM] "
 
@@ -22,6 +35,9 @@ bool mt_init_delay_until_txcomplete;
 bool comm_en_coveropen_changed;
 uint8_t comm_en_coveropen_val;
 extern int8_t no_inst_curr_chk_zon_cnt;
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+bool lab_eeprom_clear_pending = false;
+#endif
 
 // declare static function
 void amr_send_frame(uint32_t poll_flag);
@@ -82,6 +98,45 @@ void amr_disc_ind_end_proc(void)
             whm_clear_all(true);
         }
     }
+
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+    if (lab_eeprom_clear_pending)
+    {
+        uint32_t off;
+        uint32_t chunk_idx = 0;
+        uint32_t total_chunks =
+            (EEPROM_LIMIT + LAB_EEPROM_CLEAR_CHUNK - 1) /
+            LAB_EEPROM_CLEAR_CHUNK;
+
+        lab_eeprom_clear_pending = false;
+        DPRINTF(DBG_ERR, ">>> LAB EEPROM FULL CLEAR ENTER <<<\r\n");
+        LAB_LOG_FLUSH();
+        DPRINTF(DBG_ERR, ">>> range=0..0x%lX, chunk=0x%X, total=%lu\r\n",
+                (unsigned long)EEPROM_LIMIT, LAB_EEPROM_CLEAR_CHUNK,
+                (unsigned long)total_chunks);
+        LAB_LOG_FLUSH();
+
+        for (off = 0; off < EEPROM_LIMIT; off += LAB_EEPROM_CLEAR_CHUNK)
+        {
+            uint32_t sz = ((EEPROM_LIMIT - off) > LAB_EEPROM_CLEAR_CHUNK)
+                              ? LAB_EEPROM_CLEAR_CHUNK
+                              : (EEPROM_LIMIT - off);
+            chunk_idx++;
+            DPRINTF(DBG_ERR, ">>> chunk %lu/%lu: addr=0x%lX, sz=0x%lX\r\n",
+                    (unsigned long)chunk_idx, (unsigned long)total_chunks,
+                    (unsigned long)off, (unsigned long)sz);
+            LAB_LOG_FLUSH();
+            dsm_wdt_ext_toggle_immd();
+            (void)dsm_spi_eep_erase(off, sz);
+            dsm_wdt_ext_toggle_immd();
+        }
+
+        DPRINTF(DBG_ERR, ">>> LAB EEPROM FULL CLEAR DONE, reset now <<<\r\n");
+        LAB_LOG_FLUSH();
+        osDelay(500);
+        NVIC_SystemReset();
+    }
+#endif
 }
 
 void amr_send_frame(uint32_t poll_flag)

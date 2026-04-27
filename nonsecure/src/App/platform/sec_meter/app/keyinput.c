@@ -228,12 +228,39 @@ static void inp_tou_get(uint8_t idx, tou_struct_type *tou)
     }
 }
 
+static rate_type inp_tou_rate(const tou_struct_type *tou)
+{
+#if defined(FEATURE_TOU_8RATE)
+    return get_lowest_rate_from_mask(tou->script_selector);
+#else
+    return SELECTOR_TO_RATE(tou->rate);
+#endif
+}
+
+static uint8_t inp_tou_selector(const tou_struct_type *tou)
+{
+#if defined(FEATURE_TOU_8RATE)
+    return tou->script_selector;
+#else
+    return tou->rate;
+#endif
+}
+
+static void inp_tou_selector_set(tou_struct_type *tou, uint8_t selector)
+{
+#if defined(FEATURE_TOU_8RATE)
+    tou->script_selector = selector;
+#else
+    tou->rate = selector;
+#endif
+}
+
 static uint8_t get_diff_rate_time(rate_type rt, tou_struct_type *conf,
                                   uint8_t idx, uint8_t mx)
 {
     for (; idx < mx; idx++)
     {
-        if (rt != SELECTOR_TO_RATE(conf[idx].rate))
+        if (rt != inp_tou_rate(&conf[idx]))
             break;
     }
 
@@ -254,8 +281,7 @@ bool is_inp_tou_chged(ratekind_type rtkind)
     if (tou_data_cnt == 0)
         return 1;
 
-    rt = SELECTOR_TO_RATE(inp_touset[MAX_TOU_DIV_TWOKIND - 1]
-                              .rate);  // 첫 번재의 시작 rate 를 찾기 위함
+    rt = inp_tou_rate(&inp_touset[MAX_TOU_DIV_TWOKIND - 1]);
 
     idx1 = idx2 = 0;
     while (1)
@@ -270,7 +296,7 @@ bool is_inp_tou_chged(ratekind_type rtkind)
             inp_touset[idx1].min != tou_data_conf[idx2].min)
             break;
 
-        rt = SELECTOR_TO_RATE(inp_touset[idx1].rate);
+        rt = inp_tou_rate(&inp_touset[idx1]);
     }
 
     if (idx1 == 0xff && idx2 == 0xff)
@@ -288,7 +314,7 @@ static bool is_tou_conf_valid(void)
 
     for (i = 1; i < MAX_TOU_DIV_TWOKIND; i++)
     {
-        if (inp_touset[0].rate != inp_touset[i].rate)
+        if (inp_tou_selector(&inp_touset[0]) != inp_tou_selector(&inp_touset[i]))
             break;
     }
     if (i == MAX_TOU_DIV_TWOKIND)
@@ -311,7 +337,8 @@ static bool is_tou_conf_valid(void)
 
         if (k == 0)
         {
-            if (inp_touset[i].rate != inp_touset[i + 1].rate)
+            if (inp_tou_selector(&inp_touset[i]) !=
+                inp_tou_selector(&inp_touset[i + 1]))
                 break;
         }
     }
@@ -327,7 +354,7 @@ static void inp_mt_rate_conf(void)
 
     for (i = 0; i < MAX_TOU_DIV_TWOKIND; i++)
     {
-        tou_data_conf[i].rate = inp_touset[i].rate;
+        inp_tou_selector_set(&tou_data_conf[i], inp_tou_selector(&inp_touset[i]));
         tou_data_conf[i].hour = inp_touset[i].hour;
         tou_data_conf[i].min = inp_touset[i].min;
     }
@@ -894,7 +921,8 @@ static void kinp_dsp_tou(kaction_type kact, uint8_t *tptr)
         break;
 
     case KACT_MENU:
-        inp_touset[tou_inp_index].rate = get_dispinp_ts_tourate();
+        inp_tou_selector_set(&inp_touset[tou_inp_index],
+                             get_dispinp_ts_tourate());
         inp_touset[tou_inp_index].hour = get_dispinp_tou_hour();
         inp_touset[tou_inp_index].min = get_dispinp_tou_min();
 

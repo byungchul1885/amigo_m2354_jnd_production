@@ -15,9 +15,21 @@
 
 #define LPE_IRRG_WR (uint32_t) BIT7  // 비주기적 LP WRITE 표시
 
+#if defined(FEATURE_TOU_8RATE)
+#define LPE_TARIFF_MASK (uint32_t)0xFF000000
+#define LPE_TARIFF_1 (uint32_t)BIT24
+#define LPE_TARIFF_2 (uint32_t)BIT25
+#define LPE_TARIFF_3 (uint32_t)BIT26
+#define LPE_TARIFF_4 (uint32_t)BIT27
+#define LPE_TARIFF_5 (uint32_t)BIT28
+#define LPE_TARIFF_6 (uint32_t)BIT29
+#define LPE_TARIFF_7 (uint32_t)BIT30
+#define LPE_TARIFF_8 (uint32_t)BIT31
+#else
 #define LPE_TARIFF \
     (uint32_t)(BIT9 | BIT8)  // always, but pwr_fail, min_chg, rtc_chg event =>
                              // tariff not updated
+#endif
 #define LPE_sCURR_LIMIT \
     (uint32_t) BIT10  // always ( set ==> CLEAR_MASK 에서 clear)
 #define LPE_MAGNET_DET (uint32_t) BIT11  // always
@@ -143,10 +155,10 @@
 #define LPAVG_COL_PHASE3 0x0001
 #endif
 
-#define NUM_LPRT_COL_1PHS (1 + 4)
-#define NUM_LPRT_COL_3PHS (1 + 4 * 4)
-#define LPRT_COL_MASK_1PHS 0xF8000000
-#define LPRT_COL_MASK_3PHS 0xFFFF8000
+#define NUM_LPRT_COL_1PHS (1 + 8)
+#define NUM_LPRT_COL_3PHS (1 + 28)
+#define LPRT_COL_MASK_1PHS 0xFF800000
+#define LPRT_COL_MASK_3PHS 0xFFFFFFF8
 
 #define LPRT_COL_CLOCK 0x80000000
 
@@ -154,6 +166,10 @@
 #define LPRT_COL_ACT_NEG_BIT 0x20000000       // 송전 유효
 #define LPRT_COL_REACT_Q1Q2_BIT 0x10000000    // 무효 +
 #define LPRT_COL_REACT_Q3Q4_BIT 0x08000000    // 무효 -
+#define LPRT_COL_VOLT_BIT 0x04000000
+#define LPRT_COL_CURR_BIT 0x02000000
+#define LPRT_COL_PHASE_BIT 0x01000000
+#define LPRT_COL_FREQ_BIT 0x00800000
 #define LPRT_COL_ACT_POS_A_BIT 0x04000000     // 수전 유효
 #define LPRT_COL_ACT_NEG_A_BIT 0x02000000     // 송전 유효
 #define LPRT_COL_REACT_Q1Q2_A_BIT 0x01000000  // 무효 +
@@ -166,11 +182,27 @@
 #define LPRT_COL_ACT_NEG_C_BIT 0x00020000     // 송전 유효
 #define LPRT_COL_REACT_Q1Q2_C_BIT 0x00010000  // 무효 +
 #define LPRT_COL_REACT_Q3Q4_C_BIT 0x00008000  // 무효 -
+#define LPRT_COL_VOLT_A_BIT 0x00004000
+#define LPRT_COL_CURR_A_BIT 0x00002000
+#define LPRT_COL_PHASE_A_BIT 0x00001000
+#define LPRT_COL_VOLT_B_BIT 0x00000800
+#define LPRT_COL_CURR_B_BIT 0x00000400
+#define LPRT_COL_PHASE_B_BIT 0x00000200
+#define LPRT_COL_VOLT_C_BIT 0x00000100
+#define LPRT_COL_CURR_C_BIT 0x00000080
+#define LPRT_COL_PHASE_C_BIT 0x00000040
+#define LPRT_COL_VPHASE_AB_BIT 0x00000020
+#define LPRT_COL_VPHASE_AC_BIT 0x00000010
+#define LPRT_COL_FREQ_3P_BIT 0x00000008
 
 struct lp_record
 {
     uint32_t lp_cnt;
+#if defined(FEATURE_TOU_8RATE)
+    uint8_t evt[4];
+#else
     uint8_t evt[3];
+#endif
     uint8_t dt[4];
     uint32_t ch[numCHs];
 };
@@ -200,13 +232,13 @@ typedef struct _lpavg_record lpavg_record_type;
 struct _lprt_record_1phs
 {
     uint8_t dt[4];  // compressed time
-    float ch_2[4];
+    float ch_2[8];
 };
 
 struct _lprt_record_3phs
 {
     uint8_t dt[4];      // compressed time
-    float ch_2[4 * 4];  // ch x 4
+    float ch_2[28];
 };
 
 typedef struct _lprt_record_1phs lprt_record_1phs;
@@ -253,5 +285,6 @@ void lprt_record_read(uint8_t *cp, uint32_t idx, uint8_t len);
 void LPrt_save(date_time_type *dt);
 void LPrt_init(void);
 void fill_last_lp_record(void);
+bool lp_last_record_data(uint8_t *tptr);
 
 #endif

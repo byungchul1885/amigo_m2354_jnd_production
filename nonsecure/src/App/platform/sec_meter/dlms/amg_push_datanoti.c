@@ -6,6 +6,7 @@
 #include "main.h"
 #include "amg_task.h"
 #include "amg_push_datanoti.h"
+#include "meter.h"
 #include "appl.h"
 #include "nv.h"
 #include "dl.h"
@@ -53,10 +54,10 @@ uint8_t g_can_push_flag = 0;
 ******************************************************************************
 */
 
-#define PUSH_SCRIPTS_LIST_SIZE (2 + 2 * 26)
+#define PUSH_SCRIPTS_LIST_SIZE (2 + 3 * 26)
 static const uint8_t PUSH_SCRIPTS_list[PUSH_SCRIPTS_LIST_SIZE] = {
     0x01,
-    0x02,  //
+    0x03,
 
     0x02,
     0x02,
@@ -101,6 +102,28 @@ static const uint8_t PUSH_SCRIPTS_list[PUSH_SCRIPTS_LIST_SIZE] = {
     0x12,
     0x00,
     0x00,  // parameter
+
+    0x02,
+    0x02,
+    0x12,
+    0x00,
+    PUSH_SCRIPT_ID_LAST_RT_LP,
+    0x02,
+    0x05,
+    0x12,
+    0x00,
+    SCRIPT_TABLE_SVC_ID_EXE_ATT,
+    0x12,
+    0x00,
+    CLS_PushSetUp,
+    0x09,
+    0x06,
+    OBIS_PUSH_SETUP_LAST_RT_LP_nobr,
+    0x0f,
+    0x02,
+    0x12,
+    0x00,
+    0x00,
 };
 
 /*
@@ -233,6 +256,8 @@ void dsm_push_push_script_table_default(void)
            sizeof(ST_PUSH_SCRIPT_TABLE));
     dsm_push_script_register(PUSH_SCRIPT_ID_ERR_CODE, OBJ_PUSH_SETUP_ERR_CODE);
     dsm_push_script_register(PUSH_SCRIPT_ID_LAST_LP, OBJ_PUSH_SETUP_LAST_LP);
+    dsm_push_script_register(PUSH_SCRIPT_ID_LAST_RT_LP,
+                             OBJ_PUSH_SETUP_LAST_RT_LP);
 }
 
 void dsm_push_script_table_init(void) { dsm_push_push_script_table_default(); }
@@ -277,8 +302,8 @@ uint32_t dsm_push_get_encoded_script_table(uint8_t* len, uint8_t* data)
     default push setup registration
 */
 void dsm_push_setup_register(uint8_t id, uint8_t enable,
-                             uint8_t random_start_intval,
-                             uint8_t repetition_delay)
+                             uint16_t random_start_intval,
+                             uint16_t repetition_delay)
 {
     uint8_t* pdata = NULL;
 
@@ -318,6 +343,8 @@ void dsm_push_push_setup_table_default(void)
                             PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_ERR_CODE, 0);
     dsm_push_setup_register(PUSH_SCRIPT_ID_LAST_LP, PUSH_SETUP_DISABLE,
                             PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_LAST_LP, 0);
+    dsm_push_setup_register(PUSH_SCRIPT_ID_LAST_RT_LP, PUSH_SETUP_DISABLE,
+                            PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_LAST_RT_LP, 0);
 }
 
 void dsm_push_setup_table_init(void) { dsm_push_push_setup_table_default(); }
@@ -386,9 +413,10 @@ uint32_t dsm_push_is_enable(uint8_t script_id)
 {
     uint8_t push_idx;
     ST_PUSH_SETUP* p_setup = NULL;
-    date_time_type dt;
+    date_time_type dt_sentinel;
+    uint8_t cnt;
 
-    memset(&dt, 0xff, sizeof(date_time_type));
+    memset(&dt_sentinel, 0xff, sizeof(date_time_type));
 
     if (dsm_push_setup_is_id(script_id, &push_idx))
     {
@@ -403,30 +431,47 @@ uint32_t dsm_push_is_enable(uint8_t script_id)
             {
                 return TRUE;
             }
-            else
+            if (p_setup->window_cnt >= PUSH_WINDOW_MAX_NUM)
+                p_setup->window_cnt = PUSH_WINDOW_MAX_NUM;
+
+            for (cnt = 0; cnt < p_setup->window_cnt; cnt++)
             {
+                if (!memcmp(&dt_sentinel, &p_setup->window[cnt].st_dt,
+                            sizeof(date_time_type)) &&
+                    !memcmp(&dt_sentinel, &p_setup->window[cnt].sp_dt,
+                            sizeof(date_time_type)))
+                {
+                    return FALSE;
+                }
+                return TRUE;
             }
         }
     }
     return FALSE;
 }
 
-void dsm_push_disable(void)
+static void push_entry_force_disable(uint8_t script_id)
 {
     uint8_t push_idx = 0;
     ST_PUSH_SETUP_TABLE* pst_push_setup = dsm_push_setup_get_setup_table();
 
-    if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_ERR_CODE, &push_idx))
+    if (dsm_push_setup_is_id(script_id, &push_idx))
     {
         pst_push_setup->setup[push_idx].window_cnt = 1;
-        DPRINTF(DBG_TRACE, "%s: push_idx[%d]\r\n", __func__, push_idx);
+        memset(&pst_push_setup->setup[push_idx].window[0].st_dt, 0xff,
+               sizeof(date_time_type));
+        memset(&pst_push_setup->setup[push_idx].window[0].sp_dt, 0xff,
+               sizeof(date_time_type));
+        DPRINTF(DBG_TRACE, "%s: script_id[%d], push_idx[%d]\r\n", __func__,
+                script_id, push_idx);
     }
+}
 
-    if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP, &push_idx))
-    {
-        pst_push_setup->setup[push_idx].window_cnt = 1;
-        DPRINTF(DBG_TRACE, "%s: push_idx[%d]\r\n", __func__, push_idx);
-    }
+void dsm_push_disable(void)
+{
+    push_entry_force_disable(PUSH_SCRIPT_ID_ERR_CODE);
+    push_entry_force_disable(PUSH_SCRIPT_ID_LAST_LP);
+    push_entry_force_disable(PUSH_SCRIPT_ID_LAST_RT_LP);
 }
 
 void dsm_can_set_push_flag(uint32_t on_off) { g_can_push_flag = on_off; }
@@ -458,7 +503,8 @@ uint8_t dsm_covert_grp_e_2_errcodeidx(uint8_t grp_e)
     return ERR_CODE_MAX_IDX;
 }
 
-uint8_t push_sec_buf[512];
+#define PUSH_SEC_BUF_SIZE MAX_INFORMATION_FIELD_LENGTH_FOR_KEPCO
+uint8_t push_sec_buf[PUSH_SEC_BUF_SIZE];
 uint32_t push_data_noti_send(uint32_t EN_AT, uint8_t* pbuff, uint16_t len)
 {
     uint16_t tx_len;
@@ -466,6 +512,13 @@ uint32_t push_data_noti_send(uint32_t EN_AT, uint8_t* pbuff, uint16_t len)
 
     if (EN_AT)
     {
+        if ((uint32_t)len + 30U > (uint32_t)PUSH_SEC_BUF_SIZE)
+        {
+            DPRINTF(DBG_ERR, "PUSH plain too big: len=%d, max=%d\r\n", len,
+                    PUSH_SEC_BUF_SIZE);
+            return FALSE;
+        }
+
         dl_fill_LLC_header(&push_sec_buf[idx]);  // rebuild LLC
         len -= LLC_HEADER_LEN;
 
@@ -473,6 +526,13 @@ uint32_t push_data_noti_send(uint32_t EN_AT, uint8_t* pbuff, uint16_t len)
                                                  &tx_len,
                                                  &pbuff[LLC_HEADER_LEN], len);
         tx_len += LLC_HEADER_LEN;
+
+        if (tx_len > dl_get_tx_max_info())
+        {
+            DPRINTF(DBG_ERR, "PUSH tx_len=%d > dl_tx_max_info=%d\r\n", tx_len,
+                    dl_get_tx_max_info());
+            return FALSE;
+        }
 
         dsm_can_set_push_flag(TRUE);
         dl_send_appl_push_datanoti_msg(push_sec_buf, tx_len);
@@ -598,7 +658,7 @@ void appl_push_msg_lastLP(void)
     FILL_STRUCT(2);
     memcpy(&pPdu[pPdu_idx], PUSH_SETUP_lastLP_capture_objects,
            PUSH_SETUP_LAST_LP_CAPOBJ_SIZE);
-    pPdu_idx += PUSH_SETUP_ERRCODE_CAPOBJ_SIZE;
+    pPdu_idx += PUSH_SETUP_LAST_LP_CAPOBJ_SIZE;
 
     FILL_ARRAY(1);
     fill_last_lp_record();
@@ -613,6 +673,118 @@ void appl_push_msg_lastLP(void)
         }
     }
     push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx);
+}
+
+extern void LPrt_energy_to_pPdu(uint8_t* recbuff);
+
+void appl_push_msg_lastRtLP(void)
+{
+    uint32_t EN_AT_FLAG = TRUE;
+    uint8_t num_records;
+    uint8_t i;
+    uint8_t capobj_copy[PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE];
+    uint8_t blocked = 0;
+
+    num_records = (rt_lp_interval == 1) ? 5 : 1;
+    if (num_records > lprt__index)
+        num_records = (uint8_t)lprt__index;
+    if (num_records == 0)
+        return;
+
+    pPdu_idx = 0;
+    dl_fill_LLC_header(&pPdu[pPdu_idx]);
+    pPdu_idx += LLC_HEADER_LEN;
+
+    pPdu[pPdu_idx++] = TAG_DATA_NOTI;
+    memcpy(&pPdu[pPdu_idx], long_invokeID_priority, 4);
+    pPdu_idx += 4;
+
+    comm_dt = cur_rtc;
+    fill_clock_obj_except_tag(&comm_dt);
+
+    FILL_STRUCT(2);
+
+    memcpy(capobj_copy, PUSH_SETUP_lastRtLP_capture_objects,
+           PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE);
+    if (rt_lp_interval == 1)
+    {
+        capobj_copy[PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE - 2] = 0x10;
+        capobj_copy[PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE - 1] = 0x05;
+    }
+    memcpy(&pPdu[pPdu_idx], capobj_copy, PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE);
+    pPdu_idx += PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE;
+
+    FILL_ARRAY(num_records);
+
+    for (i = 0; i < num_records; i++)
+    {
+        date_time_type rdt;
+
+        lprt_record_read(appl_tbuff, lprt__index - 1 - i, 1);
+        FILL_STRUCT(2);
+
+        if (mt_is_onephase())
+        {
+            lprt_record_1phs* rec = (lprt_record_1phs*)appl_tbuff;
+            expand_time(&rdt, &rec->dt[0]);
+        }
+        else
+        {
+            lprt_record_3phs* rec = (lprt_record_3phs*)appl_tbuff;
+            expand_time(&rdt, &rec->dt[0]);
+        }
+
+        pPdu[pPdu_idx++] = OCTSTRING_TAG;
+        fill_clock_obj_except_tag(&rdt);
+
+        if (mt_is_onephase())
+        {
+            FILL_STRUCT(8);
+        }
+        else
+        {
+            FILL_STRUCT(28);
+        }
+        LPrt_energy_to_pPdu(appl_tbuff);
+    }
+
+    DPRINT_HEX(DBG_TRACE, "RT_LP_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
+
+    if (!dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_RT_LP))
+    {
+        DPRINTF(DBG_TRACE, "RT_LP PUSH disabled\r\n");
+        blocked = 1;
+    }
+
+#if defined(FEATURE_JP_485_PUSH_PROTECT)
+    if ((dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485) ||
+        (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE))
+    {
+        DPRINTF(DBG_TRACE, "RT_LP PUSH blocked: media=%s\r\n",
+                dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
+        blocked = 1;
+    }
+#endif
+
+    if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
+    {
+        DPRINTF(DBG_TRACE, "RT_LP PUSH blocked: conn=%d\r\n",
+                appl_get_conn_state());
+        blocked = 1;
+    }
+
+    if (blocked)
+        return;
+
+    if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
+    {
+        EN_AT_FLAG = TRUE;
+    }
+
+    if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
+        DPRINTF(DBG_TRACE, "RT_LP PUSH sent (%d records)\r\n", num_records);
+    else
+        DPRINTF(DBG_TRACE, "RT_LP PUSH drop (%d records)\r\n", num_records);
 }
 
 void dsm_push_data_noti_proc(uint32_t type)
@@ -648,6 +820,27 @@ void dsm_push_data_noti_proc(uint32_t type)
                     DPRINTF(DBG_ERR, "%s -> appl_push_msg_errcode\r\n",
                             __func__);
                     error_code_event_clear();
+                }
+            }
+        }
+        else if (PUSH_SCRIPT_ID_LAST_RT_LP == type)
+        {
+            if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_RT_LP, &push_idx))
+            {
+                p_push_setup = dsm_push_setup_get_info(push_idx);
+                if (p_push_setup != NULL)
+                {
+                    dec = get_server_hdlc_addr_to_dec();
+                    transfer_delay_ms =
+                        ((uint32_t)p_push_setup->random_start_intval * dec) *
+                        10;
+                    dsm_meter_sw_timer_start(MT_SW_TIMER_PUSH_RT_LP_TO, FALSE,
+                                             transfer_delay_ms);
+
+                    DPRINTF(DBG_TRACE,
+                            "%s: Push RT LP delay[%d sec, %d ms]\r\n",
+                            __func__, p_push_setup->random_start_intval,
+                            transfer_delay_ms);
                 }
             }
         }

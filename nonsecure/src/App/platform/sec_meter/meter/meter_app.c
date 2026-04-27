@@ -42,9 +42,49 @@ char* dsm_rate_string(rate_type rate)
         return "C";
     case eDrate:
         return "D";
+#if defined(FEATURE_TOU_8RATE)
+    case eErate:
+        return "E";
+    case eFrate:
+        return "F";
+    case eGrate:
+        return "G";
+    case eHrate:
+        return "H";
+#endif
     default:
         return "T";
     }
+}
+
+char* dsm_rate_mask_string(uint8_t mask)
+{
+    static char buf[24];
+    char* p = buf;
+    int i;
+    int first = 1;
+
+    if (mask == 0)
+    {
+        buf[0] = 'T';
+        buf[1] = 0;
+        return buf;
+    }
+
+    for (i = 0; i < 8; i++)
+    {
+        if (mask & (1 << i))
+        {
+            if (!first)
+                *p++ = '+';
+
+            *p++ = (char)('A' + i);
+            first = 0;
+        }
+    }
+
+    *p = 0;
+    return buf;
 }
 
 void background(void)

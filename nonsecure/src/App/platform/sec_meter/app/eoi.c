@@ -59,8 +59,8 @@ void eoi_proc(uint8_t *tptr)
     if (eoi_lastdt.month == 0)
         eoi_lastdt = cur_rtc;
 
-    if (eoi_rate >= numRates)
-        eoi_rate = cur_rate;
+    if (eoi_selector == 0xFF)
+        eoi_selector = cur_script_selector;
 
     dt = eoi_lastdt;
     get_next_interval_boundary(&dt, dm_sub_interval);
@@ -73,8 +73,9 @@ void eoi_proc(uint8_t *tptr)
         return;
     }
 
-    rtchg = (bool)(eoi_rate != cur_rate);
-    maxdem_proc(dm_interval, false, rtchg, eoi_rate, &dt, tptr);
+    rtchg = (bool)(eoi_selector != cur_script_selector);
+    maxdem_proc(dm_interval, false, rtchg, get_lowest_rate_from_mask(eoi_selector),
+                &dt, tptr);
 
     if (eoi_evt & (EOI_EVENT_INTV_CHG | EOI_EVENT_SUBINTV_CHG))
     {
@@ -82,7 +83,7 @@ void eoi_proc(uint8_t *tptr)
         eoi_parm_set(eoi_evt);
     }
 
-    eoi_rate = cur_rate;
+    eoi_selector = cur_script_selector;
     eoi_evt = 0;
     eoi_lastdt = cur_rtc;
     eoi_processed = 1;
@@ -104,11 +105,12 @@ void eoi_proc_pwrtn(pwrfail_info_type *pfinfo, int32_t dur, uint8_t *tptr)
 
     dt1 = pfinfo->dt;
 
-    rtchg = (eoi_rate != cur_rate);
+    rtchg = (eoi_selector != cur_script_selector);
     if (dur < 0 || rtchg)
     {
-        maxdem_proc(dm_interval, false, rtchg, eoi_rate, &dt1, tptr);
-        eoi_rate = cur_rate;
+        maxdem_proc(dm_interval, false, rtchg,
+                    get_lowest_rate_from_mask(eoi_selector), &dt1, tptr);
+        eoi_selector = cur_script_selector;
         eoi_lastdt = cur_rtc;
         eoi_processed = 1;
         cur_dmdt_set(&cur_rtc);
@@ -122,10 +124,11 @@ void eoi_proc_pwrtn(pwrfail_info_type *pfinfo, int32_t dur, uint8_t *tptr)
     dt2 = cur_rtc;
     get_interval_boundary(&dt2, dm_sub_interval);
     pf_cnt = calc_date_time_diff(&dt2, &dt1) / (dm_sub_interval * 60);
-    rtchg = (eoi_rate != cur_rate);
+    rtchg = (eoi_selector != cur_script_selector);
     if (rtchg)
     {
-        maxdem_proc(dm_interval, false, true, eoi_rate, &pfinfo->dt, tptr);
+        maxdem_proc(dm_interval, false, true,
+                    get_lowest_rate_from_mask(eoi_selector), &pfinfo->dt, tptr);
     }
     else
     {
@@ -136,11 +139,12 @@ void eoi_proc_pwrtn(pwrfail_info_type *pfinfo, int32_t dur, uint8_t *tptr)
         for (i = 0; i < pf_cnt; i++)
         {
             get_next_interval_boundary(&dt2, dm_sub_interval);
-            maxdem_proc(dm_interval, false, rtchg, eoi_rate, &dt2, tptr);
+            maxdem_proc(dm_interval, false, rtchg,
+                        get_lowest_rate_from_mask(eoi_selector), &dt2, tptr);
         }
     }
 
-    eoi_rate = cur_rate;
+    eoi_selector = cur_script_selector;
     eoi_lastdt = cur_rtc;
     eoi_processed = 1;
 
@@ -186,7 +190,8 @@ void eoi_proc_dr(date_time_type *pdt, bool isdr, uint8_t *tptr)
 
     if (mxdm_processed == false)
     {
-        maxdem_proc(dm_interval, true, false, eoi_rate, &dt, tptr);
+        maxdem_proc(dm_interval, true, false,
+                    get_lowest_rate_from_mask(eoi_selector), &dt, tptr);
     }
 
     if (isdr)
@@ -194,7 +199,7 @@ void eoi_proc_dr(date_time_type *pdt, bool isdr, uint8_t *tptr)
         dm_intv_init();
     }
 
-    eoi_rate = cur_rate;
+    eoi_selector = cur_script_selector;
     eoi_lastdt = *pdt;
     eoi_processed = 1;
 }
@@ -208,7 +213,7 @@ void eoi_proc_ratechg(rate_type rt, uint8_t *tptr)
     maxdem_proc(dm_interval, false, true, rt, &dt, tptr);
     eoi_pulse_set();
 
-    eoi_rate = cur_rate;
+    eoi_selector = cur_script_selector;
     eoi_lastdt = cur_rtc;
     eoi_processed = 1;
 }
@@ -231,10 +236,14 @@ void eoi_proc_timechg(date_time_type *bfdt, rate_type rt, uint8_t *tptr,
     if (fut_exe == true && (cmp_date_time(&cur_rtc, &dt1) < 0 ||
                             cmp_date_time(&cur_rtc, &dt2) >= 0))
     {
+#if defined(FEATURE_TOU_8RATE)
+        rtchg = (eoi_selector != cur_script_selector);
+#else
         rtchg = (rt != cur_rate);
+#endif
         maxdem_proc(dm_interval, false, rtchg, rt, &dt2, tptr);
         eoi_pulse_set();
-        eoi_rate = cur_rate;
+        eoi_selector = cur_script_selector;
         eoi_lastdt = cur_rtc;
         eoi_processed = 1;
     }
@@ -242,10 +251,14 @@ void eoi_proc_timechg(date_time_type *bfdt, rate_type rt, uint8_t *tptr,
                                   cmp_date_time(&cur_rtc, &dt2) >= 0 ||
                                   cmp_date_time(&cur_rtc, &dt3) < 0))
     {
+#if defined(FEATURE_TOU_8RATE)
+        rtchg = (eoi_selector != cur_script_selector);
+#else
         rtchg = (rt != cur_rate);
+#endif
         maxdem_proc(dm_interval, false, rtchg, rt, &dt2, tptr);
         eoi_pulse_set();
-        eoi_rate = cur_rate;
+        eoi_selector = cur_script_selector;
         eoi_lastdt = cur_rtc;
         eoi_processed = 1;
     }
@@ -476,6 +489,30 @@ static void maxdem_proc(uint8_t intv, bool force, bool rtchg, rate_type rt,
     {
         get_sublocks_data(i, rollch);
 
+#if defined(FEATURE_TOU_8RATE)
+        {
+            uint8_t sel = eoi_selector;
+            int r;
+
+            for (r = eArate; r <= eHrate; r++)
+            {
+                if (sel & (1 << r))
+                {
+                    if (eoich[i] > max_dm.max[r].dm[i].val)
+                    {
+                        b_updated = true;
+
+                        max_dm.max[r].dm[i].val = eoich[i];
+                        max_dm.max[r].dm[i].dt = *pdt;
+
+                        nv_sub_info.cur.rt = (rate_type)r;
+                        nv_sub_info.cur.chsel = i;
+                        nv_write(I_DM_SUBLOCKS_DATA, (uint8_t *)rollch);
+                    }
+                }
+            }
+        }
+#else
         if (eoich[i] > max_dm.max[rt].dm[i].val)
         {
             b_updated = true;
@@ -487,6 +524,7 @@ static void maxdem_proc(uint8_t intv, bool force, bool rtchg, rate_type rt,
             nv_sub_info.cur.chsel = i;
             nv_write(I_DM_SUBLOCKS_DATA, (uint8_t *)rollch);
         }
+#endif
 
         if (eoich[i] > max_dm.max[eTrate].dm[i].val)
         {

@@ -1099,14 +1099,12 @@ bool dsm_imgtrfr_fwimage_act_init_process(uint8_t fw_type)
 
 #ifdef REMOVE_SPI_FLASH
         flash_addr = SFLASH_SYS_FW_1_ADDR;
-        dsm_imgtrfr_fwimage_set_sys_flash_addr(flash_addr);
-        dsm_imgtrfr_set_start_dl_addr(flash_addr);
 #else
         dsm_sflash_fw_erase(E_SFLASH_METER_FW_BLK_T);
         flash_addr = dsm_sflash_fw_get_startaddr(E_SFLASH_METER_FW_BLK_T);
+#endif
         dsm_imgtrfr_fwimage_set_sys_flash_addr(flash_addr);
         dsm_imgtrfr_set_start_dl_addr(flash_addr);
-#endif
         break;
     }
 
@@ -1589,8 +1587,8 @@ void dsm_imgtrfr_fwimage_act_run_process(uint8_t fw_type)
         br.bank = get_current_bank_S() ? 0 : 1;
         br.goto_dpd = 0;
 
-        if (dsm_xmd_write_words(BOOT_RESTORE_BASE, &br,
-                                sizeof(BOOT_RESTORE)) != 0U)
+        if (dsm_xmd_write_words(BOOT_RESTORE_BASE, &br, sizeof(BOOT_RESTORE)) !=
+            0U)
         {
             MSGERROR("dsm_xmd_write_words\n");
         }
@@ -2052,12 +2050,23 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
         {
             dayid_info.tou_conf[cnt2].hour = pimg[idx++];
             dayid_info.tou_conf[cnt2].min = pimg[idx++];
+#if defined(FEATURE_TOU_8RATE)
+            dayid_info.tou_conf[cnt2].script_selector = (uint8_t)pimg[idx++];
+#else
             dayid_info.tou_conf[cnt2].rate = pimg[idx++];
+#endif
 
+#if defined(FEATURE_TOU_8RATE)
+            DPRINTF(DBG_TRACE, "\thour[%d], min[%d], sel[%d]\r\n",
+                    dayid_info.tou_conf[cnt2].hour,
+                    dayid_info.tou_conf[cnt2].min,
+                    dayid_info.tou_conf[cnt2].script_selector);
+#else
             DPRINTF(DBG_TRACE, "\thour[%d], min[%d], rate[%d]\r\n",
                     dayid_info.tou_conf[cnt2].hour,
                     dayid_info.tou_conf[cnt2].min,
                     dayid_info.tou_conf[cnt2].rate);
+#endif
         }
 
         nv_sub_info.ch[0] = dayid_info.day_id;
@@ -2078,12 +2087,23 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
             {
                 dayid_info.tou_conf[cnt2].hour = 0xff;
                 dayid_info.tou_conf[cnt2].min = 0xff;
+#if defined(FEATURE_TOU_8RATE)
+                dayid_info.tou_conf[cnt2].script_selector = 0x01;
+#else
                 dayid_info.tou_conf[cnt2].rate = 1;
+#endif
 
+#if defined(FEATURE_TOU_8RATE)
+                DPRINTF(DBG_INFO, "\thour[%d], min[%d], sel[%d]\r\n",
+                        dayid_info.tou_conf[cnt2].hour,
+                        dayid_info.tou_conf[cnt2].min,
+                        dayid_info.tou_conf[cnt2].script_selector);
+#else
                 DPRINTF(DBG_INFO, "\thour[%d], min[%d], rate[%d]\r\n",
                         dayid_info.tou_conf[cnt2].hour,
                         dayid_info.tou_conf[cnt2].min,
                         dayid_info.tou_conf[cnt2].rate);
+#endif
             }
             nv_sub_info.ch[0] = dayid_info.day_id;
             nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);

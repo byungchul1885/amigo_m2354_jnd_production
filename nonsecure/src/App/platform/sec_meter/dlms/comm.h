@@ -5,6 +5,9 @@
 extern bool mdm_conf_delay_until_txcomplete;
 extern bool mt_init_delay_until_txcomplete;
 extern bool sap_is_utility_when_mt_init;
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+extern bool lab_eeprom_clear_pending;
+#endif
 extern bool comm_en_coveropen_changed;
 extern uint8_t comm_en_coveropen_val;
 extern int amr_tx_len;

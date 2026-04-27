@@ -51,6 +51,7 @@
 
 #define PUSH_SCRIPT_ID_ERR_CODE 1
 #define PUSH_SCRIPT_ID_LAST_LP 2
+#define PUSH_SCRIPT_ID_LAST_RT_LP 4
 
 #define PUSH_SETUP_ENABLE 1
 #define PUSH_SETUP_DISABLE 0
@@ -58,6 +59,7 @@
 #if 1  // 2023.0921 JP
 #define PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_ERR_CODE 0
 #define PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_LAST_LP 10
+#define PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_LAST_RT_LP 2
 #else
 #define PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL 10
 #endif
@@ -108,8 +110,8 @@ typedef struct _push_setup_
     uint8_t window_cnt;
     ST_PUSH_WINDOW window[PUSH_WINDOW_MAX_NUM];
     uint8_t retry_times;
-    uint8_t random_start_intval;
-    uint8_t repetition_delay;
+    uint16_t random_start_intval;
+    uint16_t repetition_delay;
 } ST_PUSH_SETUP;
 
 typedef struct _push_script_table_
@@ -157,6 +159,7 @@ uint32_t dsm_can_get_push_flag(void);
 void dsm_data_push_init(void);
 uint32_t dsm_push_is_enable(uint8_t script_id);
 void appl_push_msg_lastLP(void);
+void appl_push_msg_lastRtLP(void);
 void appl_push_msg_errcode(void);
 void dsm_push_data_noti_proc(uint32_t type);
 

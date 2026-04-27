@@ -19,6 +19,7 @@ typedef enum
     MT_SW_TIMER_ATCMD_TX_TO,
     MT_SW_TIMER_MIF_MTP_TX_TO,
     MT_SW_TIMER_PUSH_LP_TO,
+    MT_SW_TIMER_PUSH_RT_LP_TO,
     MT_SW_TIMER_I_MODEM_RX_INTER_FRAME_TO,
     MT_SW_TIMER_E_MODEM_RX_INTER_FRAME_TO,
     MT_SW_TIMER_485_MODEM_RX_INTER_FRAME_TO,
@@ -183,6 +184,7 @@ void dsm_mtp_fsm_send(void);
 uint32_t dsm_get_dm_out_measure_print_chkcount(void);
 void dsm_data_noti_errcode_evt_send(void);
 void dsm_data_noti_lastLP_evt_send(void);
+void dsm_data_noti_lastRtLP_evt_send(void);
 void dsm_pmnt_etc_evt_send(void);
 #if 1 /* bccho, 2023-11-30 */
 void dsm_sec_module_initialized(void);

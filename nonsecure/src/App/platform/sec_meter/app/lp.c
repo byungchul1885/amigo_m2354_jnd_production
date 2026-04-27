@@ -8,6 +8,7 @@
 #include "amg_wdt.h"
 #include "whm.h"
 #include "amg_imagetransfer.h"
+#include "amg_media_mnt.h"
 
 #define _D "[LP] "
 
@@ -30,6 +31,7 @@ static void lp_event_bits_adj(void);
 static void lp_record_write(lp_record_type *lp_rec, uint32_t idx);
 void dsp_rcntpf_modified_set(void);
 extern void dsm_data_noti_lastLP_evt_send(void);
+extern void dsm_data_noti_lastRtLP_evt_send(void);
 extern uint32_t dsm_get_dm_out_measure_print_chkcount(void);
 
 float get_lpavg_ltol(U8 line);
@@ -79,12 +81,7 @@ void LP_proc(void)
 
         LP_save(&lpdt);
         LP_nextdt_set(&cur_rtc);
-        DPRINTF(DBG_TRACE, "%s: push_is_enable[%d]\r\n", __func__,
-                dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP));
-        if (dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP))
-        {
-            dsm_data_noti_lastLP_evt_send();
-        }
+        dsm_data_noti_lastLP_evt_send();
     }
     else if (lp_save_is_triged())
     {
@@ -206,9 +203,16 @@ void LP_save(date_time_type *dt)
         lp_event_unset(LPE_SAG_SWELL);
     }
 #endif
+#if defined(FEATURE_TOU_8RATE)
+    lp_rec.evt[0] = (uint8_t)((LP_event >> 24) & 0xff);  // Byte 3
+    lp_rec.evt[1] = (uint8_t)((LP_event >> 16) & 0xff);  // Byte 2
+    lp_rec.evt[2] = (uint8_t)((LP_event >> 8) & 0xff);   // Byte 1
+    lp_rec.evt[3] = (uint8_t)(LP_event & 0xff);          // Byte 0
+#else
     lp_rec.evt[0] = (uint8_t)((LP_event >> 16) & 0xff);  // Byte 2
     lp_rec.evt[1] = (uint8_t)((LP_event >> 8) & 0xff);   // Byte 1
     lp_rec.evt[2] = (uint8_t)(LP_event & 0xff);          // Byte 0
+#endif
 
     TOTAL_LP_EVENT_CNT += 1L;
     lp_rec.lp_cnt = TOTAL_LP_EVENT_CNT;
@@ -311,9 +315,15 @@ void lp_event_set_curate(void)
 {
     uint32_t t32;
 
+#if defined(FEATURE_TOU_8RATE)
+    lp_event_unset(LPE_TARIFF_MASK);
+    t32 = (uint32_t)(cur_script_selector & 0xFF) << 24;
+    lp_event_set(t32);
+#else
     lp_event_unset(LPE_TARIFF);
     t32 = (uint32_t)cur_rate << 8;
     lp_event_set(t32);
+#endif
 }
 
 bool lp_last_record_dt(date_time_type *pdt, uint8_t *tptr)
@@ -887,7 +897,59 @@ void update_lp_intv_pf(void)
     dsp_rcntpf_modified_set();
 }
 
-static void lp_rtsum_init(void) { lprt__cnt = 0; }
+static float lprt_w_pos_sum;
+static float lprt_w_neg_sum;
+static float lprt_var_pos_sum;
+static float lprt_var_neg_sum;
+static float lprt_v_sum;
+static float lprt_i_sum;
+static float lprt_phase_sum;
+static float lprt_freq_sum;
+static float lprt_w_pos_sum_b;
+static float lprt_w_neg_sum_b;
+static float lprt_var_pos_sum_b;
+static float lprt_var_neg_sum_b;
+static float lprt_v_sum_b;
+static float lprt_i_sum_b;
+static float lprt_phase_sum_b;
+static float lprt_w_pos_sum_c;
+static float lprt_w_neg_sum_c;
+static float lprt_var_pos_sum_c;
+static float lprt_var_neg_sum_c;
+static float lprt_v_sum_c;
+static float lprt_i_sum_c;
+static float lprt_phase_sum_c;
+static float lprt_vphase_ab_sum;
+static float lprt_vphase_ac_sum;
+
+static void lp_rtsum_init(void)
+{
+    lprt__cnt = 0;
+    lprt_w_pos_sum = 0.0;
+    lprt_w_neg_sum = 0.0;
+    lprt_var_pos_sum = 0.0;
+    lprt_var_neg_sum = 0.0;
+    lprt_v_sum = 0.0;
+    lprt_i_sum = 0.0;
+    lprt_phase_sum = 0.0;
+    lprt_freq_sum = 0.0;
+    lprt_w_pos_sum_b = 0.0;
+    lprt_w_neg_sum_b = 0.0;
+    lprt_var_pos_sum_b = 0.0;
+    lprt_var_neg_sum_b = 0.0;
+    lprt_v_sum_b = 0.0;
+    lprt_i_sum_b = 0.0;
+    lprt_phase_sum_b = 0.0;
+    lprt_w_pos_sum_c = 0.0;
+    lprt_w_neg_sum_c = 0.0;
+    lprt_var_pos_sum_c = 0.0;
+    lprt_var_neg_sum_c = 0.0;
+    lprt_v_sum_c = 0.0;
+    lprt_i_sum_c = 0.0;
+    lprt_phase_sum_c = 0.0;
+    lprt_vphase_ab_sum = 0.0;
+    lprt_vphase_ac_sum = 0.0;
+}
 
 void LPrt_init(void) { lp_rtsum_init(); }
 
@@ -919,18 +981,74 @@ void LPrt_proc(void)
 {
     date_time_type tdt;
 
-#if 0 /* bccho, 2023-12-11 */
     if (!b_lprt_ready)
         goto LPrt_proc1;
-#endif
 
     b_lprt_ready = false;
 
-    lprt__cnt++;
+    {
+        float w_val = w0sum_mon;
+        float var_val = var0sum_mon;
 
-#if 0 /* bccho, 2023-12-11 */
+        if (w_val >= 0.0)
+            lprt_w_pos_sum += w_val;
+        else
+            lprt_w_neg_sum += fabs(w_val);
+
+        if (var_val >= 0.0)
+            lprt_var_pos_sum += var_val;
+        else
+            lprt_var_neg_sum += fabs(var_val);
+
+        lprt_v_sum += vrms0_mon;
+        lprt_i_sum += get_inst_curr(0);
+        lprt_phase_sum += get_inst_phase(0);
+        lprt_freq_sum += get_inst_freq();
+
+        if (!mt_is_onephase())
+        {
+            float w_b = w1sum_mon;
+            float var_b = var1sum_mon;
+            float w_c = w2sum_mon;
+            float var_c = var2sum_mon;
+
+            if (w_b >= 0.0)
+                lprt_w_pos_sum_b += w_b;
+            else
+                lprt_w_neg_sum_b += fabs(w_b);
+
+            if (var_b >= 0.0)
+                lprt_var_pos_sum_b += var_b;
+            else
+                lprt_var_neg_sum_b += fabs(var_b);
+
+            lprt_v_sum_b += vrms1_mon;
+            lprt_i_sum_b += get_inst_curr(1);
+            lprt_phase_sum_b += get_inst_phase(1);
+
+            if (w_c >= 0.0)
+                lprt_w_pos_sum_c += w_c;
+            else
+                lprt_w_neg_sum_c += fabs(w_c);
+
+            if (var_c >= 0.0)
+                lprt_var_pos_sum_c += var_c;
+            else
+                lprt_var_neg_sum_c += fabs(var_c);
+
+            lprt_v_sum_c += vrms2_mon;
+            lprt_i_sum_c += get_inst_curr(2);
+            lprt_phase_sum_c += get_inst_phase(2);
+            lprt_vphase_ab_sum += get_inst_vphase(0);
+            lprt_vphase_ac_sum += get_inst_vphase(1);
+        }
+    }
+
+    lprt__cnt++;
+    DPRINTF(DBG_TRACE, _D "media=%s cnt=%d\r\n",
+            dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()), lprt__cnt);
+
 LPrt_proc1:
-#endif
     if (b_lprt_monitor && ((cur_min * 60 + cur_sec) % rt_lp_interval) == 0)
     {
         uint32_t ch_count = dsm_get_dm_out_measure_print_chkcount();
@@ -952,6 +1070,16 @@ LPrt_proc1:
         LPrt_save(&tdt);
 
         LPrt_init();
+
+        if (rt_lp_interval == 1)
+        {
+            if ((lprt__index % 5) == 0)
+                dsm_data_noti_lastRtLP_evt_send();
+        }
+        else
+        {
+            dsm_data_noti_lastRtLP_evt_send();
+        }
     }
 
     b_lprt_monitor = false;
@@ -1033,7 +1161,6 @@ static void lprt_record_write(uint8_t *cp, uint32_t idx)
 void LPrt_save(date_time_type *dt)
 {
     uint32_t ch_count = dsm_get_dm_out_measure_print_chkcount();
-    float w, var;
 
     if (lprt__cnt == 0)
         return;
@@ -1051,24 +1178,14 @@ void LPrt_save(date_time_type *dt)
         memset(&lprt_1phs, 0x00, sizeof(lprt_record_1phs));
         compress_time((uint8_t *)&lprt_1phs.dt[0], dt);
 
-        w = w0sum_mon;
-        if (w >= 0.0)
-        {
-            lprt_1phs.ch_2[0] = w;
-        }
-        else
-        {
-            lprt_1phs.ch_2[1] = fabs(w);
-        }
-        var = var0sum_mon;
-        if (var >= 0.0)
-        {
-            lprt_1phs.ch_2[2] = var;
-        }
-        else
-        {
-            lprt_1phs.ch_2[3] = fabs(var);
-        }
+        lprt_1phs.ch_2[0] = lprt_w_pos_sum / lprt__cnt;
+        lprt_1phs.ch_2[1] = lprt_w_neg_sum / lprt__cnt;
+        lprt_1phs.ch_2[2] = lprt_var_pos_sum / lprt__cnt;
+        lprt_1phs.ch_2[3] = lprt_var_neg_sum / lprt__cnt;
+        lprt_1phs.ch_2[4] = lprt_v_sum / lprt__cnt;
+        lprt_1phs.ch_2[5] = lprt_i_sum / lprt__cnt;
+        lprt_1phs.ch_2[6] = lprt_phase_sum / lprt__cnt;
+        lprt_1phs.ch_2[7] = lprt_freq_sum / lprt__cnt;
 
         lprt_record_write((uint8_t *)&lprt_1phs, lprt__index);
     }
@@ -1100,62 +1217,32 @@ void LPrt_save(date_time_type *dt)
         }
 #endif
 
-        w = w0sum_mon;
-        if (w >= 0.0)
-        {
-            lprt_3phs.ch_2[4] = w;
-        }
-        else
-        {
-            lprt_3phs.ch_2[5] = fabs(w);
-        }
-        var = var0sum_mon;
-        if (var >= 0.0)
-        {
-            lprt_3phs.ch_2[6] = var;
-        }
-        else
-        {
-            lprt_3phs.ch_2[7] = fabs(var);
-        }
+        lprt_3phs.ch_2[4] = lprt_w_pos_sum / lprt__cnt;
+        lprt_3phs.ch_2[5] = lprt_w_neg_sum / lprt__cnt;
+        lprt_3phs.ch_2[6] = lprt_var_pos_sum / lprt__cnt;
+        lprt_3phs.ch_2[7] = lprt_var_neg_sum / lprt__cnt;
+        lprt_3phs.ch_2[16] = lprt_v_sum / lprt__cnt;
+        lprt_3phs.ch_2[17] = lprt_i_sum / lprt__cnt;
+        lprt_3phs.ch_2[18] = lprt_phase_sum / lprt__cnt;
 
-        w = w1sum_mon;
-        if (w >= 0.0)
-        {
-            lprt_3phs.ch_2[0 + 4 * 2] = w;
-        }
-        else
-        {
-            lprt_3phs.ch_2[1 + 4 * 2] = fabs(w);
-        }
-        var = var1sum_mon;
-        if (var >= 0.0)
-        {
-            lprt_3phs.ch_2[2 + 4 * 2] = var;
-        }
-        else
-        {
-            lprt_3phs.ch_2[3 + 4 * 2] = fabs(var);
-        }
+        lprt_3phs.ch_2[8] = lprt_w_pos_sum_b / lprt__cnt;
+        lprt_3phs.ch_2[9] = lprt_w_neg_sum_b / lprt__cnt;
+        lprt_3phs.ch_2[10] = lprt_var_pos_sum_b / lprt__cnt;
+        lprt_3phs.ch_2[11] = lprt_var_neg_sum_b / lprt__cnt;
+        lprt_3phs.ch_2[19] = lprt_v_sum_b / lprt__cnt;
+        lprt_3phs.ch_2[20] = lprt_i_sum_b / lprt__cnt;
+        lprt_3phs.ch_2[21] = lprt_phase_sum_b / lprt__cnt;
 
-        w = w2sum_mon;
-        if (w >= 0.0)
-        {
-            lprt_3phs.ch_2[0 + 4 * 3] = w;
-        }
-        else
-        {
-            lprt_3phs.ch_2[1 + 4 * 3] = fabs(w);
-        }
-        var = var2sum_mon;
-        if (var >= 0.0)
-        {
-            lprt_3phs.ch_2[2 + 4 * 3] = var;
-        }
-        else
-        {
-            lprt_3phs.ch_2[3 + 4 * 3] = fabs(var);
-        }
+        lprt_3phs.ch_2[12] = lprt_w_pos_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[13] = lprt_w_neg_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[14] = lprt_var_pos_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[15] = lprt_var_neg_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[22] = lprt_v_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[23] = lprt_i_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[24] = lprt_phase_sum_c / lprt__cnt;
+        lprt_3phs.ch_2[25] = lprt_vphase_ab_sum / lprt__cnt;
+        lprt_3phs.ch_2[26] = lprt_vphase_ac_sum / lprt__cnt;
+        lprt_3phs.ch_2[27] = lprt_freq_sum / lprt__cnt;
 
 #if 1 /* bccho, 2024-09-24, 삼상 */
         for (int i = 0; i < 4; i++)

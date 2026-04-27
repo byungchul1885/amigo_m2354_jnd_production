@@ -75,6 +75,9 @@ void edit_holidays(bool insert, bool fut, uint16_t idx, uint16_t yr,
 void season_chg_proc(date_time_type *pdt, uint8_t *tptr);
 void prog_fut_mon(uint8_t *tptr);
 rate_type rtn_curr_rate(date_time_type *dt);
+#if defined(FEATURE_TOU_8RATE)
+rate_type get_lowest_rate_from_mask(uint8_t mask);
+#endif
 void prog_cur_tou_suppdsp_delete(void);
 void prog_cur_tou_delete(void);
 void prog_dl_backup_restore(void);

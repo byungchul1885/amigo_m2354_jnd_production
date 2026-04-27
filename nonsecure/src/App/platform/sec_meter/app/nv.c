@@ -55,6 +55,8 @@ char* dsm_nv_item_string(nv_item_type nv_item)
         return "SAG_FLAG";
     case I_MT_CONFIG:
         return "MT_CONFIG";
+    case I_RELAY_STATE:
+        return "RELAY_ST";
     case I_WHM_OP:
         return "WHM_OP";
     case I_MT_ACCM:
@@ -205,6 +207,12 @@ char* dsm_nv_item_string(nv_item_type nv_item)
         return "JIG_PASSWORD";
     case I_PWF_DATE_TIME:
         return "PWF_DATE_TIME";
+    case I_BOOT_PUSH_SW:
+        return "BOOT_PUSH_SW";
+    case I_GPS_LATITUDE:
+        return "GPS_LATITUDE";
+    case I_GPS_LONGITUDE:
+        return "GPS_LONGITUDE";
     case I_WORKPWR_FLAG:
         return "WORKPWR_FLAG";
     case I_UNINIT_DATA:
@@ -444,6 +452,21 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
         nv_size = sizeof(device_id_type);
         break;
 
+    case I_BOOT_PUSH_SW:
+        nv_pos = (uint32_t)&(nv_type_ptr->boot_push_sw);
+        nv_size = sizeof(device_id_type);
+        break;
+
+    case I_GPS_LATITUDE:
+        nv_pos = (uint32_t)&(nv_type_ptr->nv_dummy_11[900]);
+        nv_size = sizeof(float);
+        break;
+
+    case I_GPS_LONGITUDE:
+        nv_pos = (uint32_t)&(nv_type_ptr->nv_dummy_11[904]);
+        nv_size = sizeof(float);
+        break;
+
     case I_DEVICE_ID_KEPCO:
         nv_pos = (uint32_t)&(nv_type_ptr->devid_kepco);
         nv_size = sizeof(device_id_type);
@@ -513,6 +536,11 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
     case I_MT_CONFIG_2:
         nv_pos = (uint32_t)&(nv_type_ptr->mtconf_2);
         nv_size = sizeof(mt_conf_2_type);
+        break;
+
+    case I_RELAY_STATE:
+        nv_pos = (uint32_t)&(nv_type_ptr->relay_nv);
+        nv_size = sizeof(relay_state_type);
         break;
 
     case I_WHM_OP:
@@ -1138,7 +1166,7 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
         break;
 
     case I_PWF_DATE_TIME:
-        nv_pos = (uint32_t)&(nv_type_ptr->pwf_date_time);
+        nv_pos = (uint32_t)&(nv_type_ptr->pwf_dt);
         nv_size = sizeof(pwf_date_type);
         break;
 

@@ -154,6 +154,12 @@ typedef enum
     eBrate,
     eCrate,
     eDrate,
+#if defined(FEATURE_TOU_8RATE)
+    eErate,
+    eFrate,
+    eGrate,
+    eHrate,
+#endif
     eTrate,
     numRates
 } rate_type;
@@ -165,10 +171,18 @@ typedef enum
     TWO_RATE_KIND,
     THREE_RATE_KIND,
     FOUR_RATE_KIND,
+#if defined(FEATURE_TOU_8RATE)
+    FIVE_RATE_KIND,
+    SIX_RATE_KIND,
+    SEVEN_RATE_KIND,
+    EIGHT_RATE_KIND,
+#endif
     NUM_RATE_KIND
 } ratekind_type;
 
+#if !defined(FEATURE_TOU_8RATE)
 #define SELECTOR_TO_RATE(sel) (rate_type)((sel & 0x0f) - 1)
+#endif
 #define TS_TO_SELECTOR(idx, onff) ((onff == SW_CTRL_ON) ? (0x01 << idx) : 0x00)
 #define SELECTOR_TO_TS(sel)                                          \
     (time_sw_state_type)((ts_conf_ctrl & (0x01 << sel)) ? SW_CTRL_ON \
@@ -366,7 +380,7 @@ typedef enum
 #define SR_DR_KIND_NUM numSrDrKind
 
 #define MAX_TOU_DIV_TWOKIND 4
-#define MAX_TOU_DIV_DLMS 12
+#define MAX_TOU_DIV_DLMS 24
 #define LOG_RECORD_LEN 10
 #define LOG_BUFF_SIZE (LOG_RECORD_LEN + 4)
 #define PROG_ID_SIZE 8
@@ -379,9 +393,9 @@ typedef enum
 #define PGM_NAME_LEN \
     PROG_ID_SIZE  // program name length   => must even to align into integer
                   // type in structure
-#define SEASON_PROF_SIZE 4               // season profile array size
+#define SEASON_PROF_SIZE 8               // season profile array size
 #define SEASON_NAME_LEN 1                // season name length
-#define WEEK_PROF_SIZE 4                 // week profile array size
+#define WEEK_PROF_SIZE 8                 // week profile array size
 #define WEEK_NAME_LEN 1                  // week name length
 #define WEEK_LEN 7                       // week length (monday..sunday)
 #define DAY_PROF_SIZE 10                 // day profile array size
@@ -472,6 +486,13 @@ typedef struct
     uint16_t CRC_M;
 } latchon_data_type;
 
+typedef struct
+{
+    uint8_t ldctrl;
+    uint8_t ldinited;
+    uint16_t CRC_M;
+} relay_state_type;
+
 // ---------- 비정기 검침일 ----------------
 typedef struct
 {
@@ -536,7 +557,11 @@ typedef struct
 {
     uint8_t hour;
     uint8_t min;
+#if defined(FEATURE_TOU_8RATE)
+    uint8_t script_selector;
+#else
     uint8_t rate;
+#endif
 } tou_struct_type;
 
 typedef struct
@@ -836,7 +861,11 @@ typedef struct
     uint8_t evt;
     uint8_t intv;
     uint8_t intv_num;
+#if defined(FEATURE_TOU_8RATE)
+    uint8_t selector;
+#else
     rate_type rt;
+#endif
     date_time_type dt1;
     date_time_type dt2;
     date_time_type lastdt;
@@ -883,8 +912,8 @@ typedef struct
     uint16_t mrcnt;             // 월별 검침 횟수
     uint16_t mrcnt_nprd;        // 비정기 검침 횟수
     uint16_t mrcnt_season_chg;  // season change 검침 횟수
-    uint8_t ldctrl;             // 현재 릴레이 on/off state
-    uint8_t ldinited;           // 최초 릴리이 on 수행 여부
+    // ldctrl moved to relay_state_type
+    // ldinited moved to relay_state_type
     uint8_t
         rcntdmwearidx;  // 직전 수요값 저장 시 nv memory 영역 분산 저장 목적으로
                         // 사용할 index -> 직전 수요값은 index 해당 영역에
@@ -919,8 +948,8 @@ typedef struct
 #define mr_cnt whm_op.mrcnt
 #define mrcnt_nprd whm_op.mrcnt_nprd
 #define mrcnt_season_chg whm_op.mrcnt_season_chg
-#define relay_load_state whm_op.ldctrl
-#define load_inited whm_op.ldinited
+#define relay_load_state relay_nv_data.ldctrl
+#define load_inited relay_nv_data.ldinited
 #define rcntdm_wear_idx whm_op.rcntdmwearidx
 #define scurr_limit_cnt whm_op.scurr
 #define rcnt_season_id whm_op.seasonid
@@ -930,7 +959,11 @@ typedef struct
 #define eoi_evt whm_op.eoi.evt
 #define eoi_intv whm_op.eoi.intv
 #define eoi_intv_num whm_op.eoi.intv_num
+#if defined(FEATURE_TOU_8RATE)
+#define eoi_selector whm_op.eoi.selector
+#else
 #define eoi_rate whm_op.eoi.rt
+#endif
 #define eoi_dt1 whm_op.eoi.dt1
 #define eoi_dt2 whm_op.eoi.dt2
 #define eoi_lastdt whm_op.eoi.lastdt
@@ -1114,9 +1147,17 @@ extern int b_q_dspkind;
 extern buff_struct_type ubuff;
 extern mt_conf_type mt_conf;
 extern whm_op_type whm_op;
+extern relay_state_type relay_nv_data;
 extern date_time_type cur_rtc;
 extern rate_type cur_rate;
+#if defined(FEATURE_TOU_8RATE)
+extern uint8_t cur_selector_before;
+#else
 extern rate_type cur_rate_before;
+#endif
+#if defined(FEATURE_TOU_8RATE)
+extern uint8_t cur_script_selector;
+#endif
 extern uint32_t mxdm_dgt_cnt;
 extern uint32_t mxaccm_dgt_cnt;
 extern const uint8_t logical_device_name_r[];

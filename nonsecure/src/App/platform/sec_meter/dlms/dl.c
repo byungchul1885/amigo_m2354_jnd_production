@@ -37,6 +37,7 @@ static uint8_t dl_seq_Sfrom;
 static uint8_t dl_seq_Rfrom;
 uint16_t dl_tx_max_info;
 uint16_t dl_rx_max_info;
+uint32_t g_push_drop_cnt;
 static int dl_seg_frame_len;
 static int dl_seg_frame_offs;
 static int dl_seg_frame_offs_back;
@@ -745,7 +746,9 @@ void prod_control_cal_begin(int idx)
 bool factory_addtional_reset(void)
 {
 #ifdef REMOVE_SPI_FLASH
-    return true;
+    bool error = 0;
+    error = dsm_sys_fwinfo_initial_set(true);
+    return error;
 #else
     // U8 i =0;
     // ST_FW_INFO fwinfo = {0};
@@ -779,293 +782,6 @@ bool factory_addtional_reset(void)
     return error;
 #endif
 }
-
-#if 0
-static void prod_dl_ctrl_in_ndm_state(void)
-{
-    U8 idx = 0, rslt;
-#if defined(FEATURE_COMPILE_DM)
-    DPRINTF(DBG_TRACE, _D "%s %d, %d\r\n", __func__, dl_is_snrm_frame(),
-            dl_is_disc_frame());
-#endif
-#ifdef SUPPORT_INFORMATION_FIELD_LENGTH
-    dl_tx_max_info = dl_rx_max_info = MAX_INFORMATION_FIELD_LENGTH_FOR_KEPCO;
-#else
-    dl_tx_max_info = MAX_HDLC_TX_ASSO3;
-    dl_rx_max_info = MAX_HDLC_RX_ASSO3;
-#endif
-
-    if ((prod_dl_control_hi == 0x80) &&
-        (dl_control == PROD_CTRL_LOG_IN))  // log_in
-    {
-        rslt = memcmp((uint8_t *)&priv_pwd_default[0], (U8 *)&cli_buff[4],
-                      PRIV_PWD_SIZE);
-        if (rslt == 0)
-        {
-            prod_dl_snrm_frame_proc();  // connection
-        }
-        else
-        {
-            prod_dl_send_error(PROD_NOT_ACC_USER);  // ERROR PASSWORD
-        }
-    }
-    else if ((prod_dl_control_hi == 0x80) &&
-             (dl_control == PROD_CTRL_LOG_OUT))  // log_out
-    {
-        prod_dl_send_DM();
-        dl_stop(false, false);
-    }
-    else if (dl_is_connected())
-    {
-        if ((prod_dl_control_hi == 0x80) &&
-            (dl_control == PROD_CTRL_FACTORY_RESET))
-        {
-            whm_clear_all(true);
-            prod_dl_frame_tx((U8 *)0, 0);
-        }
-        else if ((prod_dl_control_hi == 0x80) &&
-                 (dl_control == PROD_CTRL_CAL_BEGIN))
-        {
-            prod_control_cal_begin(0);
-        }
-        else if ((dl_control == PROD_CTRL_FACTOR))
-        {
-            if (prod_dl_control_hi == 0x00)  // read
-            {
-                // only_data
-                idx = 0;
-                cal_data_type cal;
-                nv_read(I_CAL_DATA, (U8 *)&cal);
-                DPRINTF(DBG_TRACE,
-                        "CAL NV read R: cur_gain[0x%08X], vol_gain[0x%08X], "
-                        "phase_gain[0x%08X]\r\n",
-                        cal.T_cal_i0, cal.T_cal_v0, cal.T_cal_p0);
-                DPRINTF(DBG_TRACE,
-                        "CAL NV read S: cur_gain[0x%08X], vol_gain[0x%08X], "
-                        "phase_gain[0x%08X]\r\n",
-                        cal.T_cal_i1, cal.T_cal_v1, cal.T_cal_p1);
-                DPRINTF(DBG_TRACE,
-                        "CAL NV read T: cur_gain[0x%08X], vol_gain[0x%08X], "
-                        "phase_gain[0x%08X]\r\n",
-                        cal.T_cal_i2, cal.T_cal_v2, cal.T_cal_p2);
-#if 1
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_v0);
-                idx += 4;
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_v1);
-                idx += 4;
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_v2);
-                idx += 4;
-
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_i0);
-                idx += 4;
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_i1);
-                idx += 4;
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_i2);
-                idx += 4;
-
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_p0);
-                idx += 4;
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_p1);
-                idx += 4;
-                ToComm32(&global_buff[idx], (U8_16_32 *)&cal.T_cal_p2);
-                idx += 4;
-#else
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_v0, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_v1, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_v2, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_i0, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_i1, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_i2, 4);
-                idx += 4;
-
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_p0, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_p1, 4);
-                idx += 4;
-                memcpy((U8 *)&global_buff[idx], (U8 *)&cal.T_cal_p2, 4);
-                idx += 4;
-
-#endif
-                prod_dl_frame_tx((uint8_t *)&global_buff, (4 * 3 * 3));
-            }
-        }
-
-        else if ((dl_control == PROD_CTRL_SERIAL_NO))
-        {
-            /* prod set custid 30 30 30 30 31 30 35 --> "0000105" <- serial
-             * number */
-            ser_no_type serno;
-
-            if (prod_dl_control_hi == 0x40)  // write
-            {
-                memset((uint8_t *)&serno, 0x00, sizeof(ser_no_type));
-
-#if 1 /* bccho, 2024-05-17 */
-                extern uint8_t SYS_TITLE_server[SYS_TITLE_LEN];
-                uint32_t ds_serial_no_32;
-
-                ds_serial_no_32 = SYS_TITLE_server[5];
-                ds_serial_no_32 <<= 8;
-                ds_serial_no_32 += SYS_TITLE_server[6];
-                ds_serial_no_32 <<= 8;
-                ds_serial_no_32 += SYS_TITLE_server[7];
-
-                serno.ser[0] = ds_serial_no_32 / 1000000;
-                ds_serial_no_32 %= 1000000;
-                serno.ser[1] = ds_serial_no_32 / 100000;
-                ds_serial_no_32 %= 100000;
-                serno.ser[2] = ds_serial_no_32 / 10000;
-                ds_serial_no_32 %= 10000;
-                serno.ser[3] = ds_serial_no_32 / 1000;
-                ds_serial_no_32 %= 1000;
-                serno.ser[4] = ds_serial_no_32 / 100;
-                ds_serial_no_32 %= 100;
-                serno.ser[5] = ds_serial_no_32 / 10;
-                ds_serial_no_32 %= 10;
-                serno.ser[6] = ds_serial_no_32;
-#else
-                memcpy((uint8_t *)&serno, (uint8_t *)&cli_buff[4],
-                       SERIAL_NO_SIZE);
-#endif
-
-                for (idx = 0; idx < SERIAL_NO_SIZE; idx++)
-                {
-                    serno.ser[idx] = byte_to_ascii(serno.ser[idx]);
-                }
-
-                set_cust_id(&serno);
-
-                DPRINT_HEX(DBG_TRACE, "METER_SERIAL", serno.ser, SERIAL_NO_SIZE,
-                           DUMP_ALWAYS);
-
-                /* software information */
-                dsm_sys_fwinfo_initial_set(true);  // external flash info
-
-                prod_dl_frame_tx((U8 *)0, 0);
-            }
-            else if (prod_dl_control_hi == 0x00)  // read
-            {
-                // only_data
-                get_cust_id((uint8_t *)&serno);
-                DPRINT_HEX(DBG_TRACE, "METER_SERIAL", serno.ser, SERIAL_NO_SIZE,
-                           DUMP_ALWAYS);
-#if 0
-				if(idx =0; idx < SERIAL_NO_SIZE; idx++)
-					{
-					pPdu[idx] = put_ascii_byte(serno[idx]);
-					}			
-				prod_dl_frame_tx((uint8_t*)&pPdu, SERIAL_NO_SIZE);
-#else
-                prod_dl_frame_tx((uint8_t *)&serno, SERIAL_NO_SIZE);
-#endif
-            }
-        }
-
-        else if ((dl_control == PROD_CTRL_DEVICE_NAME))
-        {
-            /*
-                                   y1 y2 m1 m2 d1 d2 A  V1 V2
-                prod set devid 32 30 30 39 30 38 41 33 30 --> "200908" 'A' "30"
-            */
-            /* Ref: whm.c, logical_device_name_r_kepco[], 제조 일자 +
-             * 제조관리번호 + 규격 버전, (ex) "220101A30" */
-            /* 통신 규격 - 2.3.2 논리적 장치명의 구조 (LDN: Logical Device Name)
-             * 및 3.4.2.3.1 COSEM 계기 식별자 참조 */
-            device_id_type dev;
-            if (prod_dl_control_hi == 0x40)  // write
-            {
-                /* 제조사 고유코드 */
-                dev.devid[0] = FLAG_ID1;
-                dev.devid[1] = FLAG_ID2;
-                dev.devid[2] = FLAG_ID3;
-
-                dev.devid[3] = ' ';
-#if 0
-                if(idx =4; idx < DEVICE_ID_SIZE; idx++)
-                {
-                    dev.devid[idx] = get_byte_of_hex_from_ascii(cli_buff[idx+4]);
-				}
-#else
-                idx = 4;
-                memcpy((uint8_t *)&dev.devid[4], (uint8_t *)&cli_buff[idx + 4],
-                       12);
-#endif
-                dev.devid[11] = ' ';
-                dev.devid[12] = ' ';
-
-                dev.devid[14] = '3';
-#if 1 /* bccho, 2024-09-05, 삼상 */
-                dev.devid[15] = logical_device_name_r[15];
-#else
-                dev.devid[15] = '0';
-#endif
-
-                /* LD(Logical Device) 번호 : 장치 관리용 = 1, 한전 관리용 = 2 */
-                dev.devid[13] = '2';  // 0x31: DEVICE_ID, 0x32: DEVICE_ID_KEPCO
-
-                nv_write(I_DEVICE_ID_KEPCO, (uint8_t *)&dev);  // 한전 관리용
-                DPRINT_HEX(DBG_TRACE, "KEPCO_MGMT", dev.devid, DEVICE_ID_SIZE,
-                           DUMP_ALWAYS);
-
-                dev.devid[13] = '1';
-                nv_write(I_DEVICE_ID, (uint8_t *)&dev);  // 장치 관리용
-                DPRINT_HEX(DBG_TRACE, "DEVICE_MGMT", dev.devid, DEVICE_ID_SIZE,
-                           DUMP_ALWAYS);
-
-                prod_dl_frame_tx((U8 *)0, 0);
-            }
-            else if (prod_dl_control_hi == 0x00)  // read
-            {
-                // only_data
-                nv_read(I_DEVICE_ID_KEPCO, (uint8_t *)&dev);
-                DPRINT_HEX(DBG_TRACE, "KEPCO_MGMT", dev.devid, DEVICE_ID_SIZE,
-                           DUMP_ALWAYS);
-#if 0
-				if(idx =0; idx < DEVICE_ID_SIZE; idx++)
-                {
-                pPdu[idx] = put_ascii_byte(dev.devid[idx]);
-                }			
-				prod_dl_frame_tx((uint8_t*)&pPdu, DEVICE_ID_SIZE);
-#else
-                prod_dl_frame_tx((uint8_t *)&dev.devid, DEVICE_ID_SIZE);
-#endif
-            }
-        }
-        else if ((dl_control == PROD_CTRL_CURR_TEMP))
-        {
-            float temp;
-            if (prod_dl_control_hi == 0x40)  // write
-            {
-#if 1 /* bccho, 2024-06-07 패치 포팅 */
-                prod_curr_temp_write(cli_buff[4]);
-#endif
-                prod_dl_frame_tx((U8 *)0, 0);
-            }
-            else if (prod_dl_control_hi == 0x00)  // read
-            {
-                // only_data
-                temp = get_inst_temp();
-                idx = 0;
-                pPdu[idx++] = (int8_t)temp;
-                prod_dl_frame_tx(&pPdu[0], idx);
-            }
-        }
-        else
-        {
-            prod_dl_send_error(PROD_NOT_ACC_USER);  // not log_in
-        }
-    }
-    else
-    {
-        prod_dl_send_error(PROD_NOT_ACC_USER);  // not log_in
-    }
-}
-#endif
 
 static void dl_ctrl_in_ndm_state(void)
 {
@@ -1736,5 +1452,13 @@ void dl_send_UI_frame(bool seg, uint8_t* buf, uint16_t len)
 
 void dl_send_appl_push_datanoti_msg(uint8_t* buf, int len)
 {
+    if (len > dl_tx_max_info)
+    {
+        DPRINTF(DBG_ERR, _D "PUSH drop: len=%d > max_info=%d\r\n", len,
+                dl_tx_max_info);
+        g_push_drop_cnt++;
+        return;
+    }
+
     dl_send_UI_frame(false, buf, len);
 }

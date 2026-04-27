@@ -23,6 +23,9 @@
 
 #define NUM_CAP_WEAR 20
 
+#define ds_cert_size 500
+#define ds_prv_key_size 32
+
 #define HOL_OF_BLOCK 0x00
 #define HEAD_OF_BLOCK 0xff
 
@@ -45,6 +48,7 @@ typedef enum
     I_MTINIT_LOG,
     I_SAG_FLAG,
     I_MT_CONFIG,
+    I_RELAY_STATE,
     I_WHM_OP,
     I_MT_ACCM,
     I_MT_READ_DATA,
@@ -168,7 +172,10 @@ typedef enum
     I_BOOT_AFTER_SWRST,
     I_CERTI_HASH,    /* bccho, 2024-09-04 */
     I_WORKPWR_FLAG,  // jp.kim 24.10.28
-    I_PWF_DATE_TIME  // jp.kim 25.05.26
+    I_PWF_DATE_TIME,  // jp.kim 25.05.26
+    I_BOOT_PUSH_SW,
+    I_GPS_LATITUDE,
+    I_GPS_LONGITUDE
 } nv_item_type;
 
 typedef enum
@@ -188,6 +195,25 @@ typedef struct
 {
     uint8_t seg_buf[TX_SEG_FRAME_SIZE];
 } tx_seg_type;
+
+typedef struct
+{
+    uint8_t cert[ds_cert_size + 100];
+    uint16_t cert_crc;
+    uint8_t priv_key[ds_prv_key_size];
+    uint16_t priv_key_crc;
+    uint8_t _reserved2[264];
+    uint8_t sys_title[8];
+    uint16_t sys_title_crc;
+    uint8_t _reserved3[68];
+    uint16_t CRC_M;
+} ds_cert_eeprom_type;
+
+typedef struct
+{
+    device_id_type id;
+    uint16_t reserved;
+} boot_push_sw_type;
 
 typedef struct
 {
@@ -237,8 +263,9 @@ typedef struct
     bat_used_time_type bat_use;
     bat_install_type bat_inst;
     device_id_type devid_kepco;
-    uint8_t ds_cert_eeprom[980];  // jp.kim 25.05.26
-    uint8_t pwf_date_time[20];    // jp.kim 25.05.26
+    boot_push_sw_type boot_push_sw;
+    ds_cert_eeprom_type ds_cert;
+    pwf_date_type pwf_dt;
 
     // 중요영역  ==========================================================
     ST_RANDOM random;
@@ -255,6 +282,7 @@ typedef struct
 
     // 지우는 영역  1  ===================================================
     uint8_t init_start;
+    relay_state_type relay_nv;
     uint8_t sag_flag[SAG_FLAG_LENGTH];
     tou_set_cnt_type tousetcnt;
     holiday_date_type holdateblock;

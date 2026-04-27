@@ -10,7 +10,7 @@
 #define trip_led_toggle()
 
 #define tamper_port_init()     /*PD1 &= ~BIT2*/
-#define MCOVER_OPEN_IN (true)  // actually should be true
+#define MCOVER_OPEN_IN (false)  // meter cover switch not installed
 
 #if METER_TYPE == MT_1P2W_60A /* bccho, 2024-09-24 */
 #define TCOVER_OPEN_IN (!SW_OPEN_STATE)

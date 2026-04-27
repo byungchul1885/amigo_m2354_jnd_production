@@ -145,7 +145,8 @@ static void approc_act_req_proc(int idx)
         appl_obj_id == OBJ_TOU_IMAGE_TRANSFER ||
         appl_obj_id == OBJ_SW_IMAGE_TRANSFER ||
         appl_obj_id == OBJ_PUSH_SETUP_ERR_CODE ||
-        appl_obj_id == OBJ_PUSH_SETUP_LAST_LP)
+        appl_obj_id == OBJ_PUSH_SETUP_LAST_LP ||
+        appl_obj_id == OBJ_PUSH_SETUP_LAST_RT_LP)
     {
         uint8_t* cp;
 
@@ -190,7 +191,8 @@ static void approc_act_req_proc(int idx)
         /* 계기 운용 기본 명령 */
         if (appl_att_id != 2)
         {
-            DPRINTF(DBG_ERR, _D "%s: Attributes is not matched\r\n", __func__);
+            DPRINTF(DBG_ERR, _D "%s: Attributes is not 2 (current=%d)\r\n",
+                    __func__, appl_att_id);
         }
         ob_dev_bcmd(cmd);
         break;
@@ -199,7 +201,8 @@ static void approc_act_req_proc(int idx)
         /* 계기 운용 주요 명령 */
         if (appl_att_id != 2)
         {
-            DPRINTF(DBG_ERR, _D "%s: Attributes is not matched\r\n", __func__);
+            DPRINTF(DBG_ERR, _D "%s: Attributes is not 2 (current=%d)\r\n",
+                    __func__, appl_att_id);
         }
         ob_dev_cmd(cmd);
         break;
@@ -243,6 +246,10 @@ static void approc_act_req_proc(int idx)
 
     case OBJ_PUSH_SETUP_LAST_LP:
         ob_push_setup_cmd(PUSH_SCRIPT_ID_LAST_LP, idx);
+        break;
+
+    case OBJ_PUSH_SETUP_LAST_RT_LP:
+        ob_push_setup_cmd(PUSH_SCRIPT_ID_LAST_RT_LP, idx);
         break;
     default:
         appl_resp_result = ACT_RESULT_TYPE_UNMAT;
@@ -306,13 +313,10 @@ static void ob_push_setup_cmd(uint8_t setup_type, int idx)
         if (cp[cp_idx] == INTEGER_TAG && cp[cp_idx + 1] == 0)
         {
             if (setup_type == PUSH_SCRIPT_ID_ERR_CODE ||
-                setup_type == PUSH_SCRIPT_ID_LAST_LP)
+                setup_type == PUSH_SCRIPT_ID_LAST_LP ||
+                setup_type == PUSH_SCRIPT_ID_LAST_RT_LP)
             {
-                // immediately push
-                if (setup_type == PUSH_SCRIPT_ID_ERR_CODE)
-                    appl_push_msg_errcode();
-                else
-                    appl_push_msg_lastLP();
+                dsm_push_data_noti_proc(setup_type);
             }
             else
             {
@@ -452,6 +456,26 @@ void ob_dev_cmd(uint16_t cmd)
     case DEVICE_CMD_SELREACT_CANCEL: /*선택 무효전력량 개별예약 삭제*/
         sel_react_cancel();
         break;
+
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+    case DEVICE_CMD_LAB_EEPROM_FULL_CLEAR:
+        if (appl_is_sap_private())
+        {
+            DPRINTF(DBG_WARN,
+                    _D "%s: LAB_EEPROM_FULL_CLEAR accepted (Private SAP)\r\n",
+                    __func__);
+            act_devcmd = cmd;
+            lab_eeprom_clear_pending = true;
+        }
+        else
+        {
+            DPRINTF(DBG_WARN,
+                    _D "%s: LAB_EEPROM_FULL_CLEAR rejected (sap=%d)\r\n",
+                    __func__, appl_sap);
+            appl_resp_result = ACT_RESULT_OTHER;
+        }
+        break;
+#endif
 
     default:
         appl_resp_result = ACT_RESULT_DATA_NG;
@@ -2019,60 +2043,83 @@ void dsm_image_update_go_proc(void)
     }
 }
 
-#define LIGHT_LOAD 1
-#define MIDDLE_LOAD 2
-#define MAXIMUM_LOAD 3
+#define LIGHT_LOAD (1 << 0)
+#define MIDDLE_LOAD (1 << 1)
+#define MAXIMUM_LOAD (1 << 2)
 
-season_struct_type g_default_season[4] = {
-    {3, 1, 0}, {6, 1, 1}, {9, 1, 2}, {11, 1, 3}};
+season_struct_type g_default_season[SEASON_PROF_SIZE] = {
+    {3, 1, 0},      {6, 1, 1},      {9, 1, 2},      {11, 1, 3},
+    {0xff, 0xff, 0}, {0xff, 0xff, 0}, {0xff, 0xff, 0}, {0xff, 0xff, 0}};
 
 // 1종
-week_struct_type g_default_week[4] = {{0, {1, 1, 1, 1, 1, 1, 1}},
-                                      {1, {1, 1, 1, 1, 1, 1, 1}},
-                                      {2, {1, 1, 1, 1, 1, 1, 1}},
-                                      {3, {1, 1, 1, 1, 1, 1, 1}}};
+week_struct_type g_default_week[WEEK_PROF_SIZE] = {
+    {0, {1, 1, 1, 1, 1, 1, 1}},
+    {1, {1, 1, 1, 1, 1, 1, 1}},
+    {2, {1, 1, 1, 1, 1, 1, 1}},
+    {3, {1, 1, 1, 1, 1, 1, 1}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}}};
 
 // 2종
-week_struct_type g_default_tariff_2_type_week[4] = {{0, {2, 2, 2, 2, 2, 2, 2}},
-                                                    {1, {2, 2, 2, 2, 2, 2, 2}},
-                                                    {2, {2, 2, 2, 2, 2, 2, 2}},
-                                                    {3, {2, 2, 2, 2, 2, 2, 2}}};
+week_struct_type g_default_tariff_2_type_week[WEEK_PROF_SIZE] = {
+    {0, {2, 2, 2, 2, 2, 2, 2}},
+    {1, {2, 2, 2, 2, 2, 2, 2}},
+    {2, {2, 2, 2, 2, 2, 2, 2}},
+    {3, {2, 2, 2, 2, 2, 2, 2}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}}};
 
-tou_struct_type g_default_day_0[12] = {
+tou_struct_type g_default_day_0[MAX_TOU_DIV_DLMS] = {
     {8, 0, MIDDLE_LOAD},   {11, 0, MAXIMUM_LOAD}, {12, 0, MIDDLE_LOAD},
     {13, 0, MAXIMUM_LOAD}, {18, 0, MIDDLE_LOAD},  {22, 0, LIGHT_LOAD},
     {0xff, 0xff, 1},       {0xff, 0xff, 1},       {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},       {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},       {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},       {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},       {0xff, 0xff, 1},
     {0xff, 0xff, 1},       {0xff, 0xff, 1},       {0xff, 0xff, 1}};
-tou_struct_type g_default_day_1[12] = {
+tou_struct_type g_default_day_1[MAX_TOU_DIV_DLMS] = {
     {0, 0, LIGHT_LOAD}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
     {0xff, 0xff, 1},    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
     {0xff, 0xff, 1},    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}};
 
-#if 1 /* bccho, 2025-04-02 */
-tou_struct_type g_default_day_2[12] = {
-    {8, 0, MIDDLE_LOAD}, {22, 0, LIGHT_LOAD}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1}};
+tou_struct_type g_default_day_2[MAX_TOU_DIV_DLMS] = {
+#if defined(FEATURE_TOU_0822_SET)
+    {8, 0, MIDDLE_LOAD}, {22, 0, LIGHT_LOAD},
 #else
-tou_struct_type g_default_day_2[12] = {
-    {9, 0, MIDDLE_LOAD}, {23, 0, LIGHT_LOAD}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1}};
+    {9, 0, MIDDLE_LOAD}, {23, 0, LIGHT_LOAD},
 #endif
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
+    {0xff, 0xff, 1}};
 
-tou_struct_type g_default_day_3[12] = {
+tou_struct_type g_default_day_3[MAX_TOU_DIV_DLMS] = {
     {8, 0, MIDDLE_LOAD},   {9, 0, MAXIMUM_LOAD}, {12, 0, MIDDLE_LOAD},
     {16, 0, MAXIMUM_LOAD}, {19, 0, MIDDLE_LOAD}, {22, 0, LIGHT_LOAD},
     {0xff, 0xff, 1},       {0xff, 0xff, 1},      {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},      {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},      {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},      {0xff, 0xff, 1},
+    {0xff, 0xff, 1},       {0xff, 0xff, 1},      {0xff, 0xff, 1},
     {0xff, 0xff, 1},       {0xff, 0xff, 1},      {0xff, 0xff, 1}};
-tou_struct_type g_default_day_4[12] = {
-    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}};
-tou_struct_type g_default_day_5[12] = {
-    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
-    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}};
+
+#if defined(FEATURE_TOU_8RATE)
+#define TOU_SELECTOR(_tou) ((_tou).script_selector)
+#else
+#define TOU_SELECTOR(_tou) ((_tou).rate)
+#endif
 
 #define YEAR_OFFSET_BLK_0 63
 #define HOLIDAYS_PER_BLOCK_BLK_0 8  // 최대 블럭 20개 : index 0 ~ 19
@@ -2347,11 +2394,14 @@ void dsm_touimage_default(U8 rate_2)
     holiday_struct_type* p_holiday_blk = NULL;
 
     DPRINTF(DBG_TRACE, "%s\r\n", __func__);
+    memset(&season_info, 0, sizeof(season_info));
+    memset(&week_info, 0, sizeof(week_info));
+    memset(&dayid_info, 0, sizeof(dayid_info));
 
     /****************/
     /* season profile */
     /****************/
-    season_info.cnt = 4;
+    season_info.cnt = SEASON_PROF_SIZE;
 
     DPRINTF(DBG_TRACE, "%s: SEASON cnt[%d]\r\n", __func__, season_info.cnt);
     for (cnt = 0; cnt < season_info.cnt; cnt++)
@@ -2371,7 +2421,7 @@ void dsm_touimage_default(U8 rate_2)
     /****************/
     /* week profile */
     /****************/
-    week_info.cnt = 4;
+    week_info.cnt = WEEK_PROF_SIZE;
     DPRINTF(DBG_TRACE, "%s: WEEK cnt[%d]\r\n", __func__, week_info.cnt);
     for (cnt = 0; cnt < week_info.cnt; cnt++)
     {
@@ -2401,11 +2451,11 @@ void dsm_touimage_default(U8 rate_2)
     /****************/
     /* day profile */
     /****************/
-    dp_cnt = 5;
+    dp_cnt = DAY_PROF_SIZE;
     DPRINTF(DBG_TRACE, "%s: DAY cnt[%d]\r\n", __func__, dp_cnt);
     // data_id 0
     dayid_info.day_id = 0;
-    dayid_info.tou_conf_cnt = 12;
+    dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2414,14 +2464,14 @@ void dsm_touimage_default(U8 rate_2)
                sizeof(tou_struct_type));
         DPRINTF(DBG_TRACE, "\t\t hour[%d], min[%d], rate[%d]\r\n",
                 dayid_info.tou_conf[cnt].hour, dayid_info.tou_conf[cnt].min,
-                dayid_info.tou_conf[cnt].rate);
+                TOU_SELECTOR(dayid_info.tou_conf[cnt]));
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
     nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     // data_id 1
     dayid_info.day_id = 1;
-    dayid_info.tou_conf_cnt = 12;
+    dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2430,14 +2480,14 @@ void dsm_touimage_default(U8 rate_2)
                sizeof(tou_struct_type));
         DPRINTF(DBG_TRACE, "\t\t hour[%d], min[%d], rate[%d]\r\n",
                 dayid_info.tou_conf[cnt].hour, dayid_info.tou_conf[cnt].min,
-                dayid_info.tou_conf[cnt].rate);
+                TOU_SELECTOR(dayid_info.tou_conf[cnt]));
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
     nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     // data_id 2
     dayid_info.day_id = 2;
-    dayid_info.tou_conf_cnt = 12;
+    dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2446,14 +2496,14 @@ void dsm_touimage_default(U8 rate_2)
                sizeof(tou_struct_type));
         DPRINTF(DBG_TRACE, "\t\t hour[%d], min[%d], rate[%d]\r\n",
                 dayid_info.tou_conf[cnt].hour, dayid_info.tou_conf[cnt].min,
-                dayid_info.tou_conf[cnt].rate);
+                TOU_SELECTOR(dayid_info.tou_conf[cnt]));
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
     nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
 
     // data_id 3
     dayid_info.day_id = 3;
-    dayid_info.tou_conf_cnt = 12;
+    dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2462,7 +2512,7 @@ void dsm_touimage_default(U8 rate_2)
                sizeof(tou_struct_type));
         DPRINTF(DBG_TRACE, "\t\t hour[%d], min[%d], rate[%d]\r\n",
                 dayid_info.tou_conf[cnt].hour, dayid_info.tou_conf[cnt].min,
-                dayid_info.tou_conf[cnt].rate);
+                TOU_SELECTOR(dayid_info.tou_conf[cnt]));
     }
     nv_sub_info.ch[0] = dayid_info.day_id;
     nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
@@ -2479,12 +2529,12 @@ void dsm_touimage_default(U8 rate_2)
         {
             dayid_info.tou_conf[cnt_2].hour = 0xff;
             dayid_info.tou_conf[cnt_2].min = 0xff;
-            dayid_info.tou_conf[cnt_2].rate = 1;
+            TOU_SELECTOR(dayid_info.tou_conf[cnt_2]) = 1;
 
             DPRINTF(DBG_INFO, "\t\t hour[%d], min[%d], rate[%d]\r\n",
                     dayid_info.tou_conf[cnt_2].hour,
                     dayid_info.tou_conf[cnt_2].min,
-                    dayid_info.tou_conf[cnt_2].rate);
+                    TOU_SELECTOR(dayid_info.tou_conf[cnt_2]));
         }
         nv_sub_info.ch[0] = dayid_info.day_id;
         nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);

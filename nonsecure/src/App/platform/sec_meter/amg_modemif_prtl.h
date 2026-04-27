@@ -376,6 +376,7 @@ void dsm_atcmd_get_zcd_time(uint32_t poll_flag);
 void dsm_atcmd_get_hash(uint32_t poll_flag, bool retry_enable);
 void dsm_atcmd_get_fwver(uint32_t poll_flag, bool retry_enable);
 bool dsm_atcmd_if_is_valid(uint32_t ifstate, uint8_t get_sha256);
+bool dsm_atcmd_if_is_valid_mmid(uint32_t ifstate);
 void log_sys_sw_up(void);
 void log_mtr_sw_up(void);
 void log_int_modem_up(void);

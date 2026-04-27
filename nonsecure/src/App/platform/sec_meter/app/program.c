@@ -75,7 +75,9 @@ static void pgm_holiday_sel1(prog_dl_type *progdl, uint8_t *tptr,
                              bool season_chk);
 
 static ratekind_type prog_get_day_profile_ratekind(uint8_t *tptr);
+#if !defined(FEATURE_TOU_8RATE)
 static rate_type get_curr_rate(void);
+#endif
 uint16_t prog_setbits_to_availbits(uint32_t setbits, uint16_t availbits);
 
 void mif_meter_parm_set(void);
@@ -410,8 +412,24 @@ bool prog_season_profile_proc(uint8_t *tptr, bool curr_prog_in, bool season_chk)
     return b_season_changed;
 }
 
+#if defined(FEATURE_TOU_8RATE)
+static uint8_t get_curr_script_selector(void);
+rate_type get_lowest_rate_from_mask(uint8_t mask);
+#endif
+
 void curr_rate_update(void)
 {
+#if defined(FEATURE_TOU_8RATE)
+    cur_selector_before = cur_script_selector;
+    cur_script_selector = get_curr_script_selector();
+    cur_rate = get_lowest_rate_from_mask(cur_script_selector);
+
+    if (cur_selector_before != cur_script_selector)
+    {
+        DPRINTF(DBG_TRACE, _D "%s: Selector Update 0x%02X -> 0x%02X\r\n",
+                __func__, cur_selector_before, cur_script_selector);
+    }
+#else
     cur_rate_before = cur_rate;
     cur_rate = get_curr_rate();
 
@@ -420,13 +438,22 @@ void curr_rate_update(void)
         DPRINTF(DBG_TRACE, _D "%s: Rate Update %d -> %d\r\n", __func__,
                 cur_rate_before, cur_rate);
     }
+#endif
     if (eoi_processed)
     {
+#if defined(FEATURE_TOU_8RATE)
+        if (eoi_selector != cur_script_selector)
+        {
+            eoi_selector = cur_script_selector;
+            dm_intv_init();
+        }
+#else
         if (eoi_rate != cur_rate)
         {
             eoi_rate = cur_rate;
             dm_intv_init();
         }
+#endif
     }
 }
 
@@ -1307,7 +1334,12 @@ static void get_day_profile_tou(uint8_t dayid, uint8_t *tptr)
                 {
                     tou_data_conf[i].hour = daytable->tou_conf[i].hour;
                     tou_data_conf[i].min = daytable->tou_conf[i].min;
+#if defined(FEATURE_TOU_8RATE)
+                    tou_data_conf[i].script_selector =
+                        daytable->tou_conf[i].script_selector;
+#else
                     tou_data_conf[i].rate = daytable->tou_conf[i].rate;
+#endif
                 }
                 tou_data_cnt = daytable->tou_conf_cnt;
             }
@@ -1372,6 +1404,20 @@ static ratekind_type conv_rate_to_ratekind(rate_type rt)
     case eDrate:
         rtn = FOUR_RATE_KIND;
         break;
+#if defined(FEATURE_TOU_8RATE)
+    case eErate:
+        rtn = FIVE_RATE_KIND;
+        break;
+    case eFrate:
+        rtn = SIX_RATE_KIND;
+        break;
+    case eGrate:
+        rtn = SEVEN_RATE_KIND;
+        break;
+    case eHrate:
+        rtn = EIGHT_RATE_KIND;
+        break;
+#endif
     default:
         rtn = ONE_RATE_KIND;
         break;
@@ -1379,6 +1425,21 @@ static ratekind_type conv_rate_to_ratekind(rate_type rt)
 
     return rtn;
 }
+
+#if defined(FEATURE_TOU_8RATE)
+static ratekind_type conv_selector_to_ratekind(uint8_t selector)
+{
+    int r;
+
+    for (r = eHrate; r >= eArate; r--)
+    {
+        if (selector & (1 << r))
+            return conv_rate_to_ratekind((rate_type)r);
+    }
+
+    return ONE_RATE_KIND;
+}
+#endif
 
 static void pgm_daylight_saving(prog_dl_type *progdl)
 {
@@ -1790,10 +1851,16 @@ static ratekind_type prog_get_day_profile_ratekind(uint8_t *tptr)
 {
     uint8_t i, j;
     dayid_table_type *daytable;
+#if defined(FEATURE_TOU_8RATE)
+    uint8_t rt_mask = 0;
+#else
     rate_type rt, rt1;
+#endif
     uint8_t day_type;
 
+#if !defined(FEATURE_TOU_8RATE)
     rt = eArate;
+#endif
 
     day_type = prog_get_week_profile_same_check(tptr);
 
@@ -1806,9 +1873,13 @@ static ratekind_type prog_get_day_profile_ratekind(uint8_t *tptr)
 
             for (j = 0; j < daytable->tou_conf_cnt; j++)
             {
+#if defined(FEATURE_TOU_8RATE)
+                rt_mask |= daytable->tou_conf[j].script_selector;
+#else
                 rt1 = SELECTOR_TO_RATE(daytable->tou_conf[j].rate);
                 if (rt1 > rt)
                     rt = rt1;
+#endif
             }
         }
     }
@@ -1823,16 +1894,25 @@ static ratekind_type prog_get_day_profile_ratekind(uint8_t *tptr)
 
                 for (j = 0; j < daytable->tou_conf_cnt; j++)
                 {
+#if defined(FEATURE_TOU_8RATE)
+                    rt_mask |= daytable->tou_conf[j].script_selector;
+#else
                     rt1 = SELECTOR_TO_RATE(daytable->tou_conf[j].rate);
                     if (rt1 > rt)
                         rt = rt1;
+#endif
                 }
             }
         }
     }
+#if defined(FEATURE_TOU_8RATE)
+    return conv_selector_to_ratekind(rt_mask);
+#else
     return conv_rate_to_ratekind(rt);
+#endif
 }
 
+#if !defined(FEATURE_TOU_8RATE)
 static rate_type get_curr_rate(void)
 {
     uint8_t i;
@@ -1852,6 +1932,42 @@ static rate_type get_curr_rate(void)
 
     return SELECTOR_TO_RATE(tou_data_conf[--i].rate);
 }
+#else
+uint8_t cur_script_selector;
+
+static uint8_t get_curr_script_selector(void)
+{
+    uint8_t i;
+
+    if (tou_data_cnt == 0)
+        return tou_data_conf[0].script_selector;
+
+    for (i = 0; i < tou_data_cnt; i++)
+    {
+        if (cmp_hhmm(cur_hour, cur_min, tou_data_conf[i].hour,
+                     tou_data_conf[i].min) < 0)
+            break;
+    }
+
+    if (i == 0)
+        i = tou_data_cnt;
+
+    return tou_data_conf[--i].script_selector;
+}
+
+rate_type get_lowest_rate_from_mask(uint8_t mask)
+{
+    int r;
+
+    for (r = eArate; r <= eHrate; r++)
+    {
+        if (mask & (1 << r))
+            return (rate_type)r;
+    }
+
+    return eArate;
+}
+#endif
 
 #if 0 /* bccho, 2024-01-10, 1227 포팅 */
 rate_type rtn_curr_rate(date_time_type *dt)

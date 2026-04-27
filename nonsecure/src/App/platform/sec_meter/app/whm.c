@@ -70,11 +70,16 @@ buff_struct_type ubuff;
 
 mt_conf_type mt_conf;
 whm_op_type whm_op;
+relay_state_type relay_nv_data;
 
 bool bat_rtc_backuped, eob_pwrtn;
 date_time_type cur_rtc;
 rate_type cur_rate;
+#if defined(FEATURE_TOU_8RATE)
+uint8_t cur_selector_before;
+#else
 rate_type cur_rate_before;
+#endif
 ratekind_type rtkind_history;
 uint8_t mtdir_history;
 uint8_t mr_date_history;
@@ -109,6 +114,7 @@ static void whm_rtc_event(uint8_t* tptr);
 static void mt_data_restore(uint8_t* tptr);
 static void mt_conf_restore(bool saged);
 static void whm_op_restore(bool saged);
+static void relay_nv_restore(bool saged);
 static void mt_accm_restore(bool saged);
 void whm_op_sag_save(void);
 static void mt_conf_backup_check(void);
@@ -134,7 +140,7 @@ bool meter_parm_wr_rd_cmp(void);
 
 #define VER_FW_NV_SIZE 10
 const uint8_t ver_fw_nv[] = {VERSION_FW_NV};
-const U8 COSEM_METER_ID_VER[] = {"233"};
+const U8 COSEM_METER_ID_VER[] = {"234"};
 const U8 zcrs_sig[] = {1, 0, 0, 0};  // 1000 ms
 
 /*
@@ -174,7 +180,7 @@ const uint8_t logical_device_name_r[DEVICE_ID_SIZE] = {
        ,제조관리번(B11)        ,rev(B12~14)   ,LD(B14, '1')   spec ver(B15B16,
        ascill)*/
     FLAG_ID1, FLAG_ID2, FLAG_ID3, ' ', '2', '4', '0', '1',
-    '2',      '3',      'A',      ' ', ' ', '1', '3', '2'};
+    '2',      '3',      'A',      ' ', ' ', '1', '3', '4'};
 
 /*
 Kepco Management
@@ -197,7 +203,7 @@ uint8_t logical_device_name_r_kepco[DEVICE_ID_SIZE] = {
        ,제조관리번(B11)        ,rev(B12~14)   ,LD(B14, '1')   spec ver(B15B16,
        ascill)*/
     FLAG_ID1, FLAG_ID2, FLAG_ID3, ' ', '2', '4', '0', '1',
-    '2',      '3',      'A',      ' ', ' ', '2', '3', '3'};
+    '2',      '3',      'A',      ' ', ' ', '2', '3', '4'};
 
 #define DFT_A_BEGIN 9   // 9:00 hour
 #define DFT_B_BEGIN 23  // 23:00 hour
@@ -1022,12 +1028,20 @@ void rtc_chg_proc(date_time_type* pdt, uint8_t* tptr)
         if (eoi_processed == 0)
         {
             DPRINTF(DBG_INFO, "%s: EOI_PROC is NULL\r\n", __func__);
+#if defined(FEATURE_TOU_8RATE)
+            eoi_proc_timechg(&bfdt, eoi_selector, tptr, true);
+#else
             eoi_proc_timechg(&bfdt, eoi_rate, tptr, true);
+#endif
         }
     }
     else  // fut_exe_flag is false or PROG_FUT_BIT is SET
     {
+#if defined(FEATURE_TOU_8RATE)
+        eoi_proc_timechg(&bfdt, eoi_selector, tptr, false);
+#else
         eoi_proc_timechg(&bfdt, eoi_rate, tptr, false);
+#endif
     }
     chg = tchg_is_within_peob(&bfdt, pdt);
 
@@ -1187,10 +1201,24 @@ void prog_chg_proc_by_key(uint8_t bfdir, ratekind_type bfkind,
                           meas_method_type bfmeas, uint8_t* tptr)
 {
     uint32_t t32;
+#if defined(FEATURE_TOU_8RATE)
+    uint8_t bkup_selector;
+#else
     rate_type bkup_rate;
+#endif
     uint8_t eob_type = 0;
     // cur_rate should be updated later due to demand accumulation of
     // cur_rate
+#if defined(FEATURE_TOU_8RATE)
+    bkup_selector = cur_script_selector;
+    curr_rate_update();
+    if (bkup_selector != cur_script_selector)
+    {
+        eoi_proc_ratechg(get_lowest_rate_from_mask(bkup_selector), tptr);
+        cur_script_selector = bkup_selector;
+        cur_rate = get_lowest_rate_from_mask(cur_script_selector);
+    }
+#else
     bkup_rate = cur_rate;
     curr_rate_update();
     if (bkup_rate != cur_rate)
@@ -1198,6 +1226,7 @@ void prog_chg_proc_by_key(uint8_t bfdir, ratekind_type bfkind,
         eoi_proc_ratechg(bkup_rate, tptr);
         cur_rate = bkup_rate;
     }
+#endif
 
     if (run_is_main_power())
     {
@@ -1613,6 +1642,7 @@ static void mt_data_restore(uint8_t* tptr)
         mt_conf_restore(b_saged);
         mt_conf_2_restore(b_saged);
         whm_op_restore(b_saged);
+        relay_nv_restore(b_saged);
         mt_accm_restore(b_saged);
 
         supp_dsp_restore();
@@ -1792,7 +1822,12 @@ void mt_conf_default(void)
 
     dsm_push_err_code_set();  // jp.kim 24.10.22 추가
 
-    nv_write(I_MTP_PARM, (uint8_t*)&g_mtp_meter_parm);  // jp.kim 24.10.30
+    {
+        ST_MTP_PARM st_mtp_parm;
+        memcpy((uint8_t*)&st_mtp_parm.val, (uint8_t*)&g_mtp_meter_parm,
+               sizeof(ST_MIF_METER_PARM));
+        nv_write(I_MTP_PARM, (uint8_t*)&st_mtp_parm);  // jp.kim 24.10.30
+    }
 }
 
 void mt_conf_2_default(void) { futprog_partition_tou = 0; }
@@ -1900,12 +1935,19 @@ static void mt_conf_restore(bool saged)
         default_ts_zone();
         default_scurr_parm();
 
-        if ((rt_lp_interval < 1) || (rt_lp_interval > 60))
+        if (rt_lp_interval != 1 && rt_lp_interval != 4 && rt_lp_interval != 5 &&
+            rt_lp_interval != 15 && rt_lp_interval != 30 &&
+            rt_lp_interval != 60)
             rt_lp_interval = DEFAULT_RT_LP_INTERVAL;
         if ((working_fault_min < 1) || (working_fault_min > 60))
             working_fault_min = DEFAULT_working_fault_min;
 
-        nv_write(I_MTP_PARM, (uint8_t*)&g_mtp_meter_parm);
+        {
+            ST_MTP_PARM st_mtp_parm;
+            memcpy((uint8_t*)&st_mtp_parm.val, (uint8_t*)&g_mtp_meter_parm,
+                   sizeof(ST_MIF_METER_PARM));
+            nv_write(I_MTP_PARM, (uint8_t*)&st_mtp_parm);
+        }
 
         DPRINTF(DBG_ERR,
                 _D
@@ -1961,6 +2003,7 @@ static void mt_conf_2_restore(bool saged)
 static void whm_op_default(bool default_relay_on)  // jp.kim 24.11.07
 {
     memset((uint8_t*)&whm_op, 0, sizeof(whm_op_type));
+    memset((uint8_t*)&relay_nv_data, 0, sizeof(relay_state_type));
 
     if (MTStatus & MT_INITED_BY_COMM)
     {
@@ -1975,20 +2018,25 @@ static void whm_op_default(bool default_relay_on)  // jp.kim 24.11.07
 
     if (default_relay_on)  // jp.kim 24.11.07
     {
-        whm_op.ldinited = 1;
-        whm_op.ldctrl = LOAD_ON;
+        relay_nv_data.ldinited = 1;
+        relay_nv_data.ldctrl = LOAD_ON;
     }
     else
     {
-        whm_op.ldctrl = LOAD_OFF;
+        relay_nv_data.ldctrl = LOAD_OFF;
     }
 
     rcntdm_wear_idx = 0xff;
-    eoi_rate = numRates;   // uninitialized
+#if defined(FEATURE_TOU_8RATE)
+    eoi_selector = 0xFF;  // uninitialized
+#else
+    eoi_rate = numRates;  // uninitialized
+#endif
     sel_react_yr = 0x00;   // not set
     sel_react_mon = 0x00;  // not set
 
     tou_id_change_sts = 2;  // 24.10.31
+    nv_write(I_RELAY_STATE, (uint8_t*)&relay_nv_data);
 }
 
 static void whm_op_restore(bool saged)
@@ -2004,17 +2052,22 @@ static void whm_op_restore(bool saged)
     if (!nv_read(I_WHM_OP, (uint8_t*)&whm_op))
     {
         whm_op.tempthrshld = DEFAULT_TEMP_THRSHLD;
-        whm_op.ldinited = 1;  // relay on
-        whm_op.ldctrl = LOAD_ON;
 
         if (rcntdm_wear_idx >= NUM_CAP_WEAR)
         {
             rcntdm_wear_idx = 0;
         }
+#if defined(FEATURE_TOU_8RATE)
+        if (eoi_selector == 0xFF)
+        {
+            eoi_selector = cur_script_selector;
+        }
+#else
         if (eoi_rate >= numRates)
         {
             eoi_rate = cur_rate;
         }
+#endif
         DPRINTF(DBG_ERR,
                 _D
                 "%s: if(!nv_read(I_MT_CONFIG_2, (U8 *)&mt_conf_2))  RESTORE "
@@ -2023,7 +2076,33 @@ static void whm_op_restore(bool saged)
     }
 
     DPRINTF(DBG_INFO, _D "%s: relay[%d] inited[%d]\r\n", __func__,
-            whm_op.ldctrl, whm_op.ldinited);
+            relay_nv_data.ldctrl, relay_nv_data.ldinited);
+}
+
+static void relay_nv_restore(bool saged)
+{
+    if (!saged)
+    {
+        if (crc16_chk((uint8_t*)&relay_nv_data, sizeof(relay_state_type),
+                      false))
+        {
+            return;
+        }
+    }
+
+    if (!nv_read(I_RELAY_STATE, (uint8_t*)&relay_nv_data) ||
+        (relay_nv_data.ldctrl == 0xFF && relay_nv_data.ldinited == 0xFF))
+    {
+        relay_nv_data.ldctrl = LOAD_ON;
+        relay_nv_data.ldinited = 1;
+        nv_write(I_RELAY_STATE, (uint8_t*)&relay_nv_data);
+        DPRINTF(DBG_ERR,
+                _D "%s: relay_nv default restore (LOAD_ON, inited=1)\r\n",
+                __func__);
+    }
+
+    DPRINTF(DBG_ERR, _D "%s: relay[%d] inited[%d]\r\n", __func__,
+            relay_nv_data.ldctrl, relay_nv_data.ldinited);
 }
 
 whm_op_type* whm_op_get(void) { return &whm_op; }
@@ -2031,6 +2110,7 @@ whm_op_type* whm_op_get(void) { return &whm_op; }
 void whm_op_save(void)
 {
     nv_write(I_WHM_OP, (uint8_t*)&whm_op);
+    // I_RELAY_STATE is saved by relay_ctrl().
     DPRINTF(DBG_NONE, "%s\r\n", __func__);
 }
 
@@ -2055,6 +2135,8 @@ static void mt_accm_reset(void)
 
     lp_intv_pf[eDeliAct] = (float)-1.0;
     lp_intv_pf[eReceiAct] = (float)-1.0;
+
+    nv_write(I_MT_ACCM, (uint8_t*)&mt_accm);
 }
 
 static void mt_accm_restore(bool saged)

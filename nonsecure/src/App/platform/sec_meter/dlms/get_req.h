@@ -17,16 +17,22 @@
 
 #define PUSH_SETUP_ERRCODE_CAPOBJ_SIZE (2 + 2 * 18)
 #define PUSH_SETUP_LAST_LP_CAPOBJ_SIZE (2 + 2 * 18)
+#define PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE (2 + 2 * 18)
 extern uint8_t
     PUSH_SETUP_ERRCODE_capture_objects[PUSH_SETUP_ERRCODE_CAPOBJ_SIZE];
 extern uint8_t
     PUSH_SETUP_lastLP_capture_objects[PUSH_SETUP_LAST_LP_CAPOBJ_SIZE];
+extern uint8_t
+    PUSH_SETUP_lastRtLP_capture_objects[PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE];
 
 typedef struct
 {
     date_time_type dt;
     uint8_t clksts;
     rate_type s_cur_rate;
+#if defined(FEATURE_TOU_8RATE)
+    uint8_t s_cur_script_selector;
+#endif
     uint32_t lpevt;
 } whm_info_cap_type;
 
@@ -34,6 +40,9 @@ typedef struct
 #define comm_dt whm_info_cap.dt
 #define cap_clk_sts whm_info_cap.clksts
 #define cap_cur_rate whm_info_cap.s_cur_rate
+#if defined(FEATURE_TOU_8RATE)
+#define cap_cur_script_selector whm_info_cap.s_cur_script_selector
+#endif
 #define cap_LP_event whm_info_cap.lpevt
 
 typedef struct

@@ -318,6 +318,27 @@ void pcnt_accumulate(void)
     {
         pcnt_updated = false;
 
+#if defined(FEATURE_TOU_8RATE)
+        // Keep total energy and accumulate each active tariff in the selector.
+        for (i = 0; i < numCHs; i++)
+        {
+            ACCM_ENERGY(
+                ACC_CH(eTrate, i),
+                (uint32_t)pcnt_ch_1sec[i]);  // mxaccm_dgt_cnt is processed
+
+            for (rate = eArate; rate <= eHrate; rate++)
+            {
+                if (cur_script_selector & (1 << rate))
+                {
+                    ACCM_ENERGY(
+                        ACC_CH(rate, i),
+                        (uint32_t)pcnt_ch_1sec[i]);
+                }
+            }
+
+            lp_intv_dm[i] += (uint32_t)pcnt_ch_1sec[i];
+        }
+#else
         accm_rate = cur_rate;
 
         // all channels is accumulated
@@ -331,6 +352,7 @@ void pcnt_accumulate(void)
                 (uint32_t)pcnt_ch_1sec[i]);  // mxaccm_dgt_cnt is processed
             lp_intv_dm[i] += (uint32_t)pcnt_ch_1sec[i];
         }
+#endif
 
         dm_subintv_act_fwd += (uint16_t)pcnt_ch_1sec[eChDeliAct];
         dm_subintv_app_fwd += (uint16_t)pcnt_ch_1sec[eChDeliApp];

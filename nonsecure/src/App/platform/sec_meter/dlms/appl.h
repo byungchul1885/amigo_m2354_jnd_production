@@ -447,7 +447,7 @@ OBJ_PREPAY_LOADLIMIT_CANCEL //62
 #define NUM_MYOBJ_SEC                                                       \
     (NUM_MYOBJ_G + _BWD_n + _MEAS_n + _sCURR_n + _MIN_MAX_n + _ETC_n - 19 + \
      _Tou_n + NUM_ADD_SEC_OBJ_NUM + JP_AMR_ADD + PHASE3_DATA_ADD + 4 + 2 +  \
-     10) /* 128+1+10+6+4+2-19+2+68+10 = 212 */
+     10 + 1) /* +1: PUSH setup last realtime LP */
 #else
 #define NUM_MYOBJ_SEC                                                       \
     (NUM_MYOBJ_G + _BWD_n + _MEAS_n + _sCURR_n + _MIN_MAX_n + _ETC_n - 19 + \
@@ -460,7 +460,7 @@ OBJ_PREPAY_LOADLIMIT_CANCEL //62
     (0x132 - 19 + _Tou_n + NUM_ADD_SEC_OBJ_NUM + JP_AMR_ADD)
 
 #define NUM_MYOBJ_485COMM 3
-#define NUM_MYOBJ_PRIVATE 12
+#define NUM_MYOBJ_PRIVATE 14
 
 #define NUM_MYOBJ_DEV_MANAGEMENT 10
 
@@ -746,6 +746,8 @@ typedef enum
     OBJ_PUSH_SETUP_LAST_LP /* PUSH Setup OBIS 코드 : 최근 발생 LP */
 
     ,
+    OBJ_PUSH_SETUP_LAST_RT_LP /* PUSH Setup: realtime power LP */
+    ,
     OBJ_EXT_MODEM_ID,
     OBJ_STOCK_OP_TIMES,
     OBJ_OLD_METER_TOU_TRANSFER,
@@ -783,6 +785,8 @@ typedef enum
     OBJ_INSTALL_CERT,  // bccho, 2024-12-06
     OBJ_INSTALL_KEY    // bccho, 2024-12-06
     ,
+    OBJ_GPS_LATITUDE,
+    OBJ_GPS_LONGITUDE,
     OBJ_AVG_VOLT_L1_L2,
     OBJ_AVG_VOLT_L2_L3,
     OBJ_AVG_VOLT_L3_L1,
@@ -1391,6 +1395,9 @@ typedef enum
     {0x00, 0x02, 0x19, 0x09, 0x00, 0xff} \
     /* PUSH Setup OBIS 코드 : 최근 발생 LP */
 #define OBIS_PUSH_SETUP_LAST_LP_nobr 0x00, 0x02, 0x19, 0x09, 0x00, 0xff
+#define OBIS_PUSH_SETUP_LAST_RT_LP       \
+    {0x00, 0x04, 0x19, 0x09, 0x00, 0xff}
+#define OBIS_PUSH_SETUP_LAST_RT_LP_nobr 0x00, 0x04, 0x19, 0x09, 0x00, 0xff
 
 #define OBIS_STOCK_OP_TIMES {0x00, 0x80, 0x63, 0x62, 0x15, 0xff}
 
@@ -1422,6 +1429,10 @@ typedef enum
     {0x00, 0x01, 0x01, 0x06, 0X00, 0x04}  // Private OBIS : bccho, 2024-12-06
 #define OBIS_INSTALL_KEY \
     {0x00, 0x01, 0x01, 0x06, 0X00, 0x05}  // Private OBIS : bccho, 2024-12-06
+#define OBIS_GPS_LATITUDE \
+    {0x01, 0x00, 0x80, 0x80, 0x80, 0xff}
+#define OBIS_GPS_LONGITUDE \
+    {0x01, 0x00, 0x80, 0x80, 0x81, 0xff}
 
 #define MAX_BILLING_COUNTER 100  // VZ (max billing counter)
 
@@ -1560,6 +1571,10 @@ typedef enum
     DEVICE_CMD_FUTPGM_DEL = 7,
     DEVICE_CMD_sCURR_INIT = 8,
     DEVICE_CMD_SELREACT_CANCEL = 10
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+    ,
+    DEVICE_CMD_LAB_EEPROM_FULL_CLEAR = 12
+#endif
 } device_cmd_type;
 
 typedef enum

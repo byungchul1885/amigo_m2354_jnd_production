@@ -305,15 +305,18 @@ EepromOperations EEPROM_SPI_WriteBuffer(uint8_t _erase, uint8_t* pBuffer,
                     pBuffer += EEPROM_PAGESIZE;
             }
 
-            sEE_DataNum = NumOfSingle;
-            // DPRINTF(DBG_NONE, "%s: addr[%d], length[%d], lenInPage[%d]\r\n",
-            // __func__, WriteAddr, NumByteToWrite, sEE_DataNum);
-            pageWriteStatus =
-                EEPROM_SPI_WritePage(_erase, pBuffer, WriteAddr, sEE_DataNum);
-
-            if (pageWriteStatus != EEPROM_STATUS_COMPLETE)
+            if (NumOfSingle != 0)
             {
-                return pageWriteStatus;
+                sEE_DataNum = NumOfSingle;
+                // DPRINTF(DBG_NONE, "%s: addr[%d], length[%d], lenInPage[%d]\r\n",
+                // __func__, WriteAddr, NumByteToWrite, sEE_DataNum);
+                pageWriteStatus = EEPROM_SPI_WritePage(_erase, pBuffer,
+                                                       WriteAddr, sEE_DataNum);
+
+                if (pageWriteStatus != EEPROM_STATUS_COMPLETE)
+                {
+                    return pageWriteStatus;
+                }
             }
         }
     }

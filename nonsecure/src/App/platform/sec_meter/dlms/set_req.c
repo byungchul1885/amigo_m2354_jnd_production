@@ -109,7 +109,9 @@ static void obset_evt_fw_imagetransfer(uint16_t idx);
 static void obset_realtime_lp_interval(int idx);
 static void obset_evt_push_setup_err_code(uint16_t idx);
 static void obset_evt_push_setup_lastLP(uint16_t idx);
+static void obset_evt_push_setup_lastRtLP(uint16_t idx);
 static void obset_evt_err_code_activate(uint16_t idx, uint8_t grp_e);
+static void obset_gps_coordinate(int idx, nv_item_type nv_item);
 
 static void obset_modem_atcmd(int idx, uint8_t modem_type);
 
@@ -600,6 +602,18 @@ static void approc_set_req_proc(int idx)
         obset_evt_push_setup_lastLP(idx);
         break;
 
+    case OBJ_PUSH_SETUP_LAST_RT_LP:
+        obset_evt_push_setup_lastRtLP(idx);
+        break;
+
+    case OBJ_GPS_LATITUDE:
+        obset_gps_coordinate(idx, I_GPS_LATITUDE);
+        break;
+
+    case OBJ_GPS_LONGITUDE:
+        obset_gps_coordinate(idx, I_GPS_LONGITUDE);
+        break;
+
     case OBJ_OLD_METER_TOU_TRANSFER:
         break;
 
@@ -713,15 +727,19 @@ static void obset_evt_push_setup_err_code(uint16_t idx)
         {
             pt8 = &appl_msg[idx + 1];
             ToH16((U8_16*)&t16, pt8);
+            if (t16 > 0xff)
+            {
+                appl_resp_result = SET_RESULT_DATA_NG;
+                break;
+            }
 
             if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_ERR_CODE, &push_idx))
             {
                 DPRINTF(DBG_TRACE, "idx[%d], random_start_intval[%d -> %d]\r\n",
                         push_idx,
                         pst_push_setup->setup[push_idx].random_start_intval,
-                        (uint8_t)t16);
-                pst_push_setup->setup[push_idx].random_start_intval =
-                    (uint8_t)t16;
+                        t16);
+                pst_push_setup->setup[push_idx].random_start_intval = t16;
             }
             else
             {
@@ -818,15 +836,19 @@ static void obset_evt_push_setup_lastLP(uint16_t idx)
         {
             pt8 = &appl_msg[idx + 1];
             ToH16((U8_16*)&t16, pt8);
+            if (t16 > 0xff)
+            {
+                appl_resp_result = SET_RESULT_DATA_NG;
+                break;
+            }
 
             if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP, &push_idx))
             {
                 DPRINTF(DBG_TRACE, "idx[%d], random_start_intval[%d -> %d]\r\n",
                         push_idx,
                         pst_push_setup->setup[push_idx].random_start_intval,
-                        (uint8_t)t16);
-                pst_push_setup->setup[push_idx].random_start_intval =
-                    (uint8_t)t16;
+                        t16);
+                pst_push_setup->setup[push_idx].random_start_intval = t16;
             }
             else
             {
@@ -844,6 +866,106 @@ static void obset_evt_push_setup_lastLP(uint16_t idx)
         break;
     case 0x07:  // repetion_delay
 
+        break;
+    }
+}
+
+static void obset_evt_push_setup_lastRtLP(uint16_t idx)
+{
+    uint8_t* pt8;
+    uint16_t t16;
+    uint8_t push_idx = 0, array_num = 0;
+    ST_PUSH_SETUP_TABLE* pst_push_setup;
+
+    DPRINTF(DBG_TRACE, _D "%s: att_id %d\r\n", __func__, appl_att_id);
+
+    pst_push_setup = dsm_push_setup_get_setup_table();
+
+    switch (appl_att_id)
+    {
+    case 0x01:
+        break;
+    case 0x02:
+        break;
+    case 0x03:
+        break;
+    case 0x04:
+        if (appl_msg[idx] == ARRAY_TAG)
+        {
+            array_num = appl_msg[idx + 1];
+            if (array_num >= PUSH_WINDOW_MAX_NUM)
+                array_num = 1;
+            if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_RT_LP, &push_idx))
+            {
+                if (array_num == 0)
+                {
+                    pst_push_setup->setup[push_idx].window_cnt = array_num;
+                }
+                else if (appl_msg[idx + 2] == STRUCTURE_TAG &&
+                         appl_msg[idx + 3] == 2)
+                {
+                    get_date_time_from_comm(
+                        &pst_push_setup->setup[push_idx].window[0].st_dt, 0,
+                        &appl_msg[idx + 4]);
+                    get_date_time_from_comm(
+                        &pst_push_setup->setup[push_idx].window[0].sp_dt, 0,
+                        &appl_msg[idx + 4 + 14]);
+                    pst_push_setup->setup[push_idx].window_cnt = array_num;
+                    DPRINTF(DBG_TRACE, "%s: window_cnt[%d]\r\n", __func__,
+                            array_num);
+                    DPRINT_HEX(DBG_TRACE, "ST_DT",
+                               &pst_push_setup->setup[push_idx].window[0].st_dt,
+                               sizeof(date_time_type), DUMP_ALWAYS);
+                    DPRINT_HEX(DBG_TRACE, "SP_DT",
+                               &pst_push_setup->setup[push_idx].window[0].sp_dt,
+                               sizeof(date_time_type), DUMP_ALWAYS);
+                }
+                else
+                {
+                    appl_resp_result = SET_RESULT_DATA_NG;
+                }
+            }
+            else
+            {
+                appl_resp_result = SET_RESULT_DATA_NG;
+            }
+        }
+        else
+        {
+            appl_resp_result = SET_RESULT_DATA_NG;
+        }
+        break;
+    case 0x05:
+        if (appl_msg[idx] == LONGUNSIGNED_TAG)
+        {
+            pt8 = &appl_msg[idx + 1];
+            ToH16((U8_16*)&t16, pt8);
+            if (t16 > 0xff)
+            {
+                appl_resp_result = SET_RESULT_DATA_NG;
+                break;
+            }
+            if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_RT_LP, &push_idx))
+            {
+                DPRINTF(DBG_TRACE, "idx[%d], random_start_intval[%d -> %d]\r\n",
+                        push_idx,
+                        pst_push_setup->setup[push_idx].random_start_intval,
+                        t16);
+                pst_push_setup->setup[push_idx].random_start_intval = t16;
+            }
+            else
+            {
+                appl_resp_result = SET_RESULT_DATA_NG;
+            }
+        }
+        else
+        {
+            appl_resp_result = SET_RESULT_DATA_NG;
+        }
+        break;
+    case 0x06:
+        break;
+    case 0x07:
         break;
     }
 }
@@ -1008,7 +1130,11 @@ static bool parse_dayid_struct(tou_struct_type* touconf)
 
     packed_idx += 1;  // tag
     ToH16((U8_16*)&t16, &packed_ptr[packed_idx]);
+#if defined(FEATURE_TOU_8RATE)
+    touconf->script_selector = (uint8_t)(t16 & 0xff);
+#else
     touconf->rate = (uint8_t)(t16 & 0xff);
+#endif
     packed_idx += 2;  // selector
 
     return ret;
@@ -5480,7 +5606,8 @@ static void obset_realtime_lp_interval(int idx)
         {
             pt8 = &appl_msg[idx + 1];
             ToH16((U8_16*)&t16, pt8);
-            if (t16 > 60)
+            if (t16 != 1 && t16 != 4 && t16 != 5 && t16 != 15 && t16 != 30 &&
+                t16 != 60)
                 appl_resp_result = SET_RESULT_DATA_NG;
             else
                 rt_lp_interval = t16;
@@ -5489,6 +5616,23 @@ static void obset_realtime_lp_interval(int idx)
             appl_resp_result = SET_RESULT_DATA_NG;
 
         break;
+    }
+}
+
+static void obset_gps_coordinate(int idx, nv_item_type nv_item)
+{
+    float fval;
+
+    DPRINTF(DBG_TRACE, _D "%s nv_item[%d]\r\n", __func__, nv_item);
+
+    if (appl_msg[idx] == FLOAT32_TAG)
+    {
+        ToHFloat((U8_Float*)&fval, &appl_msg[idx + 1]);
+        nv_write(nv_item, (uint8_t*)&fval);
+    }
+    else
+    {
+        appl_resp_result = SET_RESULT_DATA_NG;
     }
 }
 

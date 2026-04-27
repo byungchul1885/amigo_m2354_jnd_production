@@ -1437,7 +1437,7 @@ void outputs_for_mon(void)
     PH_AtoB_mon = p_pushdata->rs_phase;
     PH_AtoC_mon = p_pushdata->rt_phase;
 
-    freq_mon = p_pushdata->freq;
+    freq_mon = filter_mtp_freq(p_pushdata->freq);
     temp_raw_mon = p_pushdata->temp;
 
 #if 1 /* bccho, 2024-09-05, 삼상 */
@@ -1842,7 +1842,7 @@ float get_inst_freq(void)
     float fval = 0.0;
     ST_MTP_PUSH_DATA* pushd = dsm_mtp_get_push_data();
 
-    fval = pushd->freq;
+    fval = filter_mtp_freq(pushd->freq);
 
     return fval;
 }

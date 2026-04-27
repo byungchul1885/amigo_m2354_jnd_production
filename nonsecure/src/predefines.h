@@ -15,8 +15,8 @@
 #define MTP_ZCD_ON_OFF /* bccho, 2025-10-15 */
 #define MAIN_TASK_NO_DELAY
 
-#define ADD_DC_LOW_PIN   /* bccho, 2024-09-11 */
-#define REMOVE_SPI_FLASH /* bccho, 2026-04-09 */
+#define ADD_DC_LOW_PIN    /* bccho, 2024-09-11 */
+#define REMOVE_SPI_FLASHx /* bccho, 2026-04-09 */
 
 #if 1 /* -------------bccho, ADD, 2023-07-20 */
 #include "NuMicro.h"
@@ -59,14 +59,14 @@
 #define SOFTWARE_METER_PART 0x33
 
 #define SOFTWARE_VERSION_H '5'
-#define SOFTWARE_VERSION_L '4'
+#define SOFTWARE_VERSION_L '9'
 
 #define SOFTWARE_DATE_YYH '2'
 #define SOFTWARE_DATE_YYL '6'
 #define SOFTWARE_DATE_MMH '0'
 #define SOFTWARE_DATE_MML '4'
-#define SOFTWARE_DATE_DDH '0'
-#define SOFTWARE_DATE_DDL '9'
+#define SOFTWARE_DATE_DDH '2'
+#define SOFTWARE_DATE_DDL '7'
 
 #if 1  // jp.kim 251220  계량부 관리 구분
 //==============================================================================
@@ -188,7 +188,8 @@
 */
 #define FEATURE_SEC  // secure meter 개발상 대부분의 내용 묽음  -> 차후 기능별로
                      // 분리 필요..
-#define FEATURE_SEC_ACT_OPT_FLAG      // action req시 option flag 적용
+#define FEATURE_TOU_8RATE         // TOU 8-rate support (bitmask-based tariff)
+#define FEATURE_SEC_ACT_OPT_FLAG  // action req시 option flag 적용
 #define FEATURE_SEC_SIM_PRINT_ENABLE  // 디버깅시에서 사용
 #define FEATURE_ALWAYS_PRINT_OPT      // 항시 dm print opt
 #define FEATURE_SIGN_OPT_ENABLE       // signing opt enable

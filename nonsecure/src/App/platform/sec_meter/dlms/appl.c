@@ -18,6 +18,9 @@
 #include "amg_rtc.h"
 #include "amg_media_mnt.h"
 #include "amg_uart.h"
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+#include "cmsis_os.h"
+#endif
 
 #define _D "[APPL] "
 
@@ -929,6 +932,9 @@ static const myobj_struct_type myobj_list[NUM_MYOBJ_SEC] = {
     {OBJ_PUSH_SETUP_LAST_LP, CLS_PushSetUp, OBIS_PUSH_SETUP_LAST_LP, VER_0, 7,
      all_n, all_n, rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC,
      rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC},
+    {OBJ_PUSH_SETUP_LAST_RT_LP, CLS_PushSetUp, OBIS_PUSH_SETUP_LAST_RT_LP,
+     VER_0, 7, all_n, all_n, rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC,
+     rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC},
     {OBJ_EXT_MODEM_ID, CLS_DATA, OBIS_EXT_MODEM_ID, VER_0, 2, all_n, all_n,
      all_rC, all_rC},
     {OBJ_STOCK_OP_TIMES, CLS_DATA, OBIS_STOCK_OP_TIMES, VER_0, 2, all_n, all_n,
@@ -1035,6 +1041,10 @@ static const /*__code*/ myobj_struct_type
          r_rw_r_r_r_r_r_r_r_r, r_rw_r_r_r_r_r_r_r_r, r_rw_r_r_r_r_r_r_r_r},
         {OBJ_INSTALL_KEY, CLS_DATA, OBIS_INSTALL_KEY, VER_0, 2,
          r_rw_r_r_r_r_r_r_r_r, r_rw_r_r_r_r_r_r_r_r, r_rw_r_r_r_r_r_r_r_r},
+        {OBJ_GPS_LATITUDE, CLS_Reg, OBIS_GPS_LATITUDE, VER_0, 3, all_r, all_r,
+         all_rC, all_rC},
+        {OBJ_GPS_LONGITUDE, CLS_Reg, OBIS_GPS_LONGITUDE, VER_0, 3, all_r,
+         all_r, all_rC, all_rC},
 };
 
 /* 장치 관리자용 (Management) Logical Device */
@@ -3201,7 +3211,11 @@ static uint8_t appl_act_result_reason(act_req_result_type rslt)
     DPRINTF(DBG_TRACE, _D "%s: %s[%d], Result[%d]\r\n", __func__,
             (rslt ? "Error" : "Success"), rslt, reason);
 
-    if (act_devcmd == DEVICE_CMD_INIT)
+    if (act_devcmd == DEVICE_CMD_INIT
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+        || act_devcmd == DEVICE_CMD_LAB_EEPROM_FULL_CLEAR
+#endif
+    )
     {
         M_MT_SW_GENERAL_two_TIMER_set_meter_reset();
         dsm_meter_sw_timer_start(MT_SW_GENERAL_two_TO, FALSE,
@@ -3244,6 +3258,15 @@ void dsm_meter_reset_timer_proc(void)
 
             amr_disc_ind_end_proc();
         }
+#if defined(FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION)
+        else if (act_devcmd == DEVICE_CMD_LAB_EEPROM_FULL_CLEAR)
+        {
+            DPRINTF(DBG_ERR, _D ">>> LAB reset timer fired <<<\r\n");
+            dsm_uart_q_flush(DEBUG_COM);
+            osDelay(50);
+            amr_disc_ind_end_proc();
+        }
+#endif
     }
 }
 
