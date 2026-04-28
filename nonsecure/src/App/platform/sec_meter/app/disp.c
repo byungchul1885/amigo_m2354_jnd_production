@@ -692,24 +692,24 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
     DSPMODE_I1,     /* A상 상전류 (XXX.XXX [A]) */
     DSPMODE_P1,     /* A상 전압·전류 위상 각 (XXX : 0 ~ 360) */
     DSPMODE_THD_V1, /* A상 전압 THD (XXX.XXX [%]) */
-    DSPMODE_tS, /* tS 제어 (타임스위치 제어 시험), [메뉴] 버튼으로 제어 시험
-                   가능 */
-    DSPMODE_TEMP, /* 온도표시 (XX) */
-    DSPMODE_SMODE, /* S-OFF/S-On (단순 검침 모드 설정/해제), [메뉴] 버튼으로
-                      설정 가능 */
-    DSPMODE_FREQ, /* 주파수 (Hz) */
-    DSPMODE_PVT, /* Pvt-E/Pvt-d (무부하 시 부하 동작 표시 설정/해제), [메뉴]
-                    버튼으로 설정 가능 */
-    DSPMODE_SYSP_SW_VER, /* 운영 소프트웨어 버전 */
-    DSPMODE_MODEM_VER,   /* 내장 모뎀 소프트웨어 버전 */
-    DSPMODE_MTP_SW_VER,  /* 계량 소프트웨어 버전 */
-    DSPMODE_485_BPS,     /* RS-485 현재 통신 속도 */
+    DSPMODE_tS,     /* tS 제어 (타임스위치 제어 시험), [메뉴] 버튼으로 제어 시험
+                       가능 */
+    DSPMODE_TEMP,   /* 온도표시 (XX) */
+    DSPMODE_SMODE,  /* S-OFF/S-On (단순 검침 모드 설정/해제), [메뉴] 버튼으로
+                       설정 가능 */
+    DSPMODE_FREQ,   /* 주파수 (Hz) */
+    DSPMODE_PVT,    /* Pvt-E/Pvt-d (무부하 시 부하 동작 표시 설정/해제), [메뉴]
+                       버튼으로 설정 가능 */
+    DSPMODE_SYSP_SW_VER,  /* 운영 소프트웨어 버전 */
+    DSPMODE_MODEM_VER,    /* 내장 모뎀 소프트웨어 버전 */
+    DSPMODE_MTP_SW_VER,   /* 계량 소프트웨어 버전 */
+    DSPMODE_485_BPS,      /* RS-485 현재 통신 속도 */
     DSPMODE_CONDENSOR_EN, /* C-d/C-E (오결선 : 콘덴서 미부설/부설), [메뉴]
                              버튼으로 설정 가능 */
-    DSPMODE_ERR_PULSE, /* 무효 (rt), 피상 (Pt), 수요 시한 (EOI) 선택, [메뉴]
-                          버튼으로 설정 가능, 피상으로 설정 시 유효전력량 펄스는
-                          수요 시한 펄스로 출력하며 펄스 폭은 50 ~ 200ms 이내로
-                          한다 */
+    DSPMODE_ERR_PULSE,    /* 무효 (rt), 피상 (Pt), 수요 시한 (EOI) 선택, [메뉴]
+                             버튼으로 설정 가능, 피상으로 설정 시 유효전력량 펄스는
+                             수요 시한 펄스로 출력하며 펄스 폭은 50 ~ 200ms 이내로
+                             한다 */
     DSPMODE_AUTO_BI_DIR_MODE, /* 자동모드 전환 On/OFF, [메뉴] 버튼으로 설정 가능
                                */
     DSPMODE_OVERCURR, /* OC-E/OC-d (과부하 전류 차단 : 최대전류의 1.2배 계측 시
@@ -735,24 +735,24 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
     DSPMODE_THD_V1, /* A상 전압 THD (XXX.XXX [%]) */
     DSPMODE_THD_V2, /* B상 전압 THD (XXX.XXX [%]) */
     DSPMODE_THD_V3, /* C상 전압 THD (XXX.XXX [%]) */
-    DSPMODE_tS, /* tS 제어 (타임스위치 제어 시험), [메뉴] 버튼으로 제어 시험
-                   가능 */
-    DSPMODE_TEMP, /* 온도표시 (XX) */
-    DSPMODE_SMODE, /* S-OFF/S-On (단순 검침 모드 설정/해제), [메뉴] 버튼으로
-                      설정 가능 */
-    DSPMODE_FREQ, /* 주파수 (Hz) */
-    DSPMODE_PVT, /* Pvt-E/Pvt-d (무부하 시 부하 동작 표시 설정/해제), [메뉴]
-                    버튼으로 설정 가능 */
-    DSPMODE_SYSP_SW_VER, /* 운영 소프트웨어 버전 */
-    DSPMODE_MODEM_VER,   /* 내장 모뎀 소프트웨어 버전 */
-    DSPMODE_MTP_SW_VER,  /* 계량 소프트웨어 버전 */
-    DSPMODE_485_BPS,     /* RS-485 현재 통신 속도 */
+    DSPMODE_tS,     /* tS 제어 (타임스위치 제어 시험), [메뉴] 버튼으로 제어 시험
+                       가능 */
+    DSPMODE_TEMP,   /* 온도표시 (XX) */
+    DSPMODE_SMODE,  /* S-OFF/S-On (단순 검침 모드 설정/해제), [메뉴] 버튼으로
+                       설정 가능 */
+    DSPMODE_FREQ,   /* 주파수 (Hz) */
+    DSPMODE_PVT,    /* Pvt-E/Pvt-d (무부하 시 부하 동작 표시 설정/해제), [메뉴]
+                       버튼으로 설정 가능 */
+    DSPMODE_SYSP_SW_VER,  /* 운영 소프트웨어 버전 */
+    DSPMODE_MODEM_VER,    /* 내장 모뎀 소프트웨어 버전 */
+    DSPMODE_MTP_SW_VER,   /* 계량 소프트웨어 버전 */
+    DSPMODE_485_BPS,      /* RS-485 현재 통신 속도 */
     DSPMODE_CONDENSOR_EN, /* C-d/C-E (오결선 : 콘덴서 미부설/부설), [메뉴]
                              버튼으로 설정 가능 */
-    DSPMODE_ERR_PULSE, /* 무효 (rt), 피상 (Pt), 수요 시한 (EOI) 선택, [메뉴]
-                          버튼으로 설정 가능, 피상으로 설정 시 유효전력량 펄스는
-                          수요 시한 펄스로 출력하며 펄스 폭은 50 ~ 200ms 이내로
-                          한다 */
+    DSPMODE_ERR_PULSE,    /* 무효 (rt), 피상 (Pt), 수요 시한 (EOI) 선택, [메뉴]
+                             버튼으로 설정 가능, 피상으로 설정 시 유효전력량 펄스는
+                             수요 시한 펄스로 출력하며 펄스 폭은 50 ~ 200ms 이내로
+                             한다 */
     DSPMODE_AUTO_BI_DIR_MODE, /* 자동모드 전환 On/OFF, [메뉴] 버튼으로 설정 가능
                                */
     DSPMODE_OVERCURR, /* OC-E/OC-d (과부하 전류 차단 : 최대전류의 1.2배 계측 시
@@ -762,8 +762,8 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
                             */
     DSPMODE_TARIFF_RATE, /* 종별 설정 (1~2종), [메뉴] 버튼으로 설정 가능 (1 ~ 2)
                           */
-    DSPMODE_SPEC_VER, /* v1.4: 규격 버전 표시 (vEr X.X) */
-    NUM_DSPMODE  // end of table
+    DSPMODE_SPEC_VER,    /* v1.4: 규격 버전 표시 (vEr X.X) */
+    NUM_DSPMODE          // end of table
 };
 #endif
 
@@ -3450,13 +3450,13 @@ static void dsp_all_mode(uint8_t* tptr)
         {
             // vEr X.X from COSEM_METER_ID_VER[1].[2]
             extern const U8 COSEM_METER_ID_VER[];
-            lcd_digit_buf[2] = LDIGIT_u;      // v (7seg: u=v)
-            lcd_digit_buf[3] = LDIGIT_E;      // E
-            lcd_digit_buf[4] = LDIGIT_r;      // r
+            lcd_digit_buf[2] = LDIGIT_u;  // v (7seg: u=v)
+            lcd_digit_buf[3] = LDIGIT_E;  // E
+            lcd_digit_buf[4] = LDIGIT_r;  // r
             lcd_digit_buf[5] = LDIGIT_SPACE;
             lcd_digit_buf[6] = COSEM_METER_ID_VER[1] - '0';  // major
             lcd_digit_buf[7] = COSEM_METER_ID_VER[2] - '0';  // minor
-            LCD_DP4_ON;                                     // dot between major.minor
+            LCD_DP4_ON;  // dot between major.minor
         }
         break;
 
@@ -3993,7 +3993,8 @@ static bool dsp_fill_error_item(uint8_t* dgt_buf)
 
     *(dgt_buf + 0) = LDIGIT_SPACE;
     *(dgt_buf + 1) = LDIGIT_SPACE;
-    memset(dgt_buf + 2, LDIGIT_BAR, (NUM_MODE_DIGIT - 2));  // v1.4: 오류 항목 외 나머지는 BAR
+    memset(dgt_buf + 2, LDIGIT_BAR,
+           (NUM_MODE_DIGIT - 2));  // v1.4: 오류 항목 외 나머지는 BAR
 
     if (line_is_wrong_connected())
     {
@@ -6167,6 +6168,7 @@ static void dsp_dot_rate(void)
     // A-type: rate ( bit3=D, bit2=C, bit1=B, bit0=A )
     // TOU 8rate: 5~8 rate kind shows ABCD all ON
     mtkind = mt_rtkind;
+#if 0  // V28: ABCD 점등 비활성화 - jp.kim 2026.04.27 추가
     switch (mtkind)
     {
     case ONE_RATE_KIND:
@@ -6194,6 +6196,8 @@ static void dsp_dot_rate(void)
     default:
         break;
     }
+#endif
+
     // cur_rate A~D blink, E~H no blink (ABCD stays ON)
     if (mtkind != ONE_RATE_KIND && !(blink_timer & 0x01))
     {
