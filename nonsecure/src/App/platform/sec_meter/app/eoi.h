@@ -82,6 +82,7 @@ extern uint8_t dm_period_num;
 extern rolling_dm_type rolling_dm;
 extern int eoi_deactive_timer;
 extern bool b_eoi_deactive;
+extern bool eoi_selector_inited;
 
 void eoi_init(void);
 void dr_dt_init(void);

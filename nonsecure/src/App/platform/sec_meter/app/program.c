@@ -3,6 +3,8 @@
 #include "comm.h"  // crc16_update()
 #include "program.h"
 #include "whm.h"
+#include "lp.h"
+#include "eoi.h"
 #include "amg_wdt.h"
 
 #include "get_req.h"
@@ -445,6 +447,7 @@ void curr_rate_update(void)
         if (eoi_selector != cur_script_selector)
         {
             eoi_selector = cur_script_selector;
+            eoi_selector_inited = true;
             dm_intv_init();
         }
 #else
@@ -1650,10 +1653,19 @@ static void pgm_lpavg_intv(prog_dl_type *progdl)
 {
     if (progdl->set_bits & SETBITS_LPAVG_INTV)
     {
+        uint8_t lpavg_intv = progdl->lpavg_intv;
+
+        if (!LPAVG_INTERVAL_IS_VALID(lpavg_intv))
+        {
+            DPRINTF(DBG_ERR, "%s: invalid lpavg_interval[%d]\r\n", __func__,
+                    lpavg_intv);
+            return;
+        }
+
         LPavg_save(&cur_rtc);
         LPavg_init();
 
-        lpavg_interval = progdl->lpavg_intv;
+        lpavg_interval = lpavg_intv;
     }
 }
 

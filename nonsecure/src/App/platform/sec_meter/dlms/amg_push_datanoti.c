@@ -571,6 +571,7 @@ static const uint8_t long_invokeID_priority[4] = {0xc0, 0x00, 0x00, 0x01};
 void appl_push_msg_errcode(void)
 {
     uint32_t EN_AT_FLAG = TRUE;
+    uint8_t blocked = 0;
 
     pPdu_idx = 0;
     // LLC header
@@ -627,19 +628,49 @@ void appl_push_msg_errcode(void)
 
     DPRINT_HEX(DBG_TRACE, "ERRCODE_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
 
+    if (!dsm_push_is_enable(PUSH_SCRIPT_ID_ERR_CODE))
+    {
+        DPRINTF(DBG_ERR, "ERRCODE PUSH disabled\r\n");
+        blocked = 1;
+    }
+
+#if defined(FEATURE_JP_485_PUSH_PROTECT)
+    if ((dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485) ||
+        (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE))
+    {
+        DPRINTF(DBG_ERR, "ERRCODE PUSH blocked: media=%s\r\n",
+                dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
+        blocked = 1;
+    }
+#endif
+
+    if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
+    {
+        DPRINTF(DBG_ERR, "ERRCODE PUSH blocked: conn=%d\r\n",
+                appl_get_conn_state());
+        blocked = 1;
+    }
+
+    if (blocked)
+        return;
+
     if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
     {
-        if (appl_get_conn_state() == APPL_ENC_SIGN_STATE)
-        {
-            EN_AT_FLAG = TRUE;
-        }
+        EN_AT_FLAG = TRUE;
     }
-    push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx);
+
+    if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
+        DPRINTF(DBG_ERR, "ERRCODE PUSH sent\r\n");
+    else
+        DPRINTF(DBG_ERR, "ERRCODE PUSH drop\r\n");
+
+    error_code_event_clear();
 }
 
 void appl_push_msg_lastLP(void)
 {
     uint32_t EN_AT_FLAG = TRUE;
+    uint8_t blocked = 0;
 
     pPdu_idx = 0;
     // LLC header
@@ -665,14 +696,41 @@ void appl_push_msg_lastLP(void)
 
     DPRINT_HEX(DBG_TRACE, "LP_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
 
+    if (!dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP))
+    {
+        DPRINTF(DBG_TRACE, "LastLP PUSH disabled\r\n");
+        blocked = 1;
+    }
+
+#if defined(FEATURE_JP_485_PUSH_PROTECT)
+    if ((dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485) ||
+        (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE))
+    {
+        DPRINTF(DBG_TRACE, "LastLP PUSH blocked: media=%s\r\n",
+                dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
+        blocked = 1;
+    }
+#endif
+
+    if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
+    {
+        DPRINTF(DBG_TRACE, "LastLP PUSH blocked: conn=%d\r\n",
+                appl_get_conn_state());
+        blocked = 1;
+    }
+
+    if (blocked)
+        return;
+
     if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
     {
-        if (appl_get_conn_state() == APPL_ENC_SIGN_STATE)
-        {
-            EN_AT_FLAG = TRUE;
-        }
+        EN_AT_FLAG = TRUE;
     }
-    push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx);
+
+    if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
+        DPRINTF(DBG_TRACE, "LastLP PUSH sent\r\n");
+    else
+        DPRINTF(DBG_TRACE, "LastLP PUSH drop\r\n");
 }
 
 extern void LPrt_energy_to_pPdu(uint8_t* recbuff);
@@ -819,7 +877,6 @@ void dsm_push_data_noti_proc(uint32_t type)
                     appl_push_msg_errcode();
                     DPRINTF(DBG_ERR, "%s -> appl_push_msg_errcode\r\n",
                             __func__);
-                    error_code_event_clear();
                 }
             }
         }
@@ -850,28 +907,48 @@ void dsm_push_data_noti_proc(uint32_t type)
             {
                 if (dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP))
                 {
-                    dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP, &push_idx);
-                    p_push_setup = dsm_push_setup_get_info(push_idx);
+                    if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP,
+                                             &push_idx))
+                    {
+                        p_push_setup = dsm_push_setup_get_info(push_idx);
+                        if (p_push_setup != NULL)
+                        {
+                            dec = get_server_hdlc_addr_to_dec();
+                            /*
+                                동시 PUSH에 대한 충돌을 회피하기 위해 지정하는
+                               시간으로 random 알고리즘 에서 얻을 수 있는
+                               최대값을 정의함 (기본값은 10초)이며 원격에서
+                               설정 가능함, 단위는 초 단위임 예시) 10초
+                               설정에 계기 ID가 XXXXXXXXX99이면 지연시간은
+                               10*99/100 = 9.9초 이후 PUSH 전송 단, 자기진단의
+                               경우 감지 후 즉시 전송한다.
+                            */
 
-                    dec = get_server_hdlc_addr_to_dec();
-                    /*
-                        동시 PUSH에 대한 충돌을 회피하기 위해 지정하는 시간으로
-                       random 알고리즘 에서 얻을 수 있는 최대값을 정의함
-                        (기본값은 10초)이며 원격에서 설정 가능함, 단위는 초
-                       단위임 예시) 10초 설정에 계기 ID가 XXXXXXXXX99이면
-                        지연시간은 10*99/100 = 9.9초 이후 PUSH 전송
-                        단, 자기진단의 경우 감지 후 즉시 전송한다.
-                    */
+                            transfer_delay_ms =
+                                ((uint32_t)p_push_setup->random_start_intval *
+                                 dec) *
+                                10;  // milli-sec 라서 x10 함.
+                            dsm_meter_sw_timer_start(MT_SW_TIMER_PUSH_LP_TO,
+                                                     FALSE, transfer_delay_ms);
 
-                    transfer_delay_ms =
-                        ((p_push_setup->random_start_intval * dec) *
-                         10);  // milli-sec 라서 x10 함.
-                    dsm_meter_sw_timer_start(MT_SW_TIMER_PUSH_LP_TO, FALSE,
-                                             transfer_delay_ms);
-
-                    DPRINTF(DBG_TRACE, "%s: Push LP delay[%d sec, %d ms]\r\n",
-                            __func__, p_push_setup->random_start_intval,
-                            transfer_delay_ms);
+                            DPRINTF(DBG_TRACE,
+                                    "%s: Push LP delay[%d sec, %d ms]\r\n",
+                                    __func__,
+                                    p_push_setup->random_start_intval,
+                                    transfer_delay_ms);
+                        }
+                        else
+                        {
+                            DPRINTF(DBG_ERR, "%s: LastLP get_info NULL\r\n",
+                                    __func__);
+                        }
+                    }
+                    else
+                    {
+                        DPRINTF(DBG_ERR,
+                                "%s: LastLP script_id not found\r\n",
+                                __func__);
+                    }
                 }
             }
         }

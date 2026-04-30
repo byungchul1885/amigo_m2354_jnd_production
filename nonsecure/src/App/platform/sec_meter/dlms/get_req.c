@@ -8894,15 +8894,18 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
 
 #if 1 /* bccho, 2024-09-05, 삼상 */
             //(삼상 변성기부 계기에 한함, 단독계기의 경우 0으로 전송)
-            fval = 0.0;
-            FILL_FLOAT(fval);
+            if (getresp_LP_entry_sels & LPAVG_COL_ERR1)
+            {
+                fval = 0.0;
+                FILL_FLOAT(fval);
+            }
 
             if (getresp_LP_entry_sels & LPAVG_COL_V2_L2_3)
             {
                 fval = (float)lpavg->ch[6] / 100.0;
                 FILL_FLOAT(fval);
             }
-            if (getresp_LP_entry_sels & LPAVG_COL_V1)
+            if (getresp_LP_entry_sels & LPAVG_COL_V2)
             {
                 fval = (float)lpavg->ch[7] / 100.0;
                 FILL_FLOAT(fval);
@@ -8924,8 +8927,11 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
             }
 
             //(삼상 변성기부 계기에 한함, 단독계기의 경우 0으로 전송)
-            fval = 0.0;
-            FILL_FLOAT(fval);
+            if (getresp_LP_entry_sels & LPAVG_COL_ERR2)
+            {
+                fval = 0.0;
+                FILL_FLOAT(fval);
+            }
 
             if (getresp_LP_entry_sels & LPAVG_COL_V3_L3_1)
             {
@@ -8954,8 +8960,11 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
             }
 
             //(삼상 변성기부 계기에 한함, 단독계기의 경우 0으로 전송)
-            fval = 0.0;
-            FILL_FLOAT(fval);
+            if (getresp_LP_entry_sels & LPAVG_COL_ERR3)
+            {
+                fval = 0.0;
+                FILL_FLOAT(fval);
+            }
 #else
             if (getresp_LP_entry_sels & LPAVG_COL_V2_L2_3)
             {
@@ -12209,6 +12218,8 @@ static void ob_evt_push_setup_err_code(void)
         dsm_push_setup_is_id(PUSH_SCRIPT_ID_ERR_CODE, &push_idx);
 
         array_num = pst_push_setup->setup[push_idx].window_cnt;
+        if (array_num > PUSH_WINDOW_MAX_NUM)
+            array_num = PUSH_WINDOW_MAX_NUM;
 
         if (!array_num)
         {
@@ -12304,6 +12315,8 @@ static void ob_evt_push_setup_lastLP(void)
         dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP, &push_idx);
 
         array_num = pst_push_setup->setup[push_idx].window_cnt;
+        if (array_num > PUSH_WINDOW_MAX_NUM)
+            array_num = PUSH_WINDOW_MAX_NUM;
 
         if (!array_num)
         {
@@ -12392,6 +12405,8 @@ static void ob_evt_push_setup_lastRtLP(void)
         dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_RT_LP, &push_idx);
 
         array_num = pst_push_setup->setup[push_idx].window_cnt;
+        if (array_num > PUSH_WINDOW_MAX_NUM)
+            array_num = PUSH_WINDOW_MAX_NUM;
         if (!array_num)
         {
             FILL_ARRAY(0);

@@ -3079,6 +3079,12 @@ static void obset_lpavg_interval(int idx)
     if (appl_msg[idx] == UNSIGNED_TAG)
     {
         t8 = appl_msg[idx + 1];
+        if (!LPAVG_INTERVAL_IS_VALID(t8))
+        {
+            appl_resp_result = SET_RESULT_DATA_NG;
+            return;
+        }
+
         if (act_is_progdl_cmd())
         {
             prog_dl.lpavg_intv = t8;

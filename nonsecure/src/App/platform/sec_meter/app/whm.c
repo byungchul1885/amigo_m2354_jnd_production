@@ -1863,7 +1863,7 @@ static void mt_conf_restore(bool saged)
         dm_sub_interval = dm_interval;
         if ((lp_interval < 1) || (lp_interval > 60))
             lp_interval = DEFAULT_LP_INTERVAL;
-        if ((lpavg_interval < 1) || (lpavg_interval > 60))
+        if (!LPAVG_INTERVAL_IS_VALID(lpavg_interval))
             lpavg_interval = DEFAULT_LPavg_INTERVAL;
         if ((sig_sel > 16))
             sig_sel = DEFAULT_SIG_SEL;
@@ -2028,7 +2028,8 @@ static void whm_op_default(bool default_relay_on)  // jp.kim 24.11.07
 
     rcntdm_wear_idx = 0xff;
 #if defined(FEATURE_TOU_8RATE)
-    eoi_selector = 0xFF;  // uninitialized
+    eoi_selector = 0;
+    eoi_selector_inited = false;
 #else
     eoi_rate = numRates;  // uninitialized
 #endif
@@ -2045,6 +2046,10 @@ static void whm_op_restore(bool saged)
     {
         if (crc16_chk((uint8_t*)&whm_op, sizeof(whm_op_type), false))
         {
+#if defined(FEATURE_TOU_8RATE)
+            eoi_selector_inited =
+                !((eoi_lastdt.month == 0) && (eoi_processed == 0));
+#endif
             return;
         }
     }
@@ -2058,10 +2063,8 @@ static void whm_op_restore(bool saged)
             rcntdm_wear_idx = 0;
         }
 #if defined(FEATURE_TOU_8RATE)
-        if (eoi_selector == 0xFF)
-        {
-            eoi_selector = cur_script_selector;
-        }
+        eoi_selector = 0;
+        eoi_selector_inited = false;
 #else
         if (eoi_rate >= numRates)
         {
@@ -2074,6 +2077,13 @@ static void whm_op_restore(bool saged)
                 "CRC ERROR!!   \r\n",
                 __func__);
     }
+#if defined(FEATURE_TOU_8RATE)
+    else
+    {
+        eoi_selector_inited =
+            !((eoi_lastdt.month == 0) && (eoi_processed == 0));
+    }
+#endif
 
     DPRINTF(DBG_INFO, _D "%s: relay[%d] inited[%d]\r\n", __func__,
             relay_nv_data.ldctrl, relay_nv_data.ldinited);

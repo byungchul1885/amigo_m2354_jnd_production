@@ -41,15 +41,15 @@
 *    LOCAL DATA TYPES
 ******************************************************************************
 */
-static SHELL_ERR shell_peri_key(UINT32 id, char *pParamStr, UINT32 size);
+static SHELL_ERR shell_peri_key(UINT32 id, char* pParamStr, UINT32 size);
 // static SHELL_ERR shell_peri_sflash (UINT32 id, char *pParamStr, UINT32 size);
 #ifdef M2354_CAN /* bccho, 2023-11-28 */
-static SHELL_ERR shell_peri_can(UINT32 id, char *pParamStr, UINT32 size);
+static SHELL_ERR shell_peri_can(UINT32 id, char* pParamStr, UINT32 size);
 #endif
-static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char *pParamStr,
+static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char* pParamStr,
                                          UINT32 size);
-static SHELL_ERR shell_peri_nvmt(UINT32 id, char *pParamStr, UINT32 size);
-static SHELL_ERR shell_peri_default(UINT32 id, char *pParamStr, UINT32 size);
+static SHELL_ERR shell_peri_nvmt(UINT32 id, char* pParamStr, UINT32 size);
+static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size);
 
 kepco_cert_storage_t kcs;
 
@@ -103,9 +103,9 @@ void dsm_mtp_fsm_tx_proc_fw_data_get(UINT8 type, UINT8 idx);
 void dsm_mtp_set_fw_type(UINT8 mode);
 void dsm_mif_getreq_firmware_ver_data(void);
 
-static SHELL_ERR shell_peri_key(UINT32 id, char *pParamStr, UINT32 size)
+static SHELL_ERR shell_peri_key(UINT32 id, char* pParamStr, UINT32 size)
 {
-    char *argv[36];
+    char* argv[36];
     // UINT8   buff[32];
     UINT32 argc;
 
@@ -123,9 +123,9 @@ static SHELL_ERR shell_peri_key(UINT32 id, char *pParamStr, UINT32 size)
 }
 
 #ifdef M2354_CAN /* bccho, 2023-11-28 */
-static SHELL_ERR shell_peri_can(UINT32 id, char *pParamStr, UINT32 size)
+static SHELL_ERR shell_peri_can(UINT32 id, char* pParamStr, UINT32 size)
 {
-    char *argv[36];
+    char* argv[36];
     // UINT8   buff[32];
     UINT32 argc;
 
@@ -226,10 +226,10 @@ void dsm_dm_poll_set(bool val)
 
 bool dsm_dm_poll_get(void) { return g_dm_poll_enable; }
 
-static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char *pParamStr,
+static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char* pParamStr,
                                          UINT32 size)
 {
-    char *argv[36];
+    char* argv[36];
     // UINT8   buff[32];
     UINT32 argc;
 
@@ -260,16 +260,7 @@ static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char *pParamStr,
         {
             if (!strcmp(argv[0], "dm_poll"))
             {
-                if (!strcmp(argv[1], "enable"))
-                {
-                    dsm_dm_poll_set(true);
-                    return SHELL_OK;
-                }
-                else if (!strcmp(argv[1], "disable"))
-                {
-                    dsm_dm_poll_set(false);
-                    return SHELL_OK;
-                }
+                return SHELL_OK;
             }
         }
     }
@@ -282,9 +273,9 @@ static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char *pParamStr,
     return SHELL_INVALID_PARAM;
 }
 
-static SHELL_ERR shell_peri_nvmt(UINT32 id, char *pParamStr, UINT32 size)
+static SHELL_ERR shell_peri_nvmt(UINT32 id, char* pParamStr, UINT32 size)
 {
-    char *argv[36];
+    char* argv[36];
     // UINT8   buff[32];
     UINT32 argc;
 
@@ -298,9 +289,6 @@ static SHELL_ERR shell_peri_nvmt(UINT32 id, char *pParamStr, UINT32 size)
 
     case 5:
     {  // nvmt
-        ST_MIF_CAL_DATA *p_cal_data = dsm_mtp_get_cal_data();
-        cal_data_type cal;
-
         if (size < 5)
         {
             return SHELL_INVALID_PARAM;
@@ -310,29 +298,10 @@ static SHELL_ERR shell_peri_nvmt(UINT32 id, char *pParamStr, UINT32 size)
 
         if (!strcmp(argv[0], "cal_w"))
         {
-            cal.T_cal_i0 = p_cal_data->r_current_gain;
-            cal.T_cal_v0 = p_cal_data->r_voltage_gain;
-            cal.T_cal_p0 = p_cal_data->r_phase_gain;
-
-            DPRINTF(DBG_TRACE,
-                    "CAL NV write: cur_gain[0x%08X], vol_gain[0x%08X], "
-                    "phase_gain[0x%08X]\r\n",
-                    p_cal_data->r_current_gain, p_cal_data->r_voltage_gain,
-                    p_cal_data->r_phase_gain);
-
-            nv_write(I_CAL_DATA, (U8 *)&cal);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "cal_r"))
         {
-            nv_read(I_CAL_DATA, (U8 *)&cal);
-
-            DPRINTF(DBG_TRACE,
-                    "CAL NV read: cur_gain[0x%08X], vol_gain[0x%08X], "
-                    "phase_gain[0x%08X]\r\n",
-                    cal.T_cal_i0, cal.T_cal_v0, cal.T_cal_p0);
-
             return SHELL_OK;
         }
     }
@@ -345,9 +314,9 @@ static SHELL_ERR shell_peri_nvmt(UINT32 id, char *pParamStr, UINT32 size)
     return SHELL_INVALID_PARAM;
 }
 
-static SHELL_ERR shell_peri_default(UINT32 id, char *pParamStr, UINT32 size)
+static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size)
 {
-    char *argv[36];
+    char* argv[36];
     // UINT8   buff[32];
     UINT32 argc;
 #if defined(FEATURE_ZBM_SDK_USE)
@@ -391,7 +360,7 @@ static SHELL_ERR shell_peri_default(UINT32 id, char *pParamStr, UINT32 size)
                 dsm_eeprom_write(FALSE, 0, string_tx, 50);
                 OSTimeDly(OS_MS2TICK(10));
                 dsm_eeprom_read(0, string_rx, 50);
-                if (memcmp((uint8_t *)string_tx, (uint8_t *)string_rx, 50))
+                if (memcmp((uint8_t*)string_tx, (uint8_t*)string_rx, 50))
                 {
                     DPRINTF2(DBG_TRACE,
                              "low addressing of the memory array test : "
@@ -411,7 +380,7 @@ static SHELL_ERR shell_peri_default(UINT32 id, char *pParamStr, UINT32 size)
                 OSTimeDly(OS_MS2TICK(10));
                 dsm_eeprom_read(0x40000, string_rx, 50);
 
-                if (memcmp((uint8_t *)string_tx, (uint8_t *)string_rx, 50))
+                if (memcmp((uint8_t*)string_tx, (uint8_t*)string_rx, 50))
                 {
                     DPRINTF2(DBG_TRACE,
                              "high addressing of the memory array test : "
@@ -644,211 +613,48 @@ static SHELL_ERR shell_peri_default(UINT32 id, char *pParamStr, UINT32 size)
 
         if (!strcmp(argv[0], "parm"))
         {
-            ST_MTP_PARM st_mtp_parm;
-
-            if (argc != 1)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            DPRINTF(DBG_TRACE, "\r\nmeter parm set\r\n");
-            if (!nv_read(I_MTP_PARM, (UINT8 *)&st_mtp_parm))
-            {
-                dsm_mtp_default_parm(&st_mtp_parm);
-            }
-            dsm_mif_setreq_meter_setup_parm((UINT8 *)&st_mtp_parm.val,
-                                            sizeof(ST_MIF_METER_PARM));
-
-            ToHFloat((U8_Float *)&fval, &st_mtp_parm.val.cut_voltage_thr[0]);
-            DPRINTF(DBG_TRACE, "cut_vol_thres: %d.%03d\r\n", (UINT32)(fval),
-                    (UINT32)((fval - (UINT32)(fval)) * 1000));
-            ToHFloat((U8_Float *)&fval, &st_mtp_parm.val.start_current_thr[0]);
-            DPRINTF(DBG_TRACE, "start_curr_thres: %d.%03d\r\n", (UINT32)(fval),
-                    (UINT32)((fval - (UINT32)(fval)) * 1000));
-            DPRINTF(DBG_TRACE,
-                    "DIR[%02X], REATIVE_SEL[%02X], MT_METHOD[%02X], "
-                    "PULSE_SEL[%02X]\r\n",
-                    st_mtp_parm.val.direct_reverse,
-                    st_mtp_parm.val.reactive_select,
-                    st_mtp_parm.val.meter_method, st_mtp_parm.val.pulse_select);
             return SHELL_OK;
         }
         else if (argc == 1)
         {
             if (!strcmp(argv[0], "calst"))
             {
-                ST_MTP_CAL_POINT st_mtp_cal_point;
-                dsm_mtp_default_cal_point(&st_mtp_cal_point);
-
-                ToHFloat((U8_Float *)&fval,
-                         &st_mtp_cal_point.val.ref_voltage[0]);
-                DPRINTF(DBG_TRACE, "voltage: %d.%03d\r\n", (UINT32)(fval),
-                        (UINT32)((fval - (UINT32)(fval)) * 1000));
-                ToHFloat((U8_Float *)&fval,
-                         &st_mtp_cal_point.val.ref_current[0]);
-                DPRINTF(DBG_TRACE, "current: %d.%03d\r\n", (UINT32)(fval),
-                        (UINT32)((fval - (UINT32)(fval)) * 1000));
-                ToHFloat((U8_Float *)&fval, &st_mtp_cal_point.val.ref_phase[0]);
-                DPRINTF(DBG_TRACE, "phase: %d.%03d\r\n", (UINT32)(fval),
-                        (UINT32)((fval - (UINT32)(fval)) * 1000));
-                DPRINTF(DBG_TRACE, "process_time: %02d SEC\r\n",
-                        st_mtp_cal_point.val.process_time);
-                DPRINTF(DBG_TRACE, "CONST: [%08d : %08d : %08d]\r\n",
-                        st_mtp_cal_point.val.react_const,
-                        st_mtp_cal_point.val.act_const,
-                        st_mtp_cal_point.val.app_const);
-
-                cal_begin();
-                dsm_mtp_set_op_mode(MTP_OP_NORMAL);
-                dsm_mtp_set_fsm(MTP_FSM_CAL_ST);
-                dsm_mtp_fsm_send();
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "sagset"))
             {
-                ST_MTP_SAGSWELL st_mtp_sagswell;
-
-                DPRINTF(DBG_TRACE, "\r\nsag/swell set\r\n");
-                if (!nv_read(I_MTP_SAG_SWELL, (UINT8 *)&st_mtp_sagswell))
-                {
-                    dsm_mtp_default_sagswell(&st_mtp_sagswell);
-                }
-                dsm_mif_setreq_sagswell_data(
-                    (UINT8 *)&st_mtp_sagswell.val,
-                    sizeof(ST_MIF_SAGSWELL_SETUP));  // send setreq sagswell
-                DPRINT_HEX(DBG_INFO,
-                           "sag/swell set:", &st_mtp_sagswell.val.pf_level,
-                           sizeof(ST_MIF_SAGSWELL_SETUP), DUMP_ALWAYS);
-                ToHFloat((U8_Float *)&fval, &st_mtp_sagswell.val.pf_level[0]);
-                DPRINTF(DBG_TRACE, "pf_level float: %d.%03d\r\n",
-                        (UINT32)(fval),
-                        (UINT32)((fval - (UINT32)(fval)) * 1000));
-                DPRINTF(DBG_TRACE, "pf_contiue_time: 0x%04X\r\n",
-                        st_mtp_sagswell.val.pf_continue_time);
-                ToHFloat((U8_Float *)&fval, &st_mtp_sagswell.val.sag_level[0]);
-                DPRINTF(DBG_TRACE, "sag_level float: %d.%03d\r\n",
-                        (UINT32)(fval),
-                        (UINT32)((fval - (UINT32)(fval)) * 1000));
-                DPRINTF(DBG_TRACE, "sag_time: 0x%02X\r\n",
-                        st_mtp_sagswell.val.sag_time);
-                ToHFloat((U8_Float *)&fval,
-                         &st_mtp_sagswell.val.swell_level[0]);
-                DPRINTF(DBG_TRACE, "swell_level float: %d.%03d\r\n",
-                        (UINT32)(fval),
-                        (UINT32)((fval - (UINT32)(fval)) * 1000));
-                DPRINTF(DBG_TRACE, "swell_time: 0x%02X\r\n",
-                        st_mtp_sagswell.val.swell_time);
                 return SHELL_OK;
             }
-            // #if defined(FEATURE_SEPERATE_SAVE)
             else if (!strcmp(argv[0], "sagget"))
             {
-                // ST_MTP_SAGSWELL st_mtp_sagswell;
-
-                DPRINTF(DBG_TRACE, "\r\nsag/swell get\r\n");
-
-                dsm_mif_getreq_sagswell_data();  // send getreq sagswell
-
                 return SHELL_OK;
             }
-            // #endif
             else if (!strcmp(argv[0], "default"))  // default NV write
             {
-                ST_MTP_CAL_POINT st_mtp_cal_point;
-                ST_MTP_PARM st_mtp_parm;
-                ST_MTP_SAGSWELL st_mtp_sagswell;
-
-                dsm_mtp_default_cal_point(&st_mtp_cal_point);
-                dsm_mtp_default_parm(&st_mtp_parm);
-                dsm_mtp_default_sagswell(&st_mtp_sagswell);
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "sagsp"))
             {
-                ST_MIF_SAGSWELL_STOP st_mif_sagswell_stop;
-
-                st_mif_sagswell_stop.tmp_time = dsm_htonl(5000);
-                DPRINTF(DBG_TRACE, "\r\nsag/swell time stop\r\n");
-                dsm_mif_actreq_sagswell_time((UINT8 *)&st_mif_sagswell_stop,
-                                             sizeof(ST_MIF_SAGSWELL_STOP));
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "firmreq"))
             {
-                DPRINTF(DBG_TRACE, "\r\nmeter firmver get\r\n");
-
-                dsm_mif_getreq_firmware_ver_data();  // send getreq sagswell
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "caldw"))
             {
-                ST_MIF_CAL_DATA st_mif_cal_data;
-
-                st_mif_cal_data.r_current_gain =
-                    dsm_htonl(g_mtp_caldata.r_current_gain);
-                st_mif_cal_data.r_voltage_gain =
-                    dsm_htonl(g_mtp_caldata.r_voltage_gain);
-                st_mif_cal_data.r_phase_gain =
-                    dsm_htonl(g_mtp_caldata.r_phase_gain);
-                st_mif_cal_data.s_current_gain =
-                    dsm_htonl(g_mtp_caldata.s_current_gain);
-                st_mif_cal_data.s_voltage_gain =
-                    dsm_htonl(g_mtp_caldata.s_voltage_gain);
-                st_mif_cal_data.s_phase_gain =
-                    dsm_htonl(g_mtp_caldata.s_phase_gain);
-                st_mif_cal_data.t_current_gain =
-                    dsm_htonl(g_mtp_caldata.t_current_gain);
-                st_mif_cal_data.t_voltage_gain =
-                    dsm_htonl(g_mtp_caldata.t_voltage_gain);
-                st_mif_cal_data.t_phase_gain =
-                    dsm_htonl(g_mtp_caldata.t_phase_gain);
-                st_mif_cal_data.cal_ok = 1;
-                DPRINTF(DBG_TRACE, "cal data write\r\n");
-                dsm_mif_setreq_cal_data(
-                    (UINT8 *)&st_mif_cal_data,
-                    sizeof(ST_MIF_CAL_DATA));  // send setreq caldata
-
-                DPRINTF(
-                    DBG_TRACE,
-                    "CAL_GAIN R: cur[0x%08X], vol[0x%08X], phase[0x%08X]\r\n",
-                    g_mtp_caldata.r_current_gain, g_mtp_caldata.r_voltage_gain,
-                    g_mtp_caldata.r_phase_gain);
-                DPRINTF(
-                    DBG_TRACE,
-                    "CAL_GAIN S: cur[0x%08X], vol[0x%08X], phase[0x%08X]\r\n",
-                    g_mtp_caldata.s_current_gain, g_mtp_caldata.s_voltage_gain,
-                    g_mtp_caldata.s_phase_gain);
-                DPRINTF(
-                    DBG_TRACE,
-                    "CAL_GAIN T: cur[0x%08X], vol[0x%08X], phase[0x%08X]\r\n",
-                    g_mtp_caldata.t_current_gain, g_mtp_caldata.t_voltage_gain,
-                    g_mtp_caldata.t_phase_gain);
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "caldg"))
             {
-                DPRINTF(DBG_TRACE, "cal data read\r\n");
-                dsm_mif_getreq_cal_data();
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "pushack"))
             {
-                DPRINTF(DBG_TRACE, "\r\nPushAck\r\n");
-                dsm_mif_push_ack();
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "pushnack"))
             {
-                DPRINTF(DBG_TRACE, "\r\nPushAck\r\n");
-                dsm_mif_push_nack();
-
                 return SHELL_OK;
             }
         }
@@ -856,14 +662,6 @@ static SHELL_ERR shell_peri_default(UINT32 id, char *pParamStr, UINT32 size)
         {
             if (!strcmp(argv[0], "baud"))
             {
-                ST_MIF_BAUD_RATE st_mif_baudrate;
-
-                DPRINTF(DBG_TRACE, "\r\nbaudrate %d, size %d\r\n",
-                        atoi(argv[1]), sizeof(ST_MIF_BAUD_RATE));
-                st_mif_baudrate.rate = dsm_htonl(atoi(argv[1]));
-                dsm_mif_setreq_baudrate((UINT8 *)&st_mif_baudrate,
-                                        sizeof(ST_MIF_BAUD_RATE));
-
                 return SHELL_OK;
             }
         }

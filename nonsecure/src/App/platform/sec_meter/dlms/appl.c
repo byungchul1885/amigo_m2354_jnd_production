@@ -415,7 +415,7 @@ const uint8_t rC_rC_rC_rC_rwC_rC_rC_rC_rC_rC_rC[] = {
 #define VER_2 0x02
 #define VER_3 0x03
 
-static const myobj_struct_type myobj_list[NUM_MYOBJ_SEC] = {
+static const myobj_struct_type myobj_list[] = {
     {OBJ_ASSOCIATION_LN, CLS_AssLN, OBIS_ASSOCIATION_LN, VER_3, 11, all_r,
      all_r, all_rC, all_rC},
     {OBJ_MANUFACT_ID, CLS_DATA, OBIS_MANUFACT_ID, VER_0, 2, all_n, all_r,
@@ -1001,6 +1001,10 @@ static const myobj_struct_type myobj_list[NUM_MYOBJ_SEC] = {
      all_n, all_n, all_rC, all_rC}
 #endif
 };
+
+// v1.4: auto-calculate NUM_MYOBJ_SEC from actual array entries.
+#undef NUM_MYOBJ_SEC
+#define NUM_MYOBJ_SEC (sizeof(myobj_list) / sizeof(myobj_list[0]))
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
