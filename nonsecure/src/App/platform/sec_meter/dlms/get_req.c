@@ -8894,6 +8894,7 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
 
 #if 1 /* bccho, 2024-09-05, 삼상 */
             //(삼상 변성기부 계기에 한함, 단독계기의 경우 0으로 전송)
+            /* V30-fix-260429 BUG-2: A phase ERR mask check. */
             if (getresp_LP_entry_sels & LPAVG_COL_ERR1)
             {
                 fval = 0.0;
@@ -8905,6 +8906,7 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
                 fval = (float)lpavg->ch[6] / 100.0;
                 FILL_FLOAT(fval);
             }
+            /* V30-fix-260429 BUG-1: B phase voltage uses V2 mask. */
             if (getresp_LP_entry_sels & LPAVG_COL_V2)
             {
                 fval = (float)lpavg->ch[7] / 100.0;
@@ -8927,6 +8929,7 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
             }
 
             //(삼상 변성기부 계기에 한함, 단독계기의 경우 0으로 전송)
+            /* V30-fix-260429 BUG-2: B phase ERR mask check. */
             if (getresp_LP_entry_sels & LPAVG_COL_ERR2)
             {
                 fval = 0.0;
@@ -8960,6 +8963,7 @@ static void LPavg_record_to_pPdu(uint8_t* recbuff, uint8_t len)
             }
 
             //(삼상 변성기부 계기에 한함, 단독계기의 경우 0으로 전송)
+            /* V30-fix-260429 BUG-2: C phase ERR mask check. */
             if (getresp_LP_entry_sels & LPAVG_COL_ERR3)
             {
                 fval = 0.0;
@@ -12529,32 +12533,43 @@ static void fill_season_prof_struct(bool curr)
 
     idx = pPdu_idx;
 
-    // fill unspecified date
-    FILL_ARRAY(SEASON_PROF_SIZE);
-    idx += 2;  // array tag
-    for (i = 0; i < SEASON_PROF_SIZE; i++)
+    /* V32-fix-260430 BUG-13c: emit only valid season profile count. */
     {
-        memcpy(&pPdu[pPdu_idx], &packed_season_info_r[0], SEASON_INFO_SIZE);
-        pPdu_idx += SEASON_INFO_SIZE;
-    }
+        uint8_t emit_cnt;
 
-    if (rslt)
-    {
-        // replace unspecified data
         season = (season_date_type*)appl_tbuff;
-        for (i = 0; i < season->cnt; i++)
+        if (rslt)
+            emit_cnt = (season->cnt > SEASON_PROF_SIZE) ? SEASON_PROF_SIZE
+                                                        : (uint8_t)season->cnt;
+        else
+            emit_cnt = SEASON_PROF_SIZE;
+
+        FILL_ARRAY(emit_cnt);
+        idx += 2;  // array tag
+        for (i = 0; i < emit_cnt; i++)
         {
-            idx += 2;  // struct tag
-                       // season name
-            pPdu[idx + 2] = (uint8_t)i;
-            idx += 3;
-            // seasom start month/date
-            pPdu[idx + 4] = season->season[i].month;
-            pPdu[idx + 5] = season->season[i].date;
-            idx += 14;
-            // week id
-            pPdu[idx + 2] = season->season[i].week_id;
-            idx += 3;
+            memcpy(&pPdu[pPdu_idx], &packed_season_info_r[0], SEASON_INFO_SIZE);
+            pPdu_idx += SEASON_INFO_SIZE;
+        }
+        DPRINTF(DBG_TRACE, _D "BUG-13c ACCEPT (season_prof): emit_cnt=%u (rslt=%d)\r\n",
+                (unsigned int)emit_cnt, rslt);
+
+        if (rslt)
+        {
+            for (i = 0; i < emit_cnt; i++)
+            {
+                idx += 2;  // struct tag
+                // season name
+                pPdu[idx + 2] = (uint8_t)i;
+                idx += 3;
+                // seasom start month/date
+                pPdu[idx + 4] = season->season[i].month;
+                pPdu[idx + 5] = season->season[i].date;
+                idx += 14;
+                // week id
+                pPdu[idx + 2] = season->season[i].week_id;
+                idx += 3;
+            }
         }
     }
 }
@@ -12588,28 +12603,39 @@ static void fill_week_prof_struct(bool curr)
 
     idx = pPdu_idx;
 
-    // fill unspecified date
-    FILL_ARRAY(WEEK_PROF_SIZE);
-    idx += 2;
-    for (i = 0; i < WEEK_PROF_SIZE; i++)
+    /* V32-fix-260430 BUG-13b: emit only valid week profile count. */
     {
-        memcpy(&pPdu[pPdu_idx], &packed_week_info_r[0], WEEK_INFO_SIZE);
-        pPdu_idx += WEEK_INFO_SIZE;
-    }
+        uint8_t emit_cnt;
 
-    if (rslt)
-    {
-        // replace unspecified data
         week = (week_date_type*)appl_tbuff;
-        for (i = 0; i < week->cnt; i++)
+        if (rslt)
+            emit_cnt = (week->cnt > WEEK_PROF_SIZE) ? WEEK_PROF_SIZE
+                                                    : (uint8_t)week->cnt;
+        else
+            emit_cnt = WEEK_PROF_SIZE;
+
+        FILL_ARRAY(emit_cnt);
+        idx += 2;
+        for (i = 0; i < emit_cnt; i++)
         {
-            idx += 2;  // struct tag
-            pPdu[idx + 2] = week->week[i].week_id;
-            idx += 3;
-            for (j = 0; j < WEEK_LEN; j++)
+            memcpy(&pPdu[pPdu_idx], &packed_week_info_r[0], WEEK_INFO_SIZE);
+            pPdu_idx += WEEK_INFO_SIZE;
+        }
+        DPRINTF(DBG_TRACE, _D "BUG-13b ACCEPT (week_prof): emit_cnt=%u (rslt=%d)\r\n",
+                (unsigned int)emit_cnt, rslt);
+
+        if (rslt)
+        {
+            for (i = 0; i < emit_cnt; i++)
             {
-                pPdu[idx + 1] = week->week[i].day_id[j];
-                idx += 2;
+                idx += 2;  // struct tag
+                pPdu[idx + 2] = week->week[i].week_id;
+                idx += 3;
+                for (j = 0; j < WEEK_LEN; j++)
+                {
+                    pPdu[idx + 1] = week->week[i].day_id[j];
+                    idx += 2;
+                }
             }
         }
     }
@@ -12661,12 +12687,30 @@ static void fill_day_prof_struct(bool first, bool curr)
         FILL_U08((uint8_t)(appl_resp_block_num - 1L));
     }
     idx += 2;
-    FILL_ARRAY(DAY_STRUCT_LEN);
-    idx += 2;
-    for (i = 0; i < DAY_STRUCT_LEN; i++)
+    /* V32-fix-260430 BUG-13: day_schedule emit count follows valid data count. */
     {
-        memcpy(&pPdu[pPdu_idx], &packed_day_info_r[0], DAY_INFO_SIZE);
-        pPdu_idx += DAY_INFO_SIZE;
+        uint8_t emit_cnt;
+
+        if (rslt)
+            emit_cnt = daytbl->tou_conf_cnt;
+        else if (first && curr)
+            emit_cnt = mt_conf.tou.cnt;
+        else
+            emit_cnt = DAY_STRUCT_LEN;
+
+        if (emit_cnt > DAY_STRUCT_LEN)
+            emit_cnt = DAY_STRUCT_LEN;
+
+        FILL_ARRAY(emit_cnt);
+        idx += 2;
+        for (i = 0; i < emit_cnt; i++)
+        {
+            memcpy(&pPdu[pPdu_idx], &packed_day_info_r[0], DAY_INFO_SIZE);
+            pPdu_idx += DAY_INFO_SIZE;
+        }
+        DPRINTF(DBG_TRACE,
+                _D "BUG-13 ACCEPT (day_prof): emit_cnt=%u (rslt=%d, first=%d, curr=%d)\r\n",
+                (unsigned int)emit_cnt, rslt, first, curr);
     }
 
     if (rslt)
@@ -13411,24 +13455,43 @@ static void ob_load_profile(void)
                     {
                         if (entry_from == 0L || entry_from > lpindex_for_lp)
                         {
+                            DPRINTF(DBG_ERR,
+                                    _D "BUG-7 REJECT (LP non-overlap): entry_from=%lu out of range (max=%lu) -> empty\r\n",
+                                    (unsigned long)entry_from,
+                                    (unsigned long)lpindex_for_lp);
                             getresp_LP_len = 0;
                         }
-
-                        if (entry_to > lpindex_for_lp || entry_to == 0L)
+                        else
                         {
-                            if ((entry_from > LP_index) ||
-                                (entry_to > LP_index))
+                            if (entry_to > lpindex_for_lp || entry_to == 0L)
                             {
-                                entry_from = LP_index;
-                                entry_to = LP_index;
+                                if ((entry_from > LP_index) ||
+                                    (entry_to > LP_index))
+                                {
+                                    entry_from = LP_index;
+                                    entry_to = LP_index;
+                                }
+                                else
+                                {
+                                    entry_to = lpindex_for_lp;
+                                }
+                            }
+
+                            if (entry_to < entry_from)
+                            {
+                                DPRINTF(DBG_ERR,
+                                        _D "BUG-7 REJECT (LP non-overlap): entry_to=%lu < entry_from=%lu -> empty\r\n",
+                                        (unsigned long)entry_to,
+                                        (unsigned long)entry_from);
+                                getresp_LP_len = 0;
                             }
                             else
                             {
-                                entry_to = lpindex_for_lp;
+                                getresp_LP_index = entry_to - 1;
+                                getresp_LP_len =
+                                    (uint16_t)(entry_to - entry_from + 1);
                             }
                         }
-                        getresp_LP_index = entry_to - 1;
-                        getresp_LP_len = (uint16_t)(entry_to - entry_from + 1);
                     }
                     else
                     {
@@ -13438,21 +13501,49 @@ static void ob_load_profile(void)
                         if (entry_from == 0L ||
                             entry_from > (uint32_t)lpsize_for_lp)
                         {
+                            DPRINTF(DBG_ERR,
+                                    _D "BUG-7 REJECT (LP overlap): entry_from=%lu out of range (max=%lu) -> empty\r\n",
+                                    (unsigned long)entry_from,
+                                    (unsigned long)lpsize_for_lp);
                             getresp_LP_len = 0;
-                        }
-
-                        if (entry_to <= t32)  // overlaped range ?
-                        {
-                            getresp_LP_index =
-                                lpindex_for_lp - t32 + entry_to - 1;
                         }
                         else
                         {
-                            getresp_LP_index =
-                                lpindex_for_lp - t32 - 1 -
-                                ((uint32_t)lpsize_for_lp - entry_to);
+                            if (entry_to == 0L ||
+                                entry_to > (uint32_t)lpsize_for_lp)
+                            {
+                                DPRINTF(DBG_TRACE,
+                                        _D "BUG-7 (LP overlap): entry_to=%lu clamped to lpsize=%lu\r\n",
+                                        (unsigned long)entry_to,
+                                        (unsigned long)lpsize_for_lp);
+                                entry_to = (uint32_t)lpsize_for_lp;
+                            }
+
+                            if (entry_to < entry_from)
+                            {
+                                DPRINTF(DBG_ERR,
+                                        _D "BUG-7 REJECT (LP overlap): entry_to=%lu < entry_from=%lu -> empty\r\n",
+                                        (unsigned long)entry_to,
+                                        (unsigned long)entry_from);
+                                getresp_LP_len = 0;
+                            }
+                            else
+                            {
+                                if (entry_to <= t32)  // overlaped range ?
+                                {
+                                    getresp_LP_index =
+                                        lpindex_for_lp - t32 + entry_to - 1;
+                                }
+                                else
+                                {
+                                    getresp_LP_index =
+                                        lpindex_for_lp - t32 - 1 -
+                                        ((uint32_t)lpsize_for_lp - entry_to);
+                                }
+                                getresp_LP_len =
+                                    (uint16_t)(entry_to - entry_from + 1);
+                            }
                         }
-                        getresp_LP_len = (uint16_t)(entry_to - entry_from + 1);
                     }
 
                     if (getresp_LP_index > (LP_index - 1))
@@ -15794,19 +15885,40 @@ static void ob_realtime_p_load_profile(void)
                                                      : LPRT_SIZE;
                     if ((entry_from == 0L) || (entry_from > t16))
                     {
+                        DPRINTF(DBG_ERR,
+                                _D "BUG-5 REJECT (RT_LP): entry_from=%lu out of range (max %u) -> empty\r\n",
+                                (unsigned long)entry_from, (unsigned int)t16);
                         getresp_LP_len = 0;
                     }
                     else
                     {
                         getresp_LP_index = lprt__index - entry_from;
-                        if (entry_to == 0)
+
+                        if (entry_to == 0 || entry_to > t16)
                         {
-                            getresp_LP_len = t16;
+                            DPRINTF(DBG_TRACE,
+                                    _D "BUG-5 (RT_LP): entry_to=%lu clamped to t16=%u\r\n",
+                                    (unsigned long)entry_to, (unsigned int)t16);
+                            entry_to = t16;
+                        }
+
+                        if (entry_to < entry_from)
+                        {
+                            DPRINTF(DBG_ERR,
+                                    _D "BUG-5 REJECT (RT_LP): entry_to=%lu < entry_from=%lu -> empty\r\n",
+                                    (unsigned long)entry_to,
+                                    (unsigned long)entry_from);
+                            getresp_LP_len = 0;
                         }
                         else
                         {
                             getresp_LP_len =
                                 (uint16_t)(entry_to - entry_from + 1);
+                            DPRINTF(DBG_TRACE,
+                                    _D "BUG-5 ACCEPT (RT_LP): from=%lu to=%lu len=%u\r\n",
+                                    (unsigned long)entry_from,
+                                    (unsigned long)entry_to,
+                                    (unsigned int)getresp_LP_len);
                         }
                         get_LPrt_selcolmn_info(
                             (uint8_t)selcol_from,

@@ -3446,7 +3446,6 @@ static void dsp_all_mode(uint8_t* tptr)
         break;
 
     case DSPMODE_SPEC_VER: /* v1.4: 규격 버전 표시 (vEr X.X) */
-        if (dsp_mode_in_state != gen_pre_dsp_mode_in_state)
         {
             // vEr X.X from COSEM_METER_ID_VER[1].[2]
             extern const U8 COSEM_METER_ID_VER[];
@@ -3456,7 +3455,7 @@ static void dsp_all_mode(uint8_t* tptr)
             lcd_digit_buf[5] = LDIGIT_SPACE;
             lcd_digit_buf[6] = COSEM_METER_ID_VER[1] - '0';  // major
             lcd_digit_buf[7] = COSEM_METER_ID_VER[2] - '0';  // minor
-            LCD_DP4_ON;  // dot between major.minor
+            dsp_point_pos = 1;  // dot between major.minor
         }
         break;
 
@@ -6168,7 +6167,7 @@ static void dsp_dot_rate(void)
     // A-type: rate ( bit3=D, bit2=C, bit1=B, bit0=A )
     // TOU 8rate: 5~8 rate kind shows ABCD all ON
     mtkind = mt_rtkind;
-#if 0  // V28: ABCD 점등 비활성화 - jp.kim 2026.04.27 추가
+#if 0  // V28: ABCD 점등 비활성화 - jp.kim 2026.04.27 추가    
     switch (mtkind)
     {
     case ONE_RATE_KIND:

@@ -20,7 +20,7 @@
         goto complete;               \
     }
 
-static void wait_SPI_IS_BUSY(SPI_T* spi)
+static EepromOperations wait_SPI_IS_BUSY(SPI_T* spi)
 {
     uint32_t u32TimeOutCnt = SystemCoreClock / 10;
 
@@ -29,27 +29,43 @@ static void wait_SPI_IS_BUSY(SPI_T* spi)
         if (--u32TimeOutCnt == 0)
         {
             MSGERROR("Wait for SPI time-out!\n");
-            break;
+            return EEPROM_STATUS_ERROR;
         }
     }
+
+    return EEPROM_STATUS_COMPLETE;
 }
 
-static void CMD_WREN(void)
+static EepromOperations CMD_WREN(void)
 {
     MSG00("SPI-EEPROM, CMD_WREN()");
     CS_M = 0;
     SPI_WRITE_TX(SPI0, EEPROM_WREN);
-    wait_SPI_IS_BUSY(SPI0);
+    if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+    {
+        CS_M = 1;
+        DPRINTF(DBG_ERR, "SPI-EEPROM CMD_WREN timeout\r\n");
+        return EEPROM_STATUS_ERROR;
+    }
     CS_M = 1;
+
+    return EEPROM_STATUS_COMPLETE;
 }
 
-static void CMD_WRDI(void)
+static EepromOperations CMD_WRDI(void)
 {
     MSG00("SPI-EEPROM, CMD_WRDI()");
     CS_M = 0;
     SPI_WRITE_TX(SPI0, EEPROM_WRDI);
-    wait_SPI_IS_BUSY(SPI0);
+    if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+    {
+        CS_M = 1;
+        DPRINTF(DBG_ERR, "SPI-EEPROM CMD_WRDI timeout\r\n");
+        return EEPROM_STATUS_ERROR;
+    }
     CS_M = 1;
+
+    return EEPROM_STATUS_COMPLETE;
 }
 
 static EepromOperations CMD_RDSR(uint8_t* StatusReg)
@@ -68,7 +84,12 @@ static EepromOperations CMD_RDSR(uint8_t* StatusReg)
     SPI_WRITE_TX(SPI0, 0x00);
 
     // wait tx finish
-    wait_SPI_IS_BUSY(SPI0);
+    if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+    {
+        CS_M = 1;
+        DPRINTF(DBG_ERR, "SPI-EEPROM CMD_RDSR timeout\r\n");
+        return EEPROM_STATUS_ERROR;
+    }
 
     // CS: de-active
     CS_M = 1;
@@ -94,7 +115,10 @@ static int32_t SpiFlash_WaitReady(void)
             return -1;
         }
 
-        CMD_RDSR(&u8ReturnValue);
+        if (CMD_RDSR(&u8ReturnValue) != EEPROM_STATUS_COMPLETE)
+        {
+            return -1;
+        }
         u8ReturnValue = u8ReturnValue & 1;
     } while (u8ReturnValue != 0);  // check the BUSY bit
 
@@ -106,7 +130,11 @@ static bool IsFlashBusy(void)
     MSG00("SPI-EEPROM, IsFlashBusy()");
 
     uint8_t gDataBuffer;
-    CMD_RDSR(&gDataBuffer);
+    if (CMD_RDSR(&gDataBuffer) != EEPROM_STATUS_COMPLETE)
+    {
+        DPRINTF(DBG_ERR, "SPI-EEPROM IsFlashBusy: CMD_RDSR failed\r\n");
+        return TRUE;
+    }
     if ((gDataBuffer & EEPROM_WIP_FLAG) == EEPROM_WIP_FLAG)
         return TRUE;
     else
@@ -148,7 +176,11 @@ EepromOperations EEPROM_SPI_WritePage(uint8_t _erase, uint8_t* pBuffer,
 
     BUSY_CHECK();
 
-    CMD_WREN();
+    if (CMD_WREN() != EEPROM_STATUS_COMPLETE)
+    {
+        ret = EEPROM_STATUS_ERROR;
+        goto complete;
+    }
 
     CS_M = 0;
 
@@ -157,17 +189,35 @@ EepromOperations EEPROM_SPI_WritePage(uint8_t _erase, uint8_t* pBuffer,
     SPI_WRITE_TX(SPI0, (WriteAddr >> 8) & 0xFF);
     SPI_WRITE_TX(SPI0, WriteAddr & 0xFF);
 
+    uint32_t tx_fifo_timeout = SystemCoreClock / 10;
     while (1)
     {
         if (!SPI_GET_TX_FIFO_FULL_FLAG(SPI0))
         {
             SPI_WRITE_TX(SPI0, *(pBuffer + index++));
+            tx_fifo_timeout = SystemCoreClock / 10;
             if (index > (NumByteToWrite - 1))
                 break;
         }
+        else if (--tx_fifo_timeout == 0)
+        {
+            CS_M = 1;
+            (void)CMD_WRDI();
+            DPRINTF(DBG_ERR,
+                    "SPI-EEPROM WritePage TX FIFO timeout addr=0x%lX\r\n",
+                    (unsigned long)WriteAddr);
+            ret = EEPROM_STATUS_ERROR;
+            goto complete;
+        }
     }
 
-    wait_SPI_IS_BUSY(SPI0);
+    if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+    {
+        CS_M = 1;
+        (void)CMD_WRDI();
+        ret = EEPROM_STATUS_ERROR;
+        goto complete;
+    }
 
     CS_M = 1;
 
@@ -179,6 +229,8 @@ EepromOperations EEPROM_SPI_WritePage(uint8_t _erase, uint8_t* pBuffer,
     {
         ret = EEPROM_STATUS_COMPLETE;
     }
+
+    (void)CMD_WRDI();
 
 complete:;
     if (ret != EEPROM_STATUS_COMPLETE)
@@ -440,19 +492,36 @@ EepromOperations EEPROM_SPI_ReadBuffer(uint8_t* pBuffer, uint32_t ReadAddr,
     SPI_WRITE_TX(SPI0, (ReadAddr >> 8) & 0xFF);
     SPI_WRITE_TX(SPI0, ReadAddr & 0xFF);
 
-    wait_SPI_IS_BUSY(SPI0);
+    if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+    {
+        CS_M = 1;
+        DPRINTF(DBG_ERR, "SPI-EEPROM ReadBuffer command timeout\r\n");
+        return EEPROM_STATUS_ERROR;
+    }
 
     SPI_ClearRxFIFO(SPI0);
 
     for (index = 0; index < NumByteToRead; index++)
     {
         SPI_WRITE_TX(SPI0, 0x00);
-        wait_SPI_IS_BUSY(SPI0);
+        if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+        {
+            CS_M = 1;
+            DPRINTF(DBG_ERR,
+                    "SPI-EEPROM ReadBuffer data timeout addr=0x%lX index=%lu\r\n",
+                    (unsigned long)ReadAddr, (unsigned long)index);
+            return EEPROM_STATUS_ERROR;
+        }
         *(pBuffer + index) = (uint8_t)SPI_READ_RX(SPI0);
     }
 
     // wait tx finish
-    wait_SPI_IS_BUSY(SPI0);
+    if (wait_SPI_IS_BUSY(SPI0) != EEPROM_STATUS_COMPLETE)
+    {
+        CS_M = 1;
+        DPRINTF(DBG_ERR, "SPI-EEPROM ReadBuffer final timeout\r\n");
+        return EEPROM_STATUS_ERROR;
+    }
 
     CS_M = 1;
 

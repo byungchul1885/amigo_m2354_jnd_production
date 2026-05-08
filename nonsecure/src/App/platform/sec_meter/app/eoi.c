@@ -14,7 +14,6 @@ rolling_dm_type rolling_dm;
 int eoi_deactive_timer;
 bool b_eoi_deactive = false;
 bool mxdm_processed;
-bool eoi_selector_inited;
 
 extern float PULSE_ADD_MODIFY_DATA, PULSE_ADD_MODIFY_DATA_VA,
     PULSE_ADD_MODIFY_DATA_VAR;
@@ -30,7 +29,6 @@ static void maxdem_proc(uint8_t intv, bool force, bool rtchg, rate_type rt,
 static void fill_eoi_ch(uint32_t *eoich, uint8_t intv);
 static void dm_intv_reset(uint8_t intv_bound, bool rtchg);
 static void eoi_pulse_set(void);
-static void eoi_selector_init_if_needed(void);
 
 static const uint8_t dm_interval_r[NUM_DM_INTV] = {1, 5, 10, 15, 30, 60};
 
@@ -48,17 +46,6 @@ void eoi_init(void)
 
 void dr_dt_init(void) { dr_dt.year = 0xff; }
 
-static void eoi_selector_init_if_needed(void)
-{
-#if defined(FEATURE_TOU_8RATE)
-    if (!eoi_selector_inited)
-    {
-        eoi_selector = cur_script_selector;
-        eoi_selector_inited = true;
-    }
-#endif
-}
-
 /*
 lhh_add_desc :
 1. max demand 를 업데이트 한다.
@@ -72,7 +59,9 @@ void eoi_proc(uint8_t *tptr)
     if (eoi_lastdt.month == 0)
         eoi_lastdt = cur_rtc;
 
-    eoi_selector_init_if_needed();
+    /* V30-fix-260429 BUG-3: use 0 as the init sentinel. */
+    if (eoi_selector == 0)
+        eoi_selector = cur_script_selector;
 
     dt = eoi_lastdt;
     get_next_interval_boundary(&dt, dm_sub_interval);
@@ -96,7 +85,6 @@ void eoi_proc(uint8_t *tptr)
     }
 
     eoi_selector = cur_script_selector;
-    eoi_selector_inited = true;
     eoi_evt = 0;
     eoi_lastdt = cur_rtc;
     eoi_processed = 1;
@@ -117,7 +105,6 @@ void eoi_proc_pwrtn(pwrfail_info_type *pfinfo, int32_t dur, uint8_t *tptr)
     tptr += sizeof(recent_demand_type);
 
     dt1 = pfinfo->dt;
-    eoi_selector_init_if_needed();
 
     rtchg = (eoi_selector != cur_script_selector);
     if (dur < 0 || rtchg)
@@ -125,7 +112,6 @@ void eoi_proc_pwrtn(pwrfail_info_type *pfinfo, int32_t dur, uint8_t *tptr)
         maxdem_proc(dm_interval, false, rtchg,
                     get_lowest_rate_from_mask(eoi_selector), &dt1, tptr);
         eoi_selector = cur_script_selector;
-        eoi_selector_inited = true;
         eoi_lastdt = cur_rtc;
         eoi_processed = 1;
         cur_dmdt_set(&cur_rtc);
@@ -160,7 +146,6 @@ void eoi_proc_pwrtn(pwrfail_info_type *pfinfo, int32_t dur, uint8_t *tptr)
     }
 
     eoi_selector = cur_script_selector;
-    eoi_selector_inited = true;
     eoi_lastdt = cur_rtc;
     eoi_processed = 1;
 
@@ -193,8 +178,6 @@ void eoi_proc_dr(date_time_type *pdt, bool isdr, uint8_t *tptr)
 {
     date_time_type dt;
 
-    eoi_selector_init_if_needed();
-
     if (eoi_processed == 0)
     {
         dt = *pdt;
@@ -218,7 +201,6 @@ void eoi_proc_dr(date_time_type *pdt, bool isdr, uint8_t *tptr)
     }
 
     eoi_selector = cur_script_selector;
-    eoi_selector_inited = true;
     eoi_lastdt = *pdt;
     eoi_processed = 1;
 }
@@ -227,15 +209,12 @@ void eoi_proc_ratechg(rate_type rt, uint8_t *tptr)
 {
     date_time_type dt;
 
-    eoi_selector_init_if_needed();
-
     dt = cur_rtc;
     get_interval_boundary(&dt, dm_sub_interval);
     maxdem_proc(dm_interval, false, true, rt, &dt, tptr);
     eoi_pulse_set();
 
     eoi_selector = cur_script_selector;
-    eoi_selector_inited = true;
     eoi_lastdt = cur_rtc;
     eoi_processed = 1;
 }
@@ -249,8 +228,6 @@ void eoi_proc_timechg(date_time_type *bfdt, rate_type rt, uint8_t *tptr,
     date_time_type dt3 = *bfdt;
 
     DPRINTF(DBG_TRACE, "%s\r\n", __func__);
-    eoi_selector_init_if_needed();
-
     dt1 = *bfdt;
     dt2 = *bfdt;
 
@@ -268,7 +245,6 @@ void eoi_proc_timechg(date_time_type *bfdt, rate_type rt, uint8_t *tptr,
         maxdem_proc(dm_interval, false, rtchg, rt, &dt2, tptr);
         eoi_pulse_set();
         eoi_selector = cur_script_selector;
-        eoi_selector_inited = true;
         eoi_lastdt = cur_rtc;
         eoi_processed = 1;
     }
@@ -284,7 +260,6 @@ void eoi_proc_timechg(date_time_type *bfdt, rate_type rt, uint8_t *tptr,
         maxdem_proc(dm_interval, false, rtchg, rt, &dt2, tptr);
         eoi_pulse_set();
         eoi_selector = cur_script_selector;
-        eoi_selector_inited = true;
         eoi_lastdt = cur_rtc;
         eoi_processed = 1;
     }

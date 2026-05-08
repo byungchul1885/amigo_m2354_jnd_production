@@ -922,6 +922,33 @@ static float lprt_phase_sum_c;
 static float lprt_vphase_ab_sum;
 static float lprt_vphase_ac_sum;
 
+/* V31-fix-260430: RT_LP catch-up backfill state. */
+#define LPRT_BACKFILL_CAP_SEC 5
+#define LPRT_BACKFILL_INTV_MIN 1
+#define LPRT_BACKFILL_INTV_MAX 3
+static uint8_t rt_lp_skip_count = 0;
+static uint8_t rt_lp_skip_first_after_inflection = 0;
+
+#define LPRT_BACKFILL_ENABLED()                                      \
+    (rt_lp_interval >= LPRT_BACKFILL_INTV_MIN &&                     \
+     rt_lp_interval <= LPRT_BACKFILL_INTV_MAX)
+
+static void date_time_subtract_sec(date_time_type *dt, uint16_t sec_back)
+{
+    int32_t total_sec = (int32_t)dt->hour * 3600 + (int32_t)dt->min * 60 +
+                        (int32_t)dt->sec - (int32_t)sec_back;
+
+    while (total_sec < 0)
+    {
+        total_sec += 86400;
+        date_down(dt, 1);
+    }
+
+    dt->hour = (uint8_t)(total_sec / 3600);
+    dt->min = (uint8_t)((total_sec % 3600) / 60);
+    dt->sec = (uint8_t)(total_sec % 60);
+}
+
 static void lp_rtsum_init(void)
 {
     lprt__cnt = 0;
@@ -962,6 +989,9 @@ void LPrt_reset(void)
 
 void pwrtn_LPrt_proc(pwrfail_info_type *pfinfo)
 {
+    rt_lp_skip_count = 0;
+    rt_lp_skip_first_after_inflection = 1;
+
     LPrt_save(&pfinfo->dt);
 
     LPrt_init();
@@ -969,6 +999,9 @@ void pwrtn_LPrt_proc(pwrfail_info_type *pfinfo)
 
 void timechg_LPrt_proc(date_time_type *bf, date_time_type *af)
 {
+    rt_lp_skip_count = 0;
+    rt_lp_skip_first_after_inflection = 1;
+
     LPrt_save(bf);
     LPrt_init();
     af = bf;
@@ -1067,7 +1100,76 @@ LPrt_proc1:
         {
             tdt.sec = 0;
         }
-        LPrt_save(&tdt);
+
+        if (rt_lp_skip_first_after_inflection)
+        {
+            rt_lp_skip_first_after_inflection = 0;
+            rt_lp_skip_count = 0;
+
+            if (lprt__cnt > 0)
+            {
+                LPrt_save(&tdt);
+            }
+
+            LPrt_init();
+
+            if (rt_lp_interval == 1)
+            {
+                if ((lprt__index % 5) == 0)
+                    dsm_data_noti_lastRtLP_evt_send();
+            }
+            else
+            {
+                dsm_data_noti_lastRtLP_evt_send();
+            }
+
+            b_lprt_monitor = false;
+            return;
+        }
+
+        if (lprt__cnt == 0)
+        {
+            if (LPRT_BACKFILL_ENABLED() && lprt__index > 0)
+            {
+                if ((uint16_t)(rt_lp_skip_count + 1) * rt_lp_interval <=
+                    LPRT_BACKFILL_CAP_SEC)
+                {
+                    rt_lp_skip_count++;
+                }
+                else
+                {
+                    rt_lp_skip_count = 0;
+                }
+            }
+            else
+            {
+                rt_lp_skip_count = 0;
+            }
+        }
+        else
+        {
+            if (LPRT_BACKFILL_ENABLED() && lprt__index > 0)
+            {
+                while (rt_lp_skip_count > 0)
+                {
+                    date_time_type backfill_tdt = tdt;
+                    date_time_subtract_sec(
+                        &backfill_tdt,
+                        (uint16_t)rt_lp_skip_count * rt_lp_interval);
+                    backfill_tdt.sec =
+                        (uint8_t)((backfill_tdt.sec / rt_lp_interval) *
+                                  rt_lp_interval);
+                    LPrt_save(&backfill_tdt);
+                    rt_lp_skip_count--;
+                }
+            }
+            else
+            {
+                rt_lp_skip_count = 0;
+            }
+
+            LPrt_save(&tdt);
+        }
 
         LPrt_init();
 

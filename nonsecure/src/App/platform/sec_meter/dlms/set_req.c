@@ -1131,7 +1131,27 @@ static bool parse_dayid_struct(tou_struct_type* touconf)
     packed_idx += 1;  // tag
     ToH16((U8_16*)&t16, &packed_ptr[packed_idx]);
 #if defined(FEATURE_TOU_8RATE)
+    /* V32-fix-260430 BUG-6: accept only non-zero low byte selector. */
     touconf->script_selector = (uint8_t)(t16 & 0xff);
+    if (t16 > 0xFF)
+    {
+        DPRINTF(DBG_WARN,
+                _D "BUG-6 WARN: upper byte non-zero, raw=0x%04X -> truncated=0x%02X\r\n",
+                (unsigned int)t16, (unsigned int)touconf->script_selector);
+    }
+    if (touconf->script_selector == 0)
+    {
+        DPRINTF(DBG_ERR,
+                _D "BUG-6 REJECT: invalid script_selector low byte=0x00 (raw t16=0x%04X) -> DATA_NG\r\n",
+                (unsigned int)t16);
+        ret = false;
+    }
+    else
+    {
+        DPRINTF(DBG_TRACE,
+                _D "BUG-6 ACCEPT: script_selector=0x%02X (raw t16=0x%04X)\r\n",
+                (unsigned int)touconf->script_selector, (unsigned int)t16);
+    }
 #else
     touconf->rate = (uint8_t)(t16 & 0xff);
 #endif
@@ -1167,6 +1187,18 @@ static void parse_dayprof(uint8_t* cp, dayid_table_type* parse)
         packed_idx += 2;  // struct of (day_id, day_table)
 
         PARSE_U8(parse->day_id);
+        if (parse->day_id >= DAY_PROF_SIZE)
+        {
+            DPRINTF(DBG_ERR,
+                    _D "BUG-9 REJECT: day_id=%u out of range (max %u) -> DATA_NG\r\n",
+                    (unsigned int)parse->day_id,
+                    (unsigned int)(DAY_PROF_SIZE - 1));
+            appl_resp_result = SET_RESULT_DATA_NG;
+            appl_set_save_result = 1;
+            break;
+        }
+        DPRINTF(DBG_TRACE, _D "BUG-9 ACCEPT: day_id=%u\r\n",
+                (unsigned int)parse->day_id);
 
         PARSE_ARRAY(t8);
         if (t8 > MAX_TOU_DIV_DLMS)
@@ -1175,19 +1207,33 @@ static void parse_dayprof(uint8_t* cp, dayid_table_type* parse)
         chk_point = 0;
 
         conf_cnt = t8;
-        for (i = 0; i < t8; i++)
         {
-            if (parse_dayid_struct(&parse->tou_conf[i]) == false)
+            bool inner_failed = false;
+
+            for (i = 0; i < t8; i++)
             {
-                if (chk_point == 0)
+                if (parse_dayid_struct(&parse->tou_conf[i]) == false)
                 {
-                    chk_point = 1;
-                    conf_cnt = i;
+                    appl_resp_result = SET_RESULT_DATA_NG;
+                    inner_failed = true;
+
+                    if (chk_point == 0)
+                    {
+                        chk_point = 1;
+                        conf_cnt = i;
+                    }
                 }
             }
-        }
 
-        parse->tou_conf_cnt = conf_cnt;
+            parse->tou_conf_cnt = conf_cnt;
+
+            if (inner_failed)
+            {
+                appl_resp_result = SET_RESULT_DATA_NG;
+                appl_set_save_result = 1;
+                return;
+            }
+        }
 
         nv_sub_info.ch[0] = parse->day_id;
         if (nv_write(I_DAY_PROFILE_DL, (uint8_t*)parse) == false)
@@ -1251,9 +1297,11 @@ static void parse_seasonprof(uint8_t* cp, season_date_type* parse)
     }
 }
 
-static void parse_weekprof_time(week_struct_type* parse)
+/* V32-fix-260430 BUG-9: reject out-of-range week day_id. */
+static bool parse_weekprof_time(week_struct_type* parse)
 {
     int i;
+    uint8_t v;
 
     packed_idx += 2;  // struct tag
     // week name
@@ -1264,8 +1312,21 @@ static void parse_weekprof_time(week_struct_type* parse)
     for (i = 0; i < WEEK_LEN; i++)
     {
         packed_idx += 1;                              // tag
-        parse->day_id[i] = packed_ptr[packed_idx++];  // MON = 1, TUE = 2....
+        v = packed_ptr[packed_idx++];  // MON = 1, TUE = 2....
+        if (v >= DAY_PROF_SIZE)
+        {
+            DPRINTF(DBG_ERR,
+                    _D "BUG-9 REJECT: week.day_id[%d]=%u out of range (max %u) -> DATA_NG\r\n",
+                    i, (unsigned int)v,
+                    (unsigned int)(DAY_PROF_SIZE - 1));
+            return false;
+        }
+        parse->day_id[i] = v;
     }
+    DPRINTF(DBG_TRACE,
+            _D "BUG-9 ACCEPT: week_id=%u, day_id[0..6] OK\r\n",
+            (unsigned int)parse->week_id);
+    return true;
 }
 
 static void parse_weekprof(uint8_t* cp, week_date_type* parse)
@@ -1281,7 +1342,12 @@ static void parse_weekprof(uint8_t* cp, week_date_type* parse)
 
     for (i = 0; i < parse->cnt; i++)
     {
-        parse_weekprof_time(&parse->week[i]);
+        if (parse_weekprof_time(&parse->week[i]) == false)
+        {
+            appl_resp_result = SET_RESULT_DATA_NG;
+            appl_set_save_result = 1;
+            break;
+        }
     }
 }
 
@@ -1334,6 +1400,18 @@ static void parse_holidays(uint8_t* cp, holiday_date_type* parse)
 
         // index
         PARSE_U16(t16);
+        if (t16 >= HOLIDAY_LEN)
+        {
+            DPRINTF(DBG_ERR,
+                    _D "BUG-9 REJECT: holiday_idx=%u out of range (max %u) -> DATA_NG\r\n",
+                    (unsigned int)t16, (unsigned int)(HOLIDAY_LEN - 1));
+            appl_resp_result = SET_RESULT_DATA_NG;
+            appl_set_save_result = 1;
+            break;
+        }
+        DPRINTF(DBG_TRACE, _D "BUG-9 ACCEPT: holiday_idx=%u\r\n",
+                (unsigned int)t16);
+
         blknum = t16 / HOLIDAYS_PER_BLOCK;
         idx = t16 % HOLIDAYS_PER_BLOCK;
 
@@ -3036,6 +3114,18 @@ static void obset_lp_interval(int idx)
     if (appl_msg[idx] == UNSIGNED_TAG)
     {
         t8 = appl_msg[idx + 1];
+        if (t8 != 1 && t8 != 5 && t8 != 10 && t8 != 15 && t8 != 30 &&
+            t8 != 60)
+        {
+            DPRINTF(DBG_ERR,
+                    _D "BUG-8 REJECT (DLMS SET): lp_interval=%u not in {1,5,10,15,30,60} -> DATA_NG\r\n",
+                    (unsigned int)t8);
+            appl_resp_result = SET_RESULT_DATA_NG;
+            return;
+        }
+        DPRINTF(DBG_TRACE, _D "BUG-8 ACCEPT (DLMS SET): lp_interval=%u\r\n",
+                (unsigned int)t8);
+
         if (act_is_progdl_cmd())
         {
             prog_dl.lp_intv = t8;
@@ -3079,8 +3169,12 @@ static void obset_lpavg_interval(int idx)
     if (appl_msg[idx] == UNSIGNED_TAG)
     {
         t8 = appl_msg[idx + 1];
-        if (!LPAVG_INTERVAL_IS_VALID(t8))
+        if (t8 != 1 && t8 != 5 && t8 != 10 && t8 != 15 && t8 != 30 &&
+            t8 != 60)
         {
+            DPRINTF(DBG_ERR,
+                    _D "BUG-4 REJECT (DLMS SET): lpavg_interval=%u not in {1,5,10,15,30,60} -> DATA_NG\r\n",
+                    (unsigned int)t8);
             appl_resp_result = SET_RESULT_DATA_NG;
             return;
         }
@@ -3289,23 +3383,27 @@ static void obset_tou_cal(int idx)
     case 0x08: /* week profile table passive */
         week = (week_date_type*)appl_tbuff;
         parse_weekprof(&appl_msg[idx], week);
-        if (nv_write(I_WEEK_PROFILE_DL, appl_tbuff))
+        if (!appl_set_save_result)
         {
-            pdl_set_bits |= SETBITS_TOU_WEEK;
-
-            touset_parse_weekprof(&appl_msg[idx]);
-            touset_array_entry_idx = 0xffff;
-
-            if (touset_last_obj_set(appl_class_id, appl_obis.id, appl_att_id,
-                                    touset_array_entry_idx, touset_parse_buf,
-                                    touset_parse_idx) == false)
+            if (nv_write(I_WEEK_PROFILE_DL, appl_tbuff))
             {
-                appl_resp_result = SET_RESULT_DATA_NG;
+                pdl_set_bits |= SETBITS_TOU_WEEK;
+
+                touset_parse_weekprof(&appl_msg[idx]);
+                touset_array_entry_idx = 0xffff;
+
+                if (touset_last_obj_set(appl_class_id, appl_obis.id,
+                                        appl_att_id, touset_array_entry_idx,
+                                        touset_parse_buf,
+                                        touset_parse_idx) == false)
+                {
+                    appl_resp_result = SET_RESULT_DATA_NG;
+                }
             }
-        }
-        else
-        {
-            appl_resp_result = SET_RESULT_REQ_NG;
+            else
+            {
+                appl_resp_result = SET_RESULT_REQ_NG;
+            }
         }
         break;
 
@@ -5226,6 +5324,19 @@ uint32_t dsm_touETC_lp_interval(uint16_t att_id, uint8_t* p_val,
         if (p_val[idx] == UNSIGNED_TAG)
         {
             t8 = p_val[idx + 1];
+            if (t8 != 1 && t8 != 5 && t8 != 10 && t8 != 15 && t8 != 30 &&
+                t8 != 60)
+            {
+                DPRINTF(DBG_ERR,
+                        _D "BUG-8 REJECT (touETC image): lp_interval=%u -> DATA_NG, image abort\r\n",
+                        (unsigned int)t8);
+                appl_resp_result = SET_RESULT_DATA_NG;
+                return FALSE;
+            }
+            DPRINTF(DBG_TRACE,
+                    _D "BUG-8 ACCEPT (touETC image): lp_interval=%u\r\n",
+                    (unsigned int)t8);
+
             if (act_is_progdl_cmd())
             {
                 prog_dl.lp_intv = t8;

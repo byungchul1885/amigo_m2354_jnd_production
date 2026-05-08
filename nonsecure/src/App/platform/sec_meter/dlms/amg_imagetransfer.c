@@ -40,6 +40,14 @@
 */
 #define _D "[IMG] "
 
+static season_date_type g_image_buf_sp;
+static week_date_type g_image_buf_wp;
+static dayid_table_type g_image_buf_dp[DAY_PROF_SIZE];
+static uint8_t g_image_buf_dp_orig_cnt;
+static bool g_image_sp_seen;
+static bool g_image_wp_seen;
+static bool g_image_dp_seen;
+
 typedef enum
 {
     IMG_TRF_NOT_INITIATED,
@@ -1940,9 +1948,29 @@ uint32_t dsm_touSP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
     for (cnt = 0; cnt < season_info.cnt; cnt++)
     {
         name = pimg[idx++];
+        if (name >= SEASON_PROF_SIZE)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "BUG-9 REJECT (image SP): season name=%u >= "
+                    "SEASON_PROF_SIZE(%u) -> abort\r\n",
+                    name, SEASON_PROF_SIZE);
+            return FALSE;
+        }
+
         season_info.season[name].month = pimg[idx++];
         season_info.season[name].date = pimg[idx++];
         season_info.season[name].week_id = pimg[idx++];
+
+        if (season_info.season[name].week_id >= WEEK_PROF_SIZE)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "BUG-9 REJECT (image SP): season[%u].week_id=%u >= "
+                    "WEEK_PROF_SIZE(%u) -> abort\r\n",
+                    name, season_info.season[name].week_id, WEEK_PROF_SIZE);
+            return FALSE;
+        }
 
         DPRINTF(DBG_TRACE, "SP name[%d], month[%d], data[%d], week_id[%d]\r\n",
                 name, season_info.season[name].month,
@@ -1950,10 +1978,8 @@ uint32_t dsm_touSP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
                 season_info.season[name].week_id);
     }
 
-    if (nv_write(I_SEASON_PROFILE_DL, (uint8_t*)&season_info))
-    {
-        pdl_set_bits |= SETBITS_TOU_SEASON;
-    }
+    memcpy(&g_image_buf_sp, &season_info, sizeof(season_date_type));
+    g_image_sp_seen = true;
 
     *o_idx = idx;
 
@@ -1963,20 +1989,45 @@ uint32_t dsm_touSP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
 uint32_t dsm_touWP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
                                   ST_TOU_HEADER_INFO* p_hd)
 {
-    uint8_t cnt;
+    uint8_t cnt, original_cnt, di, v;
     uint16_t idx = 0;
 
     week_date_type week_info;
 
     week_info.cnt = pimg[idx++];
+    original_cnt = week_info.cnt;
 
     DPRINTF(DBG_TRACE, "%s: WP cnt[%d]\r\n", __func__, week_info.cnt);
+
+    if (week_info.cnt > WEEK_PROF_SIZE)
+    {
+        DPRINTF(DBG_WARN,
+                _D
+                "BUG-9d CLAMP+SKIP (image WP): cnt=%u > WEEK_PROF_SIZE(%u), "
+                "%u entry skipped\r\n",
+                week_info.cnt, WEEK_PROF_SIZE,
+                week_info.cnt - WEEK_PROF_SIZE);
+        week_info.cnt = WEEK_PROF_SIZE;
+    }
 
     for (cnt = 0; cnt < week_info.cnt; cnt++)
     {
         week_info.week[cnt].week_id = pimg[idx++];
-        memcpy(week_info.week[cnt].day_id, &pimg[idx], WEEK_LEN);
-        idx += WEEK_LEN;
+
+        for (di = 0; di < WEEK_LEN; di++)
+        {
+            v = pimg[idx++];
+            if (v >= DAY_PROF_SIZE)
+            {
+                DPRINTF(DBG_ERR,
+                        _D
+                        "BUG-9 REJECT (image WP): week[%u].day_id[%u]=%u >= "
+                        "DAY_PROF_SIZE(%u) -> abort\r\n",
+                        cnt, di, v, DAY_PROF_SIZE);
+                return FALSE;
+            }
+            week_info.week[cnt].day_id[di] = v;
+        }
 
         DPRINTF(DBG_TRACE, "week[%d], week_id[%d]\r\n", cnt,
                 week_info.week[cnt].week_id);
@@ -1984,10 +2035,13 @@ uint32_t dsm_touWP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
                    DUMP_ALWAYS);
     }
 
-    if (nv_write(I_WEEK_PROFILE_DL, (uint8_t*)&week_info))
+    if (original_cnt > WEEK_PROF_SIZE)
     {
-        pdl_set_bits |= SETBITS_TOU_WEEK;
+        idx += (original_cnt - WEEK_PROF_SIZE) * (1 + WEEK_LEN);
     }
+
+    memcpy(&g_image_buf_wp, &week_info, sizeof(week_date_type));
+    g_image_wp_seen = true;
 
     *o_idx = idx;
 
@@ -2017,7 +2071,7 @@ void dsm_set_day_id_backup(ST_IMG_DAY_ID_BACKUP* back, uint8_t day_id)
 uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
                                   ST_TOU_HEADER_INFO* p_hd)
 {
-    uint8_t cnt, cnt2, dp_cnt;
+    uint8_t cnt, cnt2, dp_cnt, sel_v32;
     uint16_t idx = 0;
 
     dayid_table_type dayid_info;
@@ -2038,6 +2092,16 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
         dayid_info.day_id = pimg[idx++];
         dayid_info.tou_conf_cnt = pimg[idx++];
 
+        if (dayid_info.day_id >= DAY_PROF_SIZE)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "BUG-9 REJECT (image DP): day_id=%u >= "
+                    "DAY_PROF_SIZE(%u) -> abort\r\n",
+                    dayid_info.day_id, DAY_PROF_SIZE);
+            return FALSE;
+        }
+
         dsm_set_day_id_backup(&st_backup, dayid_info.day_id);
 
         DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
@@ -2051,7 +2115,17 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
             dayid_info.tou_conf[cnt2].hour = pimg[idx++];
             dayid_info.tou_conf[cnt2].min = pimg[idx++];
 #if defined(FEATURE_TOU_8RATE)
-            dayid_info.tou_conf[cnt2].script_selector = (uint8_t)pimg[idx++];
+            sel_v32 = pimg[idx++];
+            if (sel_v32 == 0x00)
+            {
+                DPRINTF(DBG_ERR,
+                        _D
+                        "BUG-6 REJECT (image DP): script_selector=0x00 "
+                        "day_id=%u cnt2=%u -> abort\r\n",
+                        dayid_info.day_id, cnt2);
+                return FALSE;
+            }
+            dayid_info.tou_conf[cnt2].script_selector = sel_v32;
 #else
             dayid_info.tou_conf[cnt2].rate = pimg[idx++];
 #endif
@@ -2069,9 +2143,10 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
 #endif
         }
 
-        nv_sub_info.ch[0] = dayid_info.day_id;
-        nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
+        memcpy(&g_image_buf_dp[cnt], &dayid_info, sizeof(dayid_table_type));
     }
+
+    g_image_buf_dp_orig_cnt = dp_cnt;
 
     for (cnt = 0; cnt < DAY_PROF_SIZE; cnt++)
     {
@@ -2105,12 +2180,16 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
                         dayid_info.tou_conf[cnt2].rate);
 #endif
             }
-            nv_sub_info.ch[0] = dayid_info.day_id;
-            nv_write(I_DAY_PROFILE_DL, (uint8_t*)&dayid_info);
+            if (g_image_buf_dp_orig_cnt < DAY_PROF_SIZE)
+            {
+                memcpy(&g_image_buf_dp[g_image_buf_dp_orig_cnt], &dayid_info,
+                       sizeof(dayid_table_type));
+                g_image_buf_dp_orig_cnt++;
+            }
         }
     }
 
-    pdl_set_bits |= SETBITS_TOU_DAY;
+    g_image_dp_seen = true;
 
     *o_idx = idx;
 
@@ -2198,6 +2277,16 @@ uint32_t dsm_touSDT_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
         year_off = ((pt8[SDT_B1] >> 2) & MASK_6BITS);
         index = (pt8[SDT_B2]) | ((pt8[SDT_B3] & MASK_1BIT) << 8);
         day_id = (pt8[SDT_B3] >> 4) & MASK_4BITS;
+
+        if (day_id >= DAY_PROF_SIZE)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "BUG-9 REJECT (%s): holiday day_id=%u >= "
+                    "DAY_PROF_SIZE(%u) cnt=%u -> abort\r\n",
+                    __func__, day_id, DAY_PROF_SIZE, cnt);
+            return FALSE;
+        }
 
         idx += 4;
 
@@ -2492,6 +2581,12 @@ uint32_t dsm_touBody_parserNprocess(uint8_t* pimg, ST_TOU_HEADER_INFO* p_hd)
     uint8_t item = 0;
     uint8_t delimeter[3] = {0xCA, 0xCA, 0xCA};
     uint32_t crc32_calculator;
+    uint16_t body_end;
+
+    g_image_sp_seen = false;
+    g_image_wp_seen = false;
+    g_image_dp_seen = false;
+    g_image_buf_dp_orig_cnt = 0;
 
     // 1. body length
     ToH16((U8_16_32*)&tou_body.body_len, &pimg[idx]);
@@ -2499,6 +2594,17 @@ uint32_t dsm_touBody_parserNprocess(uint8_t* pimg, ST_TOU_HEADER_INFO* p_hd)
 
     // DPRINTF(DBG_TRACE, "Body_len[%d]\r\n", tou_body.body_len);
     DPRINTF(DBG_TRACE, "BLEN[%d]\r\n", tou_body.body_len);
+
+    if (tou_body.body_len > TOU_IMAGE_MAX_SIZE ||
+        tou_body.body_len < IMAGE_NAME_MAX_SIZE)
+    {
+        DPRINTF(DBG_ERR,
+                _D "V35 D: body_len=%u out of range [%u, %u] -> abort\r\n",
+                tou_body.body_len, IMAGE_NAME_MAX_SIZE, TOU_IMAGE_MAX_SIZE);
+        return FALSE;
+    }
+
+    body_end = 2 + tou_body.body_len;
 
     // crc check
     crc32_calculator = crc32_get(&pimg[idx], tou_body.body_len);
@@ -2532,14 +2638,41 @@ uint32_t dsm_touBody_parserNprocess(uint8_t* pimg, ST_TOU_HEADER_INFO* p_hd)
 
     while (1)
     {
-        if ((idx - 2) >= tou_body.body_len)
+        if (idx == body_end)
         {
             break;
+        }
+        if (idx > body_end)
+        {
+            DPRINTF(DBG_ERR,
+                    _D "V35 D: idx overshoot, idx=%u > body_end=%u -> abort\r\n",
+                    idx, body_end);
+            return FALSE;
+        }
+
+        if (body_end - idx < 3)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "V35 D: insufficient bytes for delimiter, idx=%u "
+                    "body_end=%u -> abort\r\n",
+                    idx, body_end);
+            return FALSE;
         }
 
         if (!memcmp(&pimg[idx], delimeter, 3))
         {
             idx += 3;
+
+            if (idx >= body_end)
+            {
+                DPRINTF(DBG_ERR,
+                        _D
+                        "V35 D: missing item type byte after delimiter, idx=%u "
+                        "body_end=%u -> abort\r\n",
+                        idx, body_end);
+                return FALSE;
+            }
 
             item = pimg[idx++];
 
@@ -2547,25 +2680,57 @@ uint32_t dsm_touBody_parserNprocess(uint8_t* pimg, ST_TOU_HEADER_INFO* p_hd)
             {
             case TOU_IMG_ASP:
                 /* Season Profile */
-                dsm_touSP_parserNprocess(&pimg[idx], &o_idx, p_hd);
+                if (dsm_touSP_parserNprocess(&pimg[idx], &o_idx, p_hd) ==
+                    FALSE)
+                {
+                    DPRINTF(DBG_ERR,
+                            _D
+                            "BUG-9: TOU image SP parse FAIL -> abort image "
+                            "transfer\r\n");
+                    return FALSE;
+                }
                 idx += o_idx;
 
                 break;
             case TOU_IMG_AWP:
                 /* Week Profile */
-                dsm_touWP_parserNprocess(&pimg[idx], &o_idx, p_hd);
+                if (dsm_touWP_parserNprocess(&pimg[idx], &o_idx, p_hd) ==
+                    FALSE)
+                {
+                    DPRINTF(DBG_ERR,
+                            _D
+                            "BUG-9: TOU image WP parse FAIL -> abort image "
+                            "transfer\r\n");
+                    return FALSE;
+                }
                 idx += o_idx;
 
                 break;
             case TOU_IMG_ADP:
                 /* Day Profile */
-                dsm_touDP_parserNprocess(&pimg[idx], &o_idx, p_hd);
+                if (dsm_touDP_parserNprocess(&pimg[idx], &o_idx, p_hd) ==
+                    FALSE)
+                {
+                    DPRINTF(DBG_ERR,
+                            _D
+                            "BUG-6/BUG-9: TOU image DP parse FAIL -> abort "
+                            "image transfer\r\n");
+                    return FALSE;
+                }
                 idx += o_idx;
 
                 break;
             case TOU_IMG_ASDT:
                 /* Special Days Table : 정기/비정기 휴일 */
-                dsm_touSDT_parserNprocess(&pimg[idx], &o_idx, p_hd);
+                if (dsm_touSDT_parserNprocess(&pimg[idx], &o_idx, p_hd) ==
+                    FALSE)
+                {
+                    DPRINTF(DBG_ERR,
+                            _D
+                            "BUG-9: TOU image SDT parse FAIL -> abort image "
+                            "transfer\r\n");
+                    return FALSE;
+                }
                 idx += o_idx;
 
                 break;
@@ -2574,12 +2739,78 @@ uint32_t dsm_touBody_parserNprocess(uint8_t* pimg, ST_TOU_HEADER_INFO* p_hd)
                 idx += o_idx;
 
                 break;
+            default:
+                DPRINTF(DBG_ERR,
+                        _D
+                        "V35 D: unknown item type 0x%02X at idx=%u -> "
+                        "abort\r\n",
+                        item, idx);
+                return FALSE;
             }
             if (TOU_IMG_AETC == item)
             {
                 break;
             }
         }
+        else
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "V35 D: delimiter mismatch at idx=%u "
+                    "(got 0x%02X%02X%02X) -> abort\r\n",
+                    idx, pimg[idx], pimg[idx + 1], pimg[idx + 2]);
+            return FALSE;
+        }
+    }
+
+    if (!g_image_sp_seen || !g_image_wp_seen || !g_image_dp_seen)
+    {
+        DPRINTF(DBG_ERR,
+                _D
+                "V36 atomic: required section missing (SP=%d WP=%d DP=%d) "
+                "-> abort\r\n",
+                g_image_sp_seen, g_image_wp_seen, g_image_dp_seen);
+        return FALSE;
+    }
+
+    {
+        bool sp_ok, wp_ok, dp_all_ok = true;
+        uint8_t dp_i;
+
+        sp_ok = nv_write(I_SEASON_PROFILE_DL, (uint8_t*)&g_image_buf_sp);
+        wp_ok = nv_write(I_WEEK_PROFILE_DL, (uint8_t*)&g_image_buf_wp);
+        if (!sp_ok || !wp_ok)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "V37 atomic: Phase 2 SP/WP nv_write fail (SP=%d WP=%d) "
+                    "-> abort\r\n",
+                    sp_ok, wp_ok);
+            return FALSE;
+        }
+
+        for (dp_i = 0; dp_i < g_image_buf_dp_orig_cnt; dp_i++)
+        {
+            nv_sub_info.ch[0] = g_image_buf_dp[dp_i].day_id;
+            if (!nv_write(I_DAY_PROFILE_DL, (uint8_t*)&g_image_buf_dp[dp_i]))
+            {
+                DPRINTF(DBG_ERR,
+                        _D
+                        "V37 atomic: Phase 2 DP[%u] (day_id=%u) nv_write "
+                        "fail\r\n",
+                        dp_i, g_image_buf_dp[dp_i].day_id);
+                dp_all_ok = false;
+            }
+        }
+
+        if (!dp_all_ok)
+        {
+            return FALSE;
+        }
+
+        pdl_set_bits |= SETBITS_TOU_SEASON;
+        pdl_set_bits |= SETBITS_TOU_WEEK;
+        pdl_set_bits |= SETBITS_TOU_DAY;
     }
 
     return TRUE;

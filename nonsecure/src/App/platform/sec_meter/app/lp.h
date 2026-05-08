@@ -69,12 +69,9 @@
 #define LP_BUF_GAP 20
 #define LP_BUF_SIZE (LP_SIZE_UNI + LP_BUF_GAP)
 
-#define LPAVG_INTERVAL_IS_VALID(_v) \
-    (((_v) == 1) || ((_v) == 5) || ((_v) == 10) || ((_v) == 15) || \
-     ((_v) == 30) || ((_v) == 60))
-
 #define LPAVG_BUF_SIZE (LPAVG_SIZE + LP_BUF_GAP)
-#define LPRT_BUF_SIZE (LPRT_SIZE + LP_BUF_GAP)
+#define LPRT_BUF_GAP 60
+#define LPRT_BUF_SIZE (LPRT_SIZE + LPRT_BUF_GAP)
 
 #define NUM_LP_COL_UNI 6
 

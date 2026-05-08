@@ -571,7 +571,6 @@ static const uint8_t long_invokeID_priority[4] = {0xc0, 0x00, 0x00, 0x01};
 void appl_push_msg_errcode(void)
 {
     uint32_t EN_AT_FLAG = TRUE;
-    uint8_t blocked = 0;
 
     pPdu_idx = 0;
     // LLC header
@@ -626,51 +625,155 @@ void appl_push_msg_errcode(void)
         FILL_FLOAT(fval);
     }
 
-    DPRINT_HEX(DBG_TRACE, "ERRCODE_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
+    DPRINT_HEX(DBG_ERR, "ERRCODE_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
 
-    if (!dsm_push_is_enable(PUSH_SCRIPT_ID_ERR_CODE))
     {
-        DPRINTF(DBG_ERR, "ERRCODE PUSH disabled\r\n");
-        blocked = 1;
+        uint8_t e1 = 0;
+        uint8_t e2 = 0;
+        uint8_t e3 = 0;
+        uint8_t e4 = 0;
+
+        if (WMStatus & GE_NOBAT)
+            e1 |= 0x01;
+        if (WMStatus & WORK_BLACKOUT)
+            e1 |= 0x02;
+        if (IS_MorTCOVER_OPEN)
+            e1 |= 0x04;
+        if (IS_MAGNET_DET)
+            e1 |= 0x08;
+        if (WMStatus & SECURITY_ERR)
+            e1 |= 0x10;
+        if (WMStatus & PRE_PAID_OUT)
+            e1 |= 0x40;
+        if (WMStatus & POWER_FAIL_STS)
+            e1 |= 0x80;
+        if (WMStatus & CLOCK_UNSET)
+            e2 |= 0x01;
+        if (WMStatus & TEMPOVER)
+            e2 |= 0x08;
+        if (WMStatus & WRONG_CONN)
+            e2 |= 0x10;
+        if (WMStatus & STOVERIA)
+            e2 |= 0x20;
+        if (WMStatus & STOVERIB)
+            e2 |= 0x40;
+        if (WMStatus & STOVERIC)
+            e2 |= 0x80;
+        if (WMStatus & SAGVA)
+            e3 |= 0x01;
+        if (WMStatus & SAGVB)
+            e3 |= 0x02;
+        if (WMStatus & SAGVC)
+            e3 |= 0x04;
+        if (WMStatus & WRONG_NEUT)
+            e3 |= 0x08;
+        if (WMStatus & SELF_PLS_ERR)
+            e3 |= 0x10;
+        if (WMStatus & RELAY_ERRA)
+            e3 |= 0x20;
+        if (WMStatus & RELAY_ERRB)
+            e3 |= 0x40;
+        if (WMStatus & RELAY_ERRC)
+            e3 |= 0x80;
+        if (WMStatus & SWELL_STS)
+            e4 |= 0x01;
+        if (WMStatus & SAG_STS)
+            e4 |= 0x02;
+        if (WMStatus & LA_V_LOW)
+            e4 |= 0x04;
+        if (WMStatus & LB_V_LOW)
+            e4 |= 0x08;
+        if (WMStatus & LC_V_LOW)
+            e4 |= 0x10;
+        if (WMStatus & LA_V_HIGH)
+            e4 |= 0x20;
+        if (WMStatus & LB_V_HIGH)
+            e4 |= 0x40;
+        if (WMStatus & LC_V_HIGH)
+            e4 |= 0x80;
+
+        if (mt_is_onephase())
+        {
+            DPRINTF(DBG_ERR,
+                    "  ErrCode: E1:0x%02X E2:0x%02X E3:0x%02X E4:0x%02X "
+                    "V:%d.%d\r\n",
+                    e1, e2, e3, e4, (int)get_lpavg_v(0),
+                    (int)(get_lpavg_v(0) * 10) % 10);
+        }
+        else
+        {
+            DPRINTF(DBG_ERR,
+                    "  ErrCode: E1:0x%02X E2:0x%02X E3:0x%02X E4:0x%02X "
+                    "VA-B:%d.%d VB-C:%d.%d VC-A:%d.%d\r\n",
+                    e1, e2, e3, e4, (int)get_lpavg_v(0),
+                    (int)(get_lpavg_v(0) * 10) % 10, (int)get_lpavg_v(1),
+                    (int)(get_lpavg_v(1) * 10) % 10, (int)get_lpavg_v(2),
+                    (int)(get_lpavg_v(2) * 10) % 10);
+        }
     }
 
+    {
+        uint8_t blocked = 0;
+
+        if (!dsm_push_is_enable(PUSH_SCRIPT_ID_ERR_CODE))
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: PUSH disabled (mask off)\r\n");
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: PUSH enabled (OK)\r\n");
+        }
 #if defined(FEATURE_JP_485_PUSH_PROTECT)
-    if ((dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485) ||
-        (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE))
-    {
-        DPRINTF(DBG_ERR, "ERRCODE PUSH blocked: media=%s\r\n",
-                dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
-        blocked = 1;
-    }
+        if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485)
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: IF(485) blocked\r\n");
+            blocked = 1;
+        }
+        else if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE)
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: IF(NONE) blocked\r\n");
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: %s (OK)\r\n",
+                    dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
+        }
 #endif
+        if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: not ASSO 3 (conn=%d)\r\n",
+                    appl_get_conn_state());
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_ERR, "  ErrCode: ASSO 3 (OK)\r\n");
+        }
 
-    if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
-    {
-        DPRINTF(DBG_ERR, "ERRCODE PUSH blocked: conn=%d\r\n",
-                appl_get_conn_state());
-        blocked = 1;
+        if (!blocked)
+        {
+            if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
+            {
+                EN_AT_FLAG = TRUE;
+            }
+            if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
+            {
+                DPRINTF(DBG_ERR, "  ErrCode PUSH sent\r\n");
+            }
+            else
+            {
+                DPRINTF(DBG_ERR, "  ErrCode PUSH drop\r\n");
+            }
+            error_code_event_clear();
+        }
     }
-
-    if (blocked)
-        return;
-
-    if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
-    {
-        EN_AT_FLAG = TRUE;
-    }
-
-    if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
-        DPRINTF(DBG_ERR, "ERRCODE PUSH sent\r\n");
-    else
-        DPRINTF(DBG_ERR, "ERRCODE PUSH drop\r\n");
-
-    error_code_event_clear();
 }
 
 void appl_push_msg_lastLP(void)
 {
     uint32_t EN_AT_FLAG = TRUE;
-    uint8_t blocked = 0;
 
     pPdu_idx = 0;
     // LLC header
@@ -694,43 +797,86 @@ void appl_push_msg_lastLP(void)
     FILL_ARRAY(1);
     fill_last_lp_record();
 
-    DPRINT_HEX(DBG_TRACE, "LP_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
+    DPRINT_HEX(DBG_WARN, "LP_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
 
-    if (!dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP))
     {
-        DPRINTF(DBG_TRACE, "LastLP PUSH disabled\r\n");
-        blocked = 1;
+        lp_record_type* lprec;
+        date_time_type lpdt;
+
+        lp_last_record_data(appl_tbuff);
+        lprec = (lp_record_type*)appl_tbuff;
+        expand_time(&lpdt, &lprec->dt[0]);
+        DPRINTF(DBG_WARN,
+                "  LastLP: cnt:%d dt:20%02d-%02d-%02d %02d:%02d:%02d "
+                "evt:%02X%02X%02X%02X\r\n",
+                (int)lprec->lp_cnt, lpdt.year, lpdt.month, lpdt.date,
+                lpdt.hour, lpdt.min, lpdt.sec, lprec->evt[0], lprec->evt[1],
+                lprec->evt[2], lprec->evt[3]);
+        DPRINTF(DBG_WARN,
+                "  LastLP: DeliAct:%d DLagR:%d DLeadR:%d DeliApp:%d "
+                "ReceiAct:%d RLeadR:%d RLagR:%d ReceiApp:%d\r\n",
+                (int)lprec->ch[eChDeliAct], (int)lprec->ch[eChDLagReact],
+                (int)lprec->ch[eChDLeadReact], (int)lprec->ch[eChDeliApp],
+                (int)lprec->ch[eChReceiAct], (int)lprec->ch[eChRLeadReact],
+                (int)lprec->ch[eChRLagReact], (int)lprec->ch[eChReceiApp]);
     }
 
+    {
+        uint8_t blocked = 0;
+
+        if (!dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP))
+        {
+            DPRINTF(DBG_WARN, "  LastLP: PUSH disabled (mask off)\r\n");
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_WARN, "  LastLP: PUSH enabled (OK)\r\n");
+        }
 #if defined(FEATURE_JP_485_PUSH_PROTECT)
-    if ((dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485) ||
-        (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE))
-    {
-        DPRINTF(DBG_TRACE, "LastLP PUSH blocked: media=%s\r\n",
-                dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
-        blocked = 1;
-    }
+        if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485)
+        {
+            DPRINTF(DBG_WARN, "  LastLP: IF(485) blocked\r\n");
+            blocked = 1;
+        }
+        else if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE)
+        {
+            DPRINTF(DBG_WARN, "  LastLP: IF(NONE) blocked\r\n");
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_WARN, "  LastLP: %s (OK)\r\n",
+                    dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
+        }
 #endif
+        if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
+        {
+            DPRINTF(DBG_WARN, "  LastLP: not ASSO 3 (conn=%d)\r\n",
+                    appl_get_conn_state());
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_WARN, "  LastLP: ASSO 3 (OK)\r\n");
+        }
 
-    if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
-    {
-        DPRINTF(DBG_TRACE, "LastLP PUSH blocked: conn=%d\r\n",
-                appl_get_conn_state());
-        blocked = 1;
+        if (!blocked)
+        {
+            if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
+            {
+                EN_AT_FLAG = TRUE;
+            }
+            if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
+            {
+                DPRINTF(DBG_WARN, "  LastLP PUSH sent\r\n");
+            }
+            else
+            {
+                DPRINTF(DBG_WARN, "  LastLP PUSH drop\r\n");
+            }
+        }
     }
-
-    if (blocked)
-        return;
-
-    if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
-    {
-        EN_AT_FLAG = TRUE;
-    }
-
-    if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
-        DPRINTF(DBG_TRACE, "LastLP PUSH sent\r\n");
-    else
-        DPRINTF(DBG_TRACE, "LastLP PUSH drop\r\n");
 }
 
 extern void LPrt_energy_to_pPdu(uint8_t* recbuff);
@@ -741,7 +887,6 @@ void appl_push_msg_lastRtLP(void)
     uint8_t num_records;
     uint8_t i;
     uint8_t capobj_copy[PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE];
-    uint8_t blocked = 0;
 
     num_records = (rt_lp_interval == 1) ? 5 : 1;
     if (num_records > lprt__index)
@@ -807,78 +952,224 @@ void appl_push_msg_lastRtLP(void)
     }
 
     DPRINT_HEX(DBG_TRACE, "RT_LP_PUSH", &pPdu[0], pPdu_idx, DUMP_ALWAYS);
+    DPRINTF(DBG_TRACE, "  struct(2)\r\n");
+    DPRINTF(DBG_TRACE, "    capture_objects (%d bytes)\r\n",
+            PUSH_SETUP_LAST_RT_LP_CAPOBJ_SIZE);
+    DPRINTF(DBG_TRACE, "    array(%d) data_index:0x%04X\r\n", num_records,
+            (rt_lp_interval == 1) ? 0x1005 : 0x1001);
 
-    if (!dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_RT_LP))
     {
-        DPRINTF(DBG_TRACE, "RT_LP PUSH disabled\r\n");
-        blocked = 1;
+        uint8_t j;
+
+        for (j = 0; j < num_records; j++)
+        {
+            lprt_record_read(appl_tbuff, lprt__index - 1 - j, 1);
+            if (mt_is_onephase())
+            {
+                lprt_record_1phs* rec = (lprt_record_1phs*)appl_tbuff;
+                uint32_t* fp = (uint32_t*)rec->ch_2;
+                date_time_type rdt;
+
+                expand_time(&rdt, &rec->dt[0]);
+                DPRINTF(DBG_TRACE,
+                        "      [%d] struct(2) dt:20%02d-%02d-%02d "
+                        "%02d:%02d:%02d struct(8)\r\n",
+                        j + 1, rdt.year, rdt.month, rdt.date, rdt.hour,
+                        rdt.min, rdt.sec);
+                DPRINTF(DBG_TRACE,
+                        "          W+:%d.%d (0x%08X) W-:%d.%d (0x%08X) "
+                        "var+:%d.%d (0x%08X) var-:%d.%d (0x%08X)\r\n",
+                        (int)rec->ch_2[0], (int)(rec->ch_2[0] * 10) % 10,
+                        fp[0], (int)rec->ch_2[1],
+                        (int)(rec->ch_2[1] * 10) % 10, fp[1],
+                        (int)rec->ch_2[2],
+                        (int)(rec->ch_2[2] * 10) % 10, fp[2],
+                        (int)rec->ch_2[3],
+                        (int)(rec->ch_2[3] * 10) % 10, fp[3]);
+                DPRINTF(DBG_TRACE,
+                        "          V:%d.%d (0x%08X) I:%d.%03d (0x%08X) "
+                        "ph:%d.%d (0x%08X) freq:%d.%d (0x%08X)\r\n",
+                        (int)rec->ch_2[4], (int)(rec->ch_2[4] * 10) % 10,
+                        fp[4], (int)rec->ch_2[5],
+                        (int)(rec->ch_2[5] * 1000) % 1000, fp[5],
+                        (int)rec->ch_2[6],
+                        (int)(rec->ch_2[6] * 10) % 10, fp[6],
+                        (int)rec->ch_2[7],
+                        (int)(rec->ch_2[7] * 10) % 10, fp[7]);
+            }
+            else
+            {
+                lprt_record_3phs* rec = (lprt_record_3phs*)appl_tbuff;
+                uint32_t* fp = (uint32_t*)rec->ch_2;
+                date_time_type rdt;
+
+                expand_time(&rdt, &rec->dt[0]);
+                DPRINTF(DBG_TRACE,
+                        "      [%d] struct(2) dt:20%02d-%02d-%02d "
+                        "%02d:%02d:%02d struct(28)\r\n",
+                        j + 1, rdt.year, rdt.month, rdt.date, rdt.hour,
+                        rdt.min, rdt.sec);
+                DPRINTF(DBG_TRACE,
+                        "          sum W+:%d.%d(0x%08X) "
+                        "W-:%d.%d(0x%08X) var+:%d.%d(0x%08X) "
+                        "var-:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[0], (int)(rec->ch_2[0] * 10) % 10,
+                        fp[0], (int)rec->ch_2[1],
+                        (int)(rec->ch_2[1] * 10) % 10, fp[1],
+                        (int)rec->ch_2[2],
+                        (int)(rec->ch_2[2] * 10) % 10, fp[2],
+                        (int)rec->ch_2[3],
+                        (int)(rec->ch_2[3] * 10) % 10, fp[3]);
+                DPRINTF(DBG_TRACE,
+                        "          A: W+:%d.%d(0x%08X) W-:%d.%d(0x%08X) "
+                        "var+:%d.%d(0x%08X) var-:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[4], (int)(rec->ch_2[4] * 10) % 10,
+                        fp[4], (int)rec->ch_2[5],
+                        (int)(rec->ch_2[5] * 10) % 10, fp[5],
+                        (int)rec->ch_2[6],
+                        (int)(rec->ch_2[6] * 10) % 10, fp[6],
+                        (int)rec->ch_2[7],
+                        (int)(rec->ch_2[7] * 10) % 10, fp[7]);
+                DPRINTF(DBG_TRACE,
+                        "          B: W+:%d.%d(0x%08X) W-:%d.%d(0x%08X) "
+                        "var+:%d.%d(0x%08X) var-:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[8], (int)(rec->ch_2[8] * 10) % 10,
+                        fp[8], (int)rec->ch_2[9],
+                        (int)(rec->ch_2[9] * 10) % 10, fp[9],
+                        (int)rec->ch_2[10],
+                        (int)(rec->ch_2[10] * 10) % 10, fp[10],
+                        (int)rec->ch_2[11],
+                        (int)(rec->ch_2[11] * 10) % 10, fp[11]);
+                DPRINTF(DBG_TRACE,
+                        "          C: W+:%d.%d(0x%08X) W-:%d.%d(0x%08X) "
+                        "var+:%d.%d(0x%08X) var-:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[12],
+                        (int)(rec->ch_2[12] * 10) % 10, fp[12],
+                        (int)rec->ch_2[13],
+                        (int)(rec->ch_2[13] * 10) % 10, fp[13],
+                        (int)rec->ch_2[14],
+                        (int)(rec->ch_2[14] * 10) % 10, fp[14],
+                        (int)rec->ch_2[15],
+                        (int)(rec->ch_2[15] * 10) % 10, fp[15]);
+                DPRINTF(DBG_TRACE,
+                        "          A: V:%d.%d(0x%08X) I:%d.%03d(0x%08X) "
+                        "ph:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[16],
+                        (int)(rec->ch_2[16] * 10) % 10, fp[16],
+                        (int)rec->ch_2[17],
+                        (int)(rec->ch_2[17] * 1000) % 1000, fp[17],
+                        (int)rec->ch_2[18],
+                        (int)(rec->ch_2[18] * 10) % 10, fp[18]);
+                DPRINTF(DBG_TRACE,
+                        "          B: V:%d.%d(0x%08X) I:%d.%03d(0x%08X) "
+                        "ph:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[19],
+                        (int)(rec->ch_2[19] * 10) % 10, fp[19],
+                        (int)rec->ch_2[20],
+                        (int)(rec->ch_2[20] * 1000) % 1000, fp[20],
+                        (int)rec->ch_2[21],
+                        (int)(rec->ch_2[21] * 10) % 10, fp[21]);
+                DPRINTF(DBG_TRACE,
+                        "          C: V:%d.%d(0x%08X) I:%d.%03d(0x%08X) "
+                        "ph:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[22],
+                        (int)(rec->ch_2[22] * 10) % 10, fp[22],
+                        (int)rec->ch_2[23],
+                        (int)(rec->ch_2[23] * 1000) % 1000, fp[23],
+                        (int)rec->ch_2[24],
+                        (int)(rec->ch_2[24] * 10) % 10, fp[24]);
+                DPRINTF(DBG_TRACE,
+                        "          Vph_AB:%d.%d(0x%08X) "
+                        "Vph_AC:%d.%d(0x%08X) freq:%d.%d(0x%08X)\r\n",
+                        (int)rec->ch_2[25],
+                        (int)(rec->ch_2[25] * 10) % 10, fp[25],
+                        (int)rec->ch_2[26],
+                        (int)(rec->ch_2[26] * 10) % 10, fp[26],
+                        (int)rec->ch_2[27],
+                        (int)(rec->ch_2[27] * 10) % 10, fp[27]);
+            }
+        }
     }
 
+    {
+        uint8_t blocked = 0;
+
+        if (!dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_RT_LP))
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: PUSH disabled (mask off)\r\n");
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: PUSH enabled (OK)\r\n");
+        }
 #if defined(FEATURE_JP_485_PUSH_PROTECT)
-    if ((dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485) ||
-        (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE))
-    {
-        DPRINTF(DBG_TRACE, "RT_LP PUSH blocked: media=%s\r\n",
-                dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
-        blocked = 1;
-    }
+        if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485)
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: IF(485) blocked\r\n");
+            blocked = 1;
+        }
+        else if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_NONE)
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: IF(NONE) blocked\r\n");
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: %s (OK)\r\n",
+                    dsm_media_if_fsm_string(dsm_media_get_fsm_if_hdlc()));
+        }
 #endif
+        if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: not ASSO 3 (conn=%d)\r\n",
+                    appl_get_conn_state());
+            blocked = 1;
+        }
+        else
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP: ASSO 3 (OK)\r\n");
+        }
 
-    if (appl_get_conn_state() != APPL_ENC_SIGN_STATE)
-    {
-        DPRINTF(DBG_TRACE, "RT_LP PUSH blocked: conn=%d\r\n",
-                appl_get_conn_state());
-        blocked = 1;
+        if (blocked)
+        {
+            return;
+        }
+        if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
+        {
+            EN_AT_FLAG = TRUE;
+        }
+        if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP PUSH sent (%d records)\r\n",
+                    num_records);
+        }
+        else
+        {
+            DPRINTF(DBG_TRACE, "  RT_LP PUSH drop (%d records)\r\n",
+                    num_records);
+        }
     }
-
-    if (blocked)
-        return;
-
-    if (appl_is_sap_sec_utility() || appl_is_sap_sec_site())
-    {
-        EN_AT_FLAG = TRUE;
-    }
-
-    if (push_data_noti_send(EN_AT_FLAG, pPdu, pPdu_idx))
-        DPRINTF(DBG_TRACE, "RT_LP PUSH sent (%d records)\r\n", num_records);
-    else
-        DPRINTF(DBG_TRACE, "RT_LP PUSH drop (%d records)\r\n", num_records);
 }
 
 void dsm_push_data_noti_proc(uint32_t type)
 {
-    uint8_t push_idx = 0x00, dec;
+    uint8_t push_idx = 0x00;
+    uint16_t dec;
     ST_PUSH_SETUP* p_push_setup = NULL;
     uint32_t transfer_delay_ms;
 
     magnet_err_mon();
     tcover_open_mon();
-    if (dsm_media_get_fsm_if_hdlc() == MEDIA_RUN_RS485)
-    {
-        DPRINTF(DBG_ERR, "%s: Can't push: IF(485)\r\n", __func__);
-        return;
-    }
 
-    if (appl_get_conn_state() == APPL_ENC_SIGN_STATE)
     {
         if (PUSH_SCRIPT_ID_ERR_CODE == type)
         {
-            MSG07("dsm_push_data_noti_proc_1");
             /*
                 자기 진단 이벤트 발생시 push acti 학인 절차 필요.. 확인 후 push
                 차후 자기 진단 이벤트 처리 완료시 적용..
             */
-            if (appl_get_conn_state() == APPL_ENC_SIGN_STATE)
-            {
-                MSG07("dsm_push_data_noti_proc_2");
-                if (dsm_push_is_enable(PUSH_SCRIPT_ID_ERR_CODE))
-                {
-                    MSG07("dsm_push_data_noti_proc_3");
-                    appl_push_msg_errcode();
-                    DPRINTF(DBG_ERR, "%s -> appl_push_msg_errcode\r\n",
-                            __func__);
-                }
-            }
+            appl_push_msg_errcode();
         }
         else if (PUSH_SCRIPT_ID_LAST_RT_LP == type)
         {
@@ -894,67 +1185,58 @@ void dsm_push_data_noti_proc(uint32_t type)
                     dsm_meter_sw_timer_start(MT_SW_TIMER_PUSH_RT_LP_TO, FALSE,
                                              transfer_delay_ms);
 
-                    DPRINTF(DBG_TRACE,
-                            "%s: Push RT LP delay[%d sec, %d ms]\r\n",
-                            __func__, p_push_setup->random_start_intval,
+                    DPRINTF(DBG_TRACE, "  RT_LP delay: %d ms\r\n",
                             transfer_delay_ms);
                 }
+                else
+                {
+                    DPRINTF(DBG_ERR,
+                            "  RT_LP push lookup: get_info NULL\r\n");
+                }
+            }
+            else
+            {
+                DPRINTF(DBG_ERR,
+                        "  RT_LP push lookup: script_id not found\r\n");
             }
         }
         else if (PUSH_SCRIPT_ID_LAST_LP == type)
         {
-            if (appl_get_conn_state() == APPL_ENC_SIGN_STATE)
+            if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP, &push_idx))
             {
-                if (dsm_push_is_enable(PUSH_SCRIPT_ID_LAST_LP))
+                p_push_setup = dsm_push_setup_get_info(push_idx);
+                if (p_push_setup != NULL)
                 {
-                    if (dsm_push_setup_is_id(PUSH_SCRIPT_ID_LAST_LP,
-                                             &push_idx))
-                    {
-                        p_push_setup = dsm_push_setup_get_info(push_idx);
-                        if (p_push_setup != NULL)
-                        {
-                            dec = get_server_hdlc_addr_to_dec();
-                            /*
-                                동시 PUSH에 대한 충돌을 회피하기 위해 지정하는
-                               시간으로 random 알고리즘 에서 얻을 수 있는
-                               최대값을 정의함 (기본값은 10초)이며 원격에서
-                               설정 가능함, 단위는 초 단위임 예시) 10초
-                               설정에 계기 ID가 XXXXXXXXX99이면 지연시간은
-                               10*99/100 = 9.9초 이후 PUSH 전송 단, 자기진단의
-                               경우 감지 후 즉시 전송한다.
-                            */
+                    dec = get_server_hdlc_addr_to_dec();
+                    /*
+                        동시 PUSH에 대한 충돌을 회피하기 위해 지정하는 시간으로
+                       random 알고리즘 에서 얻을 수 있는 최대값을 정의함
+                        (기본값은 10초)이며 원격에서 설정 가능함, 단위는 초
+                       단위임 예시) 10초 설정에 계기 ID가 XXXXXXXXX99이면
+                        지연시간은 10*99/100 = 9.9초 이후 PUSH 전송
+                        단, 자기진단의 경우 감지 후 즉시 전송한다.
+                    */
 
-                            transfer_delay_ms =
-                                ((uint32_t)p_push_setup->random_start_intval *
-                                 dec) *
-                                10;  // milli-sec 라서 x10 함.
-                            dsm_meter_sw_timer_start(MT_SW_TIMER_PUSH_LP_TO,
-                                                     FALSE, transfer_delay_ms);
+                    transfer_delay_ms =
+                        ((p_push_setup->random_start_intval * dec) *
+                         10);  // milli-sec 라서 x10 함.
+                    dsm_meter_sw_timer_start(MT_SW_TIMER_PUSH_LP_TO, FALSE,
+                                             transfer_delay_ms);
 
-                            DPRINTF(DBG_TRACE,
-                                    "%s: Push LP delay[%d sec, %d ms]\r\n",
-                                    __func__,
-                                    p_push_setup->random_start_intval,
-                                    transfer_delay_ms);
-                        }
-                        else
-                        {
-                            DPRINTF(DBG_ERR, "%s: LastLP get_info NULL\r\n",
-                                    __func__);
-                        }
-                    }
-                    else
-                    {
-                        DPRINTF(DBG_ERR,
-                                "%s: LastLP script_id not found\r\n",
-                                __func__);
-                    }
+                    DPRINTF(DBG_WARN, "  LastLP delay: %d ms\r\n",
+                            transfer_delay_ms);
+                }
+                else
+                {
+                    DPRINTF(DBG_ERR,
+                            "  LastLP push lookup: get_info NULL\r\n");
                 }
             }
+            else
+            {
+                DPRINTF(DBG_ERR,
+                        "  LastLP push lookup: script_id not found\r\n");
+            }
         }
-    }
-    else
-    {
-        DPRINTF(DBG_ERR, "%s: Can't push: not ASSO 3\r\n", __func__);
     }
 }

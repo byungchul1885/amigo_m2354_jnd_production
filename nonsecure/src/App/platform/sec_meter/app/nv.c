@@ -21,9 +21,15 @@ nv_sub_info_type ram_sub_info;
 #define NVACS_DELAY_MS 100
 #define NVRETRY_DELAY_MS 500
 
+#define I_BOOT_PUSH_SW_ADDR 0x7FF00
+
 static void delay_for_nvreacs(void);
 
 extern uint32_t dsm_get_dm_out_measure_print_chkcount(void);
+
+/* V32-fix-260430 BUG-14: NV write failure stats, RAM-only. */
+uint32_t g_nv_write_fail_total = 0;
+uint8_t g_nv_last_fail_slot = 0;
 
 void inc_idx_cap_wear(void)
 {
@@ -453,7 +459,7 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
         break;
 
     case I_BOOT_PUSH_SW:
-        nv_pos = (uint32_t)&(nv_type_ptr->boot_push_sw);
+        nv_pos = (uint32_t)I_BOOT_PUSH_SW_ADDR;
         nv_size = sizeof(device_id_type);
         break;
 
@@ -1432,6 +1438,18 @@ bool nv_proc(nv_item_type nv_item, uint8_t* nv_data, bool wr)
                     break;
                 }
                 delay_for_nvreacs();
+            }
+
+            if (pstatus != HAL_OK)
+            {
+                g_nv_write_fail_total++;
+                g_nv_last_fail_slot = (uint8_t)nv_item;
+                DPRINTF(DBG_ERR,
+                        _D
+                        "BUG-14 NV write failed: slot=%u after %u retries "
+                        "(total=%lu) -- check EEPROM/SPI\r\n",
+                        (unsigned)nv_item, (unsigned)t3,
+                        (unsigned long)g_nv_write_fail_total);
             }
         }
         else /* false: read */

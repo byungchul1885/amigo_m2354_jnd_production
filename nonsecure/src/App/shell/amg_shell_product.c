@@ -49,7 +49,7 @@
 ******************************************************************************
 */
 
-static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
+static SHELL_ERR shell_product_default(uint32_t id, char* pParamStr,
                                        uint32_t size);
 /*
 ******************************************************************************
@@ -111,10 +111,10 @@ uint32_t g_product_mode = 0;
 *    FUNCTIONS
 ******************************************************************************
 */
-static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
+static SHELL_ERR shell_product_default(uint32_t id, char* pParamStr,
                                        uint32_t size)
 {
-    char *argv[36];
+    char* argv[36];
     uint32_t argc;
 
     if (size < /*4*/ 3)
@@ -163,44 +163,18 @@ static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
 
         if (!strcmp(argv[0], "cid"))
         {
-            ser_no_type serno;
-
-            get_cust_id((uint8_t *)&serno);
-            DPRINT_HEX(DBG_TRACE, "METER_SERIAL", serno.ser, SERIAL_NO_SIZE,
-                       DUMP_ALWAYS);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], /*"devid"*/ "ldn"))
         {
-            device_id_type dev;
-
-            nv_read(I_DEVICE_ID_KEPCO, (uint8_t *)&dev);
-            DPRINT_HEX(DBG_TRACE, "KEPCO_MGMT", dev.devid, DEVICE_ID_SIZE,
-                       DUMP_ALWAYS);
-
-            nv_read(I_DEVICE_ID, (uint8_t *)&dev);
-            DPRINT_HEX(DBG_TRACE, "DEVICE_MGMT", dev.devid, DEVICE_ID_SIZE,
-                       DUMP_ALWAYS);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "meterid"))
         {
-            uint8_t manuid[MANUF_ID_SIZE];
-
-            get_manuf_id(manuid);
-            DPRINT_HEX(DBG_TRACE, "METER_ID", manuid, MANUF_ID_SIZE,
-                       DUMP_ALWAYS);
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "time"))
         {
-            date_time_type dt = cur_rtc;
-
-            DPRINTF(DBG_TRACE, "GET TIME: 20%02d.%02d.%02d %02d:%02d:%02d\r\n",
-                    dt.year, dt.month, dt.date, dt.hour, dt.min, dt.sec);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "cert"))
@@ -209,17 +183,6 @@ static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
         }
         else if (!strcmp(argv[0], "temp"))
         {
-            float temp;
-            int32_t exponent, mantissa;
-            temp = get_inst_temp();
-            exponent = temp;
-            mantissa = (temp - exponent) * 1000;
-            if (mantissa < 0)
-            {
-                mantissa = (~mantissa) + 1;
-            }
-            DPRINTF(DBG_INFO, "Get Temp: %d.%03d\r\n", exponent,
-                    mantissa);  // fucking user print
             return SHELL_OK;
         }
     }
@@ -234,212 +197,24 @@ static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
 
             return SHELL_INVALID_CMD;
         }
-
         if (!strcmp(argv[0], "cid"))
         {
-            if (argc != 8)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            /* prod set custid 30 30 30 30 31 30 35 --> "0000105" <- serial
-             * number */
-            ser_no_type serno;
-
-            memset((uint8_t *)&serno, 0x00, sizeof(ser_no_type));
-
-            /* 계기 ID 일련번호 */
-            str_to_hex_uint8(argv[1], (uint8_t *)&serno.ser[0]);
-            str_to_hex_uint8(argv[2], (uint8_t *)&serno.ser[1]);
-            str_to_hex_uint8(argv[3], (uint8_t *)&serno.ser[2]);
-            str_to_hex_uint8(argv[4], (uint8_t *)&serno.ser[3]);
-            str_to_hex_uint8(argv[5], (uint8_t *)&serno.ser[4]);
-            str_to_hex_uint8(argv[6], (uint8_t *)&serno.ser[5]);
-            str_to_hex_uint8(argv[7], (uint8_t *)&serno.ser[6]);
-
-            set_cust_id(&serno);
-
-            DPRINT_HEX(DBG_TRACE, "METER_SERIAL", serno.ser, SERIAL_NO_SIZE,
-                       DUMP_ALWAYS);
-
-            /* software information */
-            dsm_sys_fwinfo_initial_set(true);  // external flash info
-
             return SHELL_OK;
         }
         if (!strcmp(argv[0], "cid2"))
         {
-            if (argc != 8)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            ser_no_type serno;
-
-            memset((uint8_t *)&serno, 0x00, sizeof(ser_no_type));
-
-#if 1 /* bccho, 2024-05-17 */
-            extern uint8_t SYS_TITLE_server[SYS_TITLE_LEN];
-            uint32_t ds_serial_no_32;
-
-            ds_serial_no_32 = SYS_TITLE_server[5];
-            ds_serial_no_32 <<= 8;
-            ds_serial_no_32 += SYS_TITLE_server[6];
-            ds_serial_no_32 <<= 8;
-            ds_serial_no_32 += SYS_TITLE_server[7];
-
-            serno.ser[0] = ds_serial_no_32 / 1000000;
-            ds_serial_no_32 %= 1000000;
-            serno.ser[1] = ds_serial_no_32 / 100000;
-            ds_serial_no_32 %= 100000;
-            serno.ser[2] = ds_serial_no_32 / 10000;
-            ds_serial_no_32 %= 10000;
-            serno.ser[3] = ds_serial_no_32 / 1000;
-            ds_serial_no_32 %= 1000;
-            serno.ser[4] = ds_serial_no_32 / 100;
-            ds_serial_no_32 %= 100;
-            serno.ser[5] = ds_serial_no_32 / 10;
-            ds_serial_no_32 %= 10;
-            serno.ser[6] = ds_serial_no_32;
-#else
-            memcpy((uint8_t *)&serno, (uint8_t *)&cli_buff[4], SERIAL_NO_SIZE);
-#endif
-
-            uint8_t byte_to_ascii(unsigned char a);
-            for (int idx = 0; idx < SERIAL_NO_SIZE; idx++)
-            {
-                serno.ser[idx] = byte_to_ascii(serno.ser[idx]);
-            }
-
-            set_cust_id(&serno);
-
-            DPRINT_HEX(DBG_TRACE, "METER_SERIAL", serno.ser, SERIAL_NO_SIZE,
-                       DUMP_ALWAYS);
-
-            /* software information */
-            dsm_sys_fwinfo_initial_set(true);  // external flash info
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], /*"devid"*/ "ldn"))
         {
-            if (argc != 10)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            /*
-                               y1 y2 m1 m2 d1 d2 A  V1 V2
-                prod set devid 32 30 30 39 30 38 41 33 30 --> "200908" 'A' "30"
-            */
-            /* Ref: whm.c, logical_device_name_r_kepco[], 제조 일자 +
-             * 제조관리번호 + 규격 버전, (ex) "220101A30" */
-            /* 통신 규격 - 2.3.2 논리적 장치명의 구조 (LDN: Logical Device Name)
-             * 및 3.4.2.3.1 COSEM 계기 식별자 참조 */
-            device_id_type dev;
-
-            /* 제조사 고유코드 */
-            dev.devid[0] = FLAG_ID1;
-            dev.devid[1] = FLAG_ID2;
-            dev.devid[2] = FLAG_ID3;
-
-            dev.devid[3] = ' ';
-
-            /* 제조 일자 */
-            str_to_hex_uint8(argv[1], (uint8_t *)&dev.devid[4]);
-            str_to_hex_uint8(argv[2], (uint8_t *)&dev.devid[5]);
-            str_to_hex_uint8(argv[3], (uint8_t *)&dev.devid[6]);
-            str_to_hex_uint8(argv[4], (uint8_t *)&dev.devid[7]);
-            str_to_hex_uint8(argv[5], (uint8_t *)&dev.devid[8]);
-            str_to_hex_uint8(argv[6], (uint8_t *)&dev.devid[9]);
-
-            /* 제조 관리번호 */
-            // dev.devid[10] = atoi(argv[7]);
-            str_to_hex_uint8(argv[7], (uint8_t *)&dev.devid[10]);
-
-            /* 향후 사용 */
-            dev.devid[11] = ' ';  // reserved
-            dev.devid[12] = ' ';  // reserved
-
-            /* LD(Logical Device) 번호 : 장치 관리용 = 1, 한전 관리용 = 2 */
-            dev.devid[13] = '2';  // 0x31: DEVICE_ID, 0x32: DEVICE_ID_KEPCO
-
-            /* 규격 버전 */  // 3.X 이상 : 보안 계기, 2.X : 비 보안 계기
-            str_to_hex_uint8(argv[8], (uint8_t *)&dev.devid[14]);
-            str_to_hex_uint8(argv[9], (uint8_t *)&dev.devid[15]);
-
-            nv_write(I_DEVICE_ID_KEPCO, (uint8_t *)&dev);  // 한전 관리용
-            DPRINT_HEX(DBG_TRACE, "KEPCO_MGMT", dev.devid, DEVICE_ID_SIZE,
-                       DUMP_ALWAYS);
-
-            dev.devid[13] = '1';
-            nv_write(I_DEVICE_ID, (uint8_t *)&dev);  // 장치 관리용
-            DPRINT_HEX(DBG_TRACE, "DEVICE_MGMT", dev.devid, DEVICE_ID_SIZE,
-                       DUMP_ALWAYS);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "time"))
         {
-            /* prod set time 22 08 30 20 10 59 */
-
-            date_time_type dt;
-
-            if (argc != 7)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            dt.year = atoi(argv[1]);   // YY
-            dt.month = atoi(argv[2]);  // MM
-            dt.date = atoi(argv[3]);   // DD
-            dt.hour = atoi(argv[4]);   // hh
-            dt.min = atoi(argv[5]);    // mm
-            dt.sec = atoi(argv[6]);    // ss
-
-            DPRINTF(DBG_TRACE, "SET TIME: 20%02d.%02d.%02d %02d:%02d:%02d\r\n",
-                    dt.year, dt.month, dt.date, dt.hour, dt.min, dt.sec);
-
-            write_rtc(&dt);
-            cur_rtc_update();
-
-            DPRINTF(DBG_TRACE, "CURR TIME: 20%02d.%02d.%02d %02d:%02d:%02d\r\n",
-                    cur_rtc.year, cur_rtc.month, cur_rtc.date, cur_rtc.hour,
-                    cur_rtc.min, cur_rtc.sec);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "fwinfo"))
         {
-            if (argc != 3)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-            uint32_t fw_size;
-            uint16_t fw_crc;
-            fw_size = strtoul(argv[1], 0, 16);
-            fw_crc = strtoul(argv[2], 0, 16);
-            DPRINTF(DBG_TRACE, "Size : 0x%08lX, CRC : 0x%04X\r\n", fw_size,
-                    fw_crc);
-            uint8_t temp[/*Page_Offset*/ 64] = {0};
-            //				CMD_READ(SFLASH_SYS_INFO_ADDR + Sector_Offset, temp,
-            // 6);
-            //// size, crc
-            CMD_SE(SFLASH_SYS_INFO_ADDR + Sector_Offset);
-            *((uint32_t *)&temp[0]) = fw_size;
-            *((uint16_t *)&temp[4]) = fw_crc;
-            dsm_imgtrfr_fwinfo_read(&temp[6], FWINFO_CUR_SYS);
-            CMD_PP(SFLASH_SYS_INFO_ADDR + Sector_Offset, temp,
-                   sizeof(ST_FW_INFO) + 6);
-            DPRINT_HEX(DBG_TRACE, "FW_INFO_INIT", temp, sizeof(ST_FW_INFO) + 6,
-                       DUMP_ALWAYS);
-
-            CMD_READ(SFLASH_SYS_INFO_ADDR, temp, 2);
-            DPRINT_HEX(DBG_TRACE, "FW_EXE", temp, 2, DUMP_ALWAYS);
-            CMD_SE(SFLASH_SYS_INFO_ADDR);
-            temp[0] = 0;  // fw init
-            CMD_PP(SFLASH_SYS_INFO_ADDR, temp, 2);
-            DPRINT_HEX(DBG_TRACE, "FW_EXE_INIT", temp, 2, DUMP_ALWAYS);
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "test_cert"))
@@ -450,147 +225,20 @@ static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
         {
             return SHELL_OK;
         }
-        // TODO: (WD) Release Information
         else if (!strcmp(argv[0], "sysinfo"))
         {
-            ST_FW_INFO fwinfo = {0};
-            uint8_t *rel_name = (uint8_t *)argv[1];
-            uint8_t i, len;
-
-            if (argc != 2)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-            len = strlen((const char *)rel_name);
-            if (len < 8 || len > 8)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            dsm_imgtrfr_fwinfo_read((uint8_t *)&fwinfo, FWINFO_CUR_SYS);
-
-            fwinfo.version[4] = rel_name[0];  // SOFTWARE_VERSION_H;
-            fwinfo.version[5] = rel_name[1];  // SOFTWARE_VERSION_L;
-
-            for (i = 0; i < 6; i++)
-            {
-                if (rel_name[i] < '0' || rel_name[i] > '9')
-                {
-                    return SHELL_INVALID_PARAM;
-                }
-                fwinfo.date_time[i] = rel_name[i + 2];  // YYMMDD
-            }
-            dsm_imgtrfr_fwinfo_write((uint8_t *)&fwinfo, FWINFO_CUR_SYS);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "mtpinfo"))
         {
-            ST_FW_INFO fwinfo = {0};
-            uint8_t *rel_name = (uint8_t *)argv[1];
-            uint8_t i, len;
-
-            if (argc != 2)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-            len = strlen((const char *)rel_name);
-            if (len < 8 || len > 8)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            dsm_imgtrfr_fwinfo_read((uint8_t *)&fwinfo, FWINFO_CUR_METER);
-
-            fwinfo.version[4] = rel_name[0];  // SOFTWARE_VERSION_H;
-            fwinfo.version[5] = rel_name[1];  // SOFTWARE_VERSION_L;
-
-            for (i = 0; i < 6; i++)
-            {
-                if (rel_name[i] < '0' || rel_name[i] > '9')
-                {
-                    return SHELL_INVALID_PARAM;
-                }
-                fwinfo.date_time[i] = rel_name[i + 2];  // YYMMDD
-            }
-            dsm_imgtrfr_fwinfo_write((uint8_t *)&fwinfo, FWINFO_CUR_METER);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "temp_reset"))
         {
-            if (argc != 1)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            float temp;
-            int32_t exponent, mantissa;
-
-            temp = get_inst_temp();
-            exponent = temp;
-            mantissa = (temp - exponent) * 1000;
-            if (mantissa < 0)
-            {
-                mantissa = (~mantissa) + 1;
-            }
-            DPRINTF(DBG_TRACE, "Before Temp: %d.%03d\r\n", exponent, mantissa);
-
-            temp_adj_data_type temp_adj = {0};
-            extern float adj_currtemp;
-
-            temp_adj.T_adj_temp = adj_currtemp = 0;
-            nv_write(I_ADJ_TEMP_DATA, (uint8_t *)&temp_adj);
-
-            temp = get_inst_temp();
-            exponent = temp;
-            mantissa = (temp - exponent) * 1000;
-            if (mantissa < 0)
-            {
-                mantissa = (~mantissa) + 1;
-            }
-            DPRINTF(DBG_TRACE, "After Temp: %d.%03d\r\n", exponent, mantissa);
-
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "temp"))
         {
-            if (argc != 2)
-            {
-                return SHELL_INVALID_PARAM;
-            }
-
-            float temp, correction;
-            int32_t exponent, mantissa;
-
-            temp = get_inst_temp();
-            exponent = temp;
-            mantissa = (temp - exponent) * 1000;
-            if (mantissa < 0)
-            {
-                mantissa = (~mantissa) + 1;
-            }
-            DPRINTF(DBG_TRACE, "Before Temp: %d.%03d\r\n", exponent, mantissa);
-
-            temp_adj_data_type temp_adj = {0};
-            extern float adj_currtemp;
-
-            correction = strtof(argv[1], 0);
-            /* current temp */
-            correction = correction - (temp - adj_currtemp);
-            // DPRINTF(DBG_TRACE, "Diff: %d\r\n", (int32_t)(correction*1000));
-            temp_adj.T_adj_temp = adj_currtemp = correction;
-            nv_write(I_ADJ_TEMP_DATA, (uint8_t *)&temp_adj);
-
-            temp = get_inst_temp();
-            exponent = temp;
-            mantissa = (temp - exponent) * 1000;
-            if (mantissa < 0)
-            {
-                mantissa = (~mantissa) + 1;
-            }
-            DPRINTF(DBG_TRACE, "After Temp: %d.%03d\r\n", exponent, mantissa);
-
             return SHELL_OK;
         }
     }
@@ -680,19 +328,10 @@ static SHELL_ERR shell_product_default(uint32_t id, char *pParamStr,
         {
             if (!strcmp(argv[0], "start"))
             {
-                cal_begin();
-                dsm_mtp_set_op_mode(MTP_OP_NORMAL);
-                dsm_mtp_set_fsm(MTP_FSM_CAL_ST);
-                dsm_mtp_fsm_send();
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "parm_sagswell"))
             {
-                dsm_mtp_set_op_mode(MTP_OP_NORMAL);
-                dsm_mtp_set_fsm(MTP_FSM_PARM_SET);
-                dsm_mtp_fsm_send();
-
                 return SHELL_OK;
             }
         }

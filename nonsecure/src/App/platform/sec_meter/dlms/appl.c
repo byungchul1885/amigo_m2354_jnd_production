@@ -121,6 +121,20 @@ typedef struct
     uint8_t grpt;
 } groupce_mt_type;
 
+/* V32-fix-260430 BUG-11: include T5~T8 OBIS discovery for 8-rate TOU. */
+#if defined(FEATURE_TOU_8RATE)
+#define NUM_GRPMT 72
+static const groupce_mt_type groupce_mt[NUM_GRPMT] = {
+    {1, 0},  {1, 1},  {1, 2},  {1, 3},  {1, 4},  {1, 5},  {1, 6},  {1, 7},
+    {1, 8},  {2, 0},  {2, 1},  {2, 2},  {2, 3},  {2, 4},  {2, 5},  {2, 6},
+    {2, 7},  {2, 8},  {5, 0},  {5, 1},  {5, 2},  {5, 3},  {5, 4},  {5, 5},
+    {5, 6},  {5, 7},  {5, 8},  {6, 0},  {6, 1},  {6, 2},  {6, 3},  {6, 4},
+    {6, 5},  {6, 6},  {6, 7},  {6, 8},  {7, 0},  {7, 1},  {7, 2},  {7, 3},
+    {7, 4},  {7, 5},  {7, 6},  {7, 7},  {7, 8},  {8, 0},  {8, 1},  {8, 2},
+    {8, 3},  {8, 4},  {8, 5},  {8, 6},  {8, 7},  {8, 8},  {9, 0},  {9, 1},
+    {9, 2},  {9, 3},  {9, 4},  {9, 5},  {9, 6},  {9, 7},  {9, 8},  {10, 0},
+    {10, 1}, {10, 2}, {10, 3}, {10, 4}, {10, 5}, {10, 6}, {10, 7}, {10, 8}};
+#else
 #define NUM_GRPMT 40
 static const groupce_mt_type groupce_mt[NUM_GRPMT] = {
     {1, 0}, {1, 1}, {1, 2}, {1, 3},  {1, 4},  {2, 0},  {2, 1},  {2, 2},
@@ -128,16 +142,29 @@ static const groupce_mt_type groupce_mt[NUM_GRPMT] = {
     {6, 1}, {6, 2}, {6, 3}, {6, 4},  {7, 0},  {7, 1},  {7, 2},  {7, 3},
     {7, 4}, {8, 0}, {8, 1}, {8, 2},  {8, 3},  {8, 4},  {9, 0},  {9, 1},
     {9, 2}, {9, 3}, {9, 4}, {10, 0}, {10, 1}, {10, 2}, {10, 3}, {10, 4}};
+#endif
 
 #define NUM_GRPCM 8
 static const uint8_t groupc_m[NUM_GRPCM] = {1, 2, 5, 6, 7, 8, 9, 10};
 
+/* V32-fix-260430 BUG-11: cumulative/max-demand sublocks use the same 8-rate tariff span. */
+#if defined(FEATURE_TOU_8RATE)
+#define NUM_GRPMT1 36
+static const groupce_mt_type groupce_mt1[NUM_GRPMT1] = {
+    {1, 0},  {1, 1},  {1, 2},  {1, 3},  {1, 4},  {1, 5},  {1, 6},  {1, 7},
+    {1, 8},  {2, 0},  {2, 1},  {2, 2},  {2, 3},  {2, 4},  {2, 5},  {2, 6},
+    {2, 7},  {2, 8},  {9, 0},  {9, 1},  {9, 2},  {9, 3},  {9, 4},  {9, 5},
+    {9, 6},  {9, 7},  {9, 8},  {10, 0}, {10, 1}, {10, 2}, {10, 3}, {10, 4},
+    {10, 5}, {10, 6}, {10, 7}, {10, 8},
+};
+#else
 #define NUM_GRPMT1 20
 static const groupce_mt_type groupce_mt1[NUM_GRPMT1] = {
     {1, 0}, {1, 1},  {1, 2},  {1, 3},  {1, 4},  {2, 0},  {2, 1},
     {2, 2}, {2, 3},  {2, 4},  {9, 0},  {9, 1},  {9, 2},  {9, 3},
     {9, 4}, {10, 0}, {10, 1}, {10, 2}, {10, 3}, {10, 4},
 };
+#endif
 
 #define NUM_GRPCM1 4
 static const uint8_t groupc_m1[NUM_GRPCM1] = {1, 2, 9, 10};

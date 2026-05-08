@@ -105,10 +105,6 @@ void dsm_mif_getreq_firmware_ver_data(void);
 
 static SHELL_ERR shell_peri_key(UINT32 id, char* pParamStr, UINT32 size)
 {
-    char* argv[36];
-    // UINT8   buff[32];
-    UINT32 argc;
-
     switch (id)
     {
     case 20:
@@ -230,7 +226,6 @@ static SHELL_ERR shell_peri_low_pwr_mode(UINT32 id, char* pParamStr,
                                          UINT32 size)
 {
     char* argv[36];
-    // UINT8   buff[32];
     UINT32 argc;
 
     switch (id)
@@ -350,61 +345,14 @@ static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size)
         {
             if (!strcmp(argv[0], "test"))
             {
-                UINT8 string_tx[51] =
-                    "EEPROM Test - ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-                UINT8 string_rx[50];  //, string_erase[50];
-
-                memset(string_rx, 0x00, 50);
-                DPRINTF2(DBG_TRACE, "EEPROM test vector: %s\r\n", string_tx);
-
-                dsm_eeprom_write(FALSE, 0, string_tx, 50);
-                OSTimeDly(OS_MS2TICK(10));
-                dsm_eeprom_read(0, string_rx, 50);
-                if (memcmp((uint8_t*)string_tx, (uint8_t*)string_rx, 50))
-                {
-                    DPRINTF2(DBG_TRACE,
-                             "low addressing of the memory array test : "
-                             "fail\r\n");
-                    DPRINT_HEX(DBG_TRACE, "E2P_RX", string_rx, 50, DUMP_ALWAYS);
-                }
-                else
-                {
-                    DPRINTF2(DBG_TRACE,
-                             "low addressing of the memory array test : "
-                             "success\r\n");
-                    DPRINT_HEX(DBG_TRACE, "E2P_RX", string_rx, 50, DUMP_ALWAYS);
-                }
-
-                // array test
-                dsm_eeprom_write(FALSE, 0x40000, string_tx, 50);
-                OSTimeDly(OS_MS2TICK(10));
-                dsm_eeprom_read(0x40000, string_rx, 50);
-
-                if (memcmp((uint8_t*)string_tx, (uint8_t*)string_rx, 50))
-                {
-                    DPRINTF2(DBG_TRACE,
-                             "high addressing of the memory array test : "
-                             "fail\r\n");
-                    DPRINT_HEX(DBG_TRACE, "E2P_RX", string_rx, 50, DUMP_ALWAYS);
-                }
-                else
-                {
-                    DPRINTF2(DBG_TRACE,
-                             "high addressing of the memory array test : "
-                             "success\r\n");
-                    DPRINT_HEX(DBG_TRACE, "E2P_RX", string_rx, 50, DUMP_ALWAYS);
-                }
-
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "init"))
             {
-                dsm_eeprom_init();
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "sizeof"))
             {
-                DPRINTF2(DBG_TRACE, "DATA_SIZE : %lX\r\n", sizeof(Nv_type));
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "pwr_on"))
@@ -423,10 +371,6 @@ static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size)
             {
                 if (!strcmp(argv[1], "chip"))
                 {
-                    DPRINTF2(DBG_TRACE, "FULL_CHIP_ERASE\r\n");
-                    dsm_eeprom_erase(0, 0x80000);  // 256KB * 2 EA
-                    PRINTF("\r\n!!!!CHIP_ERASE_COMPLETE\r\n");
-
                     return SHELL_OK;
                 }
             }
@@ -434,68 +378,16 @@ static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size)
         //
         else if (argc == 3)
         {
-            UINT8 buff[1024];
-            UINT32 addr, len, i;
-
-            memset(buff, 0x00, 1024);
-
             if (!strcmp(argv[0], "read"))
             {
-                addr = atoi(argv[1]);
-                len = atoi(argv[2]);
-
-                if (len > sizeof(buff))
-                {
-                    return SHELL_INVALID_PARAM;
-                }
-                // 256KB * 2 EA
-                else if ((addr + len) >
-                         /*0x80000*/ EEPROM_LIMIT)
-                {
-                    return SHELL_INVALID_PARAM;
-                }
-
-                dsm_eeprom_read(addr, buff, len);
-
-                DPRINT_HEX(DBG_TRACE, "E2P_READ", buff, len, DUMP_ALWAYS);
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "write"))
             {
-                addr = atoi(argv[1]);
-                len = atoi(argv[2]);
-
-                if (len > sizeof(buff))
-                {
-                    return SHELL_INVALID_PARAM;
-                }
-                // 256KB * 2 EA
-                else if ((addr + len) >
-                         /*0x80000*/ EEPROM_LIMIT)
-                {
-                    return SHELL_INVALID_PARAM;
-                }
-
-                for (i = 0; i < len; i++)
-                {
-                    if (i < 256)
-                        buff[i] = i;
-                    else
-                        buff[i] = i - 256;
-                }
-                dsm_eeprom_write(FALSE, addr, buff, len);
-
-                DPRINT_HEX(DBG_TRACE, "E2P_WRITE", buff, len, DUMP_ALWAYS);
                 return SHELL_OK;
             }
             else if (!strcmp(argv[0], "erase"))
             {
-                addr = atoi(argv[1]);
-                len = atoi(argv[2]);
-
-                dsm_eeprom_erase(addr, len);
-
-                DPRINT_HEX(DBG_TRACE, "E2P_ERASE", buff, len, DUMP_ALWAYS);
                 return SHELL_OK;
             }
         }
@@ -586,12 +478,10 @@ static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size)
 
         if (!strcmp(argv[0], "on"))
         {
-            rload_ctrl_set(1);  // load on and load ctrl state save
             return SHELL_OK;
         }
         else if (!strcmp(argv[0], "off"))
         {
-            rload_ctrl_set(0);  // load off and load ctrl state save
             return SHELL_OK;
         }
     }
@@ -680,25 +570,7 @@ static SHELL_ERR shell_peri_default(UINT32 id, char* pParamStr, UINT32 size)
 
     case 14:
     {  // zcd
-        if (size < 2)
-        {
-            return SHELL_INVALID_PARAM;
-        }
-
-        shell_arg_parse(pParamStr, &argc, argv, 1, ' ');
-
-        if (!strcmp(argv[0], "on"))
-        {
-            // dsm_zcd_on_485_off();
-            dsm_mif_zcd_on();
-            return SHELL_OK;
-        }
-        else if (!strncmp(argv[0], "off", 3))
-        {
-            // dsm_485_on_zcd_off();
-            dsm_mif_zcd_off();
-            return SHELL_OK;
-        }
+        return SHELL_OK;
     }
     break;
 
