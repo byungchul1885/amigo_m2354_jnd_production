@@ -198,6 +198,7 @@ bool is_good_date(date_time_type *dt);
 bool is_good_time(date_time_type *dt);
 bool is_good_date_time(date_time_type *dt);
 void set_billing_parm(uint8_t *parm);
+void set_billing_parm_srdr_only(uint8_t *parm);
 void rtn_billing_parm(uint8_t *parm);
 void dr_limit_time_clear(void);
 void DR_limit_adj(int32_t padj);

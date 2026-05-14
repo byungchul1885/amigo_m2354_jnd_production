@@ -122,7 +122,7 @@ typedef struct
 } groupce_mt_type;
 
 /* V32-fix-260430 BUG-11: include T5~T8 OBIS discovery for 8-rate TOU. */
-#if defined(FEATURE_TOU_8RATE)
+#if defined(FEATURE_TOU_8RATE) && !defined(FEATURE_SPEC_V33_DELIVERY)
 #define NUM_GRPMT 72
 static const groupce_mt_type groupce_mt[NUM_GRPMT] = {
     {1, 0},  {1, 1},  {1, 2},  {1, 3},  {1, 4},  {1, 5},  {1, 6},  {1, 7},
@@ -148,7 +148,7 @@ static const groupce_mt_type groupce_mt[NUM_GRPMT] = {
 static const uint8_t groupc_m[NUM_GRPCM] = {1, 2, 5, 6, 7, 8, 9, 10};
 
 /* V32-fix-260430 BUG-11: cumulative/max-demand sublocks use the same 8-rate tariff span. */
-#if defined(FEATURE_TOU_8RATE)
+#if defined(FEATURE_TOU_8RATE) && !defined(FEATURE_SPEC_V33_DELIVERY)
 #define NUM_GRPMT1 36
 static const groupce_mt_type groupce_mt1[NUM_GRPMT1] = {
     {1, 0},  {1, 1},  {1, 2},  {1, 3},  {1, 4},  {1, 5},  {1, 6},  {1, 7},
@@ -956,9 +956,11 @@ static const myobj_struct_type myobj_list[] = {
     {OBJ_PUSH_SETUP_LAST_LP, CLS_PushSetUp, OBIS_PUSH_SETUP_LAST_LP, VER_0, 7,
      all_n, all_n, rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC,
      rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC},
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
     {OBJ_PUSH_SETUP_LAST_RT_LP, CLS_PushSetUp, OBIS_PUSH_SETUP_LAST_RT_LP,
      VER_0, 7, all_n, all_n, rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC,
      rC_rC_rC_rwC_rwC_rC_rC_rC_rC_rC_rC},
+#endif
     {OBJ_EXT_MODEM_ID, CLS_DATA, OBIS_EXT_MODEM_ID, VER_0, 2, all_n, all_n,
      all_rC, all_rC},
     {OBJ_STOCK_OP_TIMES, CLS_DATA, OBIS_STOCK_OP_TIMES, VER_0, 2, all_n, all_n,

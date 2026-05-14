@@ -1945,6 +1945,16 @@ uint32_t dsm_touSP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
     if (season_info.cnt > SEASON_PROF_SIZE)
         season_info.cnt = SEASON_PROF_SIZE;
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (season_info.cnt > 4)
+    {
+        DPRINTF(DBG_ERR,
+                _D "V33 REJECT (image SP): cnt=%u > 4 -> abort\r\n",
+                season_info.cnt);
+        return FALSE;
+    }
+#endif
+
     for (cnt = 0; cnt < season_info.cnt; cnt++)
     {
         name = pimg[idx++];
@@ -1998,6 +2008,16 @@ uint32_t dsm_touWP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
     original_cnt = week_info.cnt;
 
     DPRINTF(DBG_TRACE, "%s: WP cnt[%d]\r\n", __func__, week_info.cnt);
+
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (week_info.cnt > 4)
+    {
+        DPRINTF(DBG_ERR,
+                _D "V33 REJECT (image WP): cnt=%u > 4 -> abort\r\n",
+                week_info.cnt);
+        return FALSE;
+    }
+#endif
 
     if (week_info.cnt > WEEK_PROF_SIZE)
     {
@@ -2110,12 +2130,40 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
         if (dayid_info.tou_conf_cnt > MAX_TOU_DIV_DLMS)
             dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        if (dayid_info.tou_conf_cnt > 12)
+        {
+            DPRINTF(DBG_ERR,
+                    _D
+                    "V33 REJECT (image DP): tou_conf_cnt=%u > 12 "
+                    "day_id=%u -> abort\r\n",
+                    dayid_info.tou_conf_cnt, dayid_info.day_id);
+            return FALSE;
+        }
+#endif
+
         for (cnt2 = 0; cnt2 < dayid_info.tou_conf_cnt; cnt2++)
         {
             dayid_info.tou_conf[cnt2].hour = pimg[idx++];
             dayid_info.tou_conf[cnt2].min = pimg[idx++];
 #if defined(FEATURE_TOU_8RATE)
             sel_v32 = pimg[idx++];
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+            if (sel_v32 < 1 || sel_v32 > 4)
+            {
+                DPRINTF(DBG_ERR,
+                        _D
+                        "V33 REJECT (image DP): script_selector=0x%02X "
+                        "day_id=%u cnt2=%u -> abort\r\n",
+                        sel_v32, dayid_info.day_id, cnt2);
+                return FALSE;
+            }
+            DPRINTF(DBG_TRACE,
+                    _D
+                    "V33 ACCEPT (image DP): script_selector=%u day_id=%u "
+                    "cnt2=%u\r\n",
+                    sel_v32, dayid_info.day_id, cnt2);
+#else
             if (sel_v32 == 0x00)
             {
                 DPRINTF(DBG_ERR,
@@ -2125,6 +2173,7 @@ uint32_t dsm_touDP_parserNprocess(uint8_t* pimg, uint16_t* o_idx,
                         dayid_info.day_id, cnt2);
                 return FALSE;
             }
+#endif
             dayid_info.tou_conf[cnt2].script_selector = sel_v32;
 #else
             dayid_info.tou_conf[cnt2].rate = pimg[idx++];

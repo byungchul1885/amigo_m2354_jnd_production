@@ -1429,6 +1429,12 @@ static ratekind_type conv_rate_to_ratekind(rate_type rt)
 #if defined(FEATURE_TOU_8RATE)
 static ratekind_type conv_selector_to_ratekind(uint8_t selector)
 {
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (selector >= 1 && selector <= 4)
+        return conv_rate_to_ratekind((rate_type)(selector - 1));
+
+    return ONE_RATE_KIND;
+#else
     int r;
 
     for (r = eHrate; r >= eArate; r--)
@@ -1438,6 +1444,7 @@ static ratekind_type conv_selector_to_ratekind(uint8_t selector)
     }
 
     return ONE_RATE_KIND;
+#endif
 }
 #endif
 
@@ -1835,6 +1842,20 @@ static void pgm_holiday_sel1(prog_dl_type *progdl, uint8_t *tptr,
     }
 }
 
+#if defined(FEATURE_TOU_8RATE)
+static uint8_t selector_accumulate(uint8_t acc, uint8_t sel)
+{
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (sel >= 1 && sel <= 4 && sel > acc)
+        return sel;
+
+    return acc;
+#else
+    return (uint8_t)(acc | sel);
+#endif
+}
+#endif
+
 static uint8_t prog_get_week_profile_same_check(uint8_t *tptr)
 {
     uint8_t i, j;
@@ -1849,13 +1870,20 @@ static uint8_t prog_get_week_profile_same_check(uint8_t *tptr)
 
         DPRINTF(DBG_ERR, _D "%s: day_type[%d]\r\n", __func__, day_type);
 
-        for (i = 0; i < WEEK_PROF_SIZE; i++)
         {
-            for (j = 0; j < WEEK_LEN; j++)
+            uint8_t wcnt = weektable->cnt;
+
+            if (wcnt == 0 || wcnt > WEEK_PROF_SIZE)
+                wcnt = WEEK_PROF_SIZE;
+
+            for (i = 0; i < wcnt; i++)
             {
-                day_type1 = weektable->week[i].day_id[j];
-                if (day_type1 != day_type)
-                    return 0xff;
+                for (j = 0; j < WEEK_LEN; j++)
+                {
+                    day_type1 = weektable->week[i].day_id[j];
+                    if (day_type1 != day_type)
+                        return 0xff;
+                }
             }
         }
     }
@@ -1892,7 +1920,8 @@ static ratekind_type prog_get_day_profile_ratekind(uint8_t *tptr)
             for (j = 0; j < daytable->tou_conf_cnt; j++)
             {
 #if defined(FEATURE_TOU_8RATE)
-                rt_mask |= daytable->tou_conf[j].script_selector;
+                rt_mask = selector_accumulate(
+                    rt_mask, daytable->tou_conf[j].script_selector);
 #else
                 rt1 = SELECTOR_TO_RATE(daytable->tou_conf[j].rate);
                 if (rt1 > rt)
@@ -1913,7 +1942,8 @@ static ratekind_type prog_get_day_profile_ratekind(uint8_t *tptr)
                 for (j = 0; j < daytable->tou_conf_cnt; j++)
                 {
 #if defined(FEATURE_TOU_8RATE)
-                    rt_mask |= daytable->tou_conf[j].script_selector;
+                    rt_mask = selector_accumulate(
+                        rt_mask, daytable->tou_conf[j].script_selector);
 #else
                     rt1 = SELECTOR_TO_RATE(daytable->tou_conf[j].rate);
                     if (rt1 > rt)
@@ -1975,6 +2005,12 @@ static uint8_t get_curr_script_selector(void)
 
 rate_type get_lowest_rate_from_mask(uint8_t mask)
 {
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (mask >= 1 && mask <= 4)
+        return (rate_type)(mask - 1);
+
+    return eArate;
+#else
     int r;
 
     for (r = eArate; r <= eHrate; r++)
@@ -1984,6 +2020,7 @@ rate_type get_lowest_rate_from_mask(uint8_t mask)
     }
 
     return eArate;
+#endif
 }
 #endif
 

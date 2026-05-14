@@ -502,8 +502,6 @@ void sag_detect_proc(void)
                     op = dsm_pmnt_EntryLowPwr_n_waitingForwakeup(
                         PWR_STOP_2,
                         (WUP_S_RTC_ALA | WUP_S_MENU_KEY | WUP_S_MAIN_POWER));
-
-                    dsp_up_pwr_on_state();
                 }
 
                 /* ----------> */
@@ -518,7 +516,6 @@ void sag_detect_proc(void)
                     if (IS_AC_ON || meter_fwup_delay_sag_protect())
                     {
                         MSG07("####   AC recover, PB0:%d, PA10:%d", PB0, PA10);
-                        dsp_debug_state(1);
                         ce_val_drop();
                     }
 
@@ -530,11 +527,6 @@ void sag_detect_proc(void)
                     if (op == PMNT_NO_VOLT_OP)
                     {
                         break;
-                    }
-
-                    if (b_sag_exit_timer == 0)
-                    {
-                        dsp_debug_state(2);
                     }
                 }
             } /* while(1) */
@@ -556,13 +548,9 @@ void sag_detect_proc(void)
             {
                 port_inmode();
 
-                dsp_low_pwr_entry_state(2);
-
                 dsm_pmnt_EntryLowPwr_n_waitingForwakeup(
                     PWR_STOP_2,
                     (WUP_S_RTC_ALA | WUP_S_MENU_KEY | WUP_S_MAIN_POWER));
-
-                dsp_up_pwr_on_state();
             }
         }
     }

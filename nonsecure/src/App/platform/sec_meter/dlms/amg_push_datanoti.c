@@ -256,8 +256,10 @@ void dsm_push_push_script_table_default(void)
            sizeof(ST_PUSH_SCRIPT_TABLE));
     dsm_push_script_register(PUSH_SCRIPT_ID_ERR_CODE, OBJ_PUSH_SETUP_ERR_CODE);
     dsm_push_script_register(PUSH_SCRIPT_ID_LAST_LP, OBJ_PUSH_SETUP_LAST_LP);
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
     dsm_push_script_register(PUSH_SCRIPT_ID_LAST_RT_LP,
                              OBJ_PUSH_SETUP_LAST_RT_LP);
+#endif
 }
 
 void dsm_push_script_table_init(void) { dsm_push_push_script_table_default(); }
@@ -343,8 +345,10 @@ void dsm_push_push_setup_table_default(void)
                             PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_ERR_CODE, 0);
     dsm_push_setup_register(PUSH_SCRIPT_ID_LAST_LP, PUSH_SETUP_DISABLE,
                             PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_LAST_LP, 0);
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
     dsm_push_setup_register(PUSH_SCRIPT_ID_LAST_RT_LP, PUSH_SETUP_DISABLE,
                             PUSH_SETUP_DEFAULT_RANDOM_ST_INTVAL_LAST_RT_LP, 0);
+#endif
 }
 
 void dsm_push_setup_table_init(void) { dsm_push_push_setup_table_default(); }
@@ -808,10 +812,10 @@ void appl_push_msg_lastLP(void)
         expand_time(&lpdt, &lprec->dt[0]);
         DPRINTF(DBG_WARN,
                 "  LastLP: cnt:%d dt:20%02d-%02d-%02d %02d:%02d:%02d "
-                "evt:%02X%02X%02X%02X\r\n",
+                "evt:%02X%02X%02X\r\n",
                 (int)lprec->lp_cnt, lpdt.year, lpdt.month, lpdt.date,
                 lpdt.hour, lpdt.min, lpdt.sec, lprec->evt[0], lprec->evt[1],
-                lprec->evt[2], lprec->evt[3]);
+                lprec->evt[2]);
         DPRINTF(DBG_WARN,
                 "  LastLP: DeliAct:%d DLagR:%d DLeadR:%d DeliApp:%d "
                 "ReceiAct:%d RLeadR:%d RLagR:%d ReceiApp:%d\r\n",

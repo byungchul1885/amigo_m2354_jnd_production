@@ -47,9 +47,9 @@
 #define MT_3P4W_SINGLE 3
 #define MT_3P4W_TRANS 4
 
-#define METER_TYPE MT_1P2W_60A
+// #define METER_TYPE MT_1P2W_60A
 // #define METER_TYPE MT_1P2W_120A
-// #define METER_TYPE MT_3P4W_SINGLE
+#define METER_TYPE MT_3P4W_SINGLE
 
 // #define HARDWARE_VERSION 0x32
 #define HARDWARE_VERSION 0x34
@@ -187,10 +187,12 @@
 /*
 ** General, security, ACS
 */
-#define FEATURE_SEC  // secure meter 개발상 대부분의 내용 묽음  -> 차후 기능별로
-                     // 분리 필요..
-#define FEATURE_TOU_8RATE         // TOU 8-rate support (bitmask-based tariff)
-#define FEATURE_SEC_ACT_OPT_FLAG  // action req시 option flag 적용
+#define FEATURE_SEC
+#define FEATURE_TOU_8RATE  // TOU 8-rate support (bitmask-based tariff) - keep
+                           // ON for NV layout compat
+#define FEATURE_SPEC_V33_DELIVERY     // 4-rate delivery mode (v3.3 KEPCO spec
+                                      // compat)
+#define FEATURE_SEC_ACT_OPT_FLAG      // action req시 option flag 적용
 #define FEATURE_SEC_SIM_PRINT_ENABLE  // 디버깅시에서 사용
 #define FEATURE_ALWAYS_PRINT_OPT      // 항시 dm print opt
 #define FEATURE_SIGN_OPT_ENABLE       // signing opt enable

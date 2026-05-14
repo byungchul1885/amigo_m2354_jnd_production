@@ -319,6 +319,25 @@ void pcnt_accumulate(void)
         pcnt_updated = false;
 
 #if defined(FEATURE_TOU_8RATE)
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        // V33 selector is linear 1..4. V34 keeps bitmask-based selection.
+        for (i = 0; i < numCHs; i++)
+        {
+            ACCM_ENERGY(
+                ACC_CH(eTrate, i),
+                (uint32_t)pcnt_ch_1sec[i]);  // mxaccm_dgt_cnt is processed
+
+            if (cur_script_selector >= 1 && cur_script_selector <= 4)
+            {
+                rate = (int)(cur_script_selector - 1);
+                ACCM_ENERGY(
+                    ACC_CH(rate, i),
+                    (uint32_t)pcnt_ch_1sec[i]);
+            }
+
+            lp_intv_dm[i] += (uint32_t)pcnt_ch_1sec[i];
+        }
+#else
         // Keep total energy and accumulate each active tariff in the selector.
         for (i = 0; i < numCHs; i++)
         {
@@ -338,6 +357,7 @@ void pcnt_accumulate(void)
 
             lp_intv_dm[i] += (uint32_t)pcnt_ch_1sec[i];
         }
+#endif
 #else
         accm_rate = cur_rate;
 

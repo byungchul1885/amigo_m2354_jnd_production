@@ -55,7 +55,11 @@
 #if defined(FEATURE_SEC)
 
 #if defined(FEATURE_SPEC_2021_0430_MODIFY)  // 2021_0430 spec 반영 1초 default
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+#define DEFAULT_RT_LP_INT_VAL 1             // unit sec
+#else
 #define DEFAULT_RT_LP_INT_VAL 4             // unit sec
+#endif
 #else
 #define DEFAULT_RT_LP_INT_VAL 60  // unit sec
 #endif

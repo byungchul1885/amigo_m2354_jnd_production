@@ -603,7 +603,11 @@ static void approc_set_req_proc(int idx)
         break;
 
     case OBJ_PUSH_SETUP_LAST_RT_LP:
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        appl_resp_result = SET_RESULT_DATA_NG;
+#else
         obset_evt_push_setup_lastRtLP(idx);
+#endif
         break;
 
     case OBJ_GPS_LATITUDE:
@@ -1146,6 +1150,15 @@ static bool parse_dayid_struct(tou_struct_type* touconf)
                 (unsigned int)t16);
         ret = false;
     }
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    else if (t16 < 1 || t16 > 4)
+    {
+        DPRINTF(DBG_ERR,
+                _D "V33 REJECT: script_selector raw=0x%04X out of {1..4} -> DATA_NG\r\n",
+                (unsigned int)t16);
+        ret = false;
+    }
+#endif
     else
     {
         DPRINTF(DBG_TRACE,
@@ -1203,6 +1216,18 @@ static void parse_dayprof(uint8_t* cp, dayid_table_type* parse)
         PARSE_ARRAY(t8);
         if (t8 > MAX_TOU_DIV_DLMS)
             t8 = MAX_TOU_DIV_DLMS;
+
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        if (t8 > 12)
+        {
+            DPRINTF(DBG_ERR,
+                    _D "V33 REJECT (parse_dayprof): t8=%u > 12 -> DATA_NG\r\n",
+                    (unsigned int)t8);
+            appl_resp_result = SET_RESULT_DATA_NG;
+            appl_set_save_result = 1;
+            return;
+        }
+#endif
 
         chk_point = 0;
 
@@ -1291,6 +1316,18 @@ static void parse_seasonprof(uint8_t* cp, season_date_type* parse)
     if (parse->cnt > SEASON_PROF_SIZE)
         parse->cnt = SEASON_PROF_SIZE;
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (parse->cnt > 4)
+    {
+        DPRINTF(DBG_ERR,
+                _D "V33 REJECT (parse_seasonprof): cnt=%u > 4 -> DATA_NG\r\n",
+                (unsigned int)parse->cnt);
+        appl_resp_result = SET_RESULT_DATA_NG;
+        appl_set_save_result = 1;
+        return;
+    }
+#endif
+
     for (i = 0; i < parse->cnt; i++)
     {
         parse_seasonprof_time(&parse->season[i]);
@@ -1339,6 +1376,18 @@ static void parse_weekprof(uint8_t* cp, week_date_type* parse)
     PARSE_ARRAY(parse->cnt);
     if (parse->cnt > WEEK_PROF_SIZE)
         parse->cnt = WEEK_PROF_SIZE;
+
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    if (parse->cnt > 4)
+    {
+        DPRINTF(DBG_ERR,
+                _D "V33 REJECT (parse_weekprof): cnt=%u > 4 -> DATA_NG\r\n",
+                (unsigned int)parse->cnt);
+        appl_resp_result = SET_RESULT_DATA_NG;
+        appl_set_save_result = 1;
+        return;
+    }
+#endif
 
     for (i = 0; i < parse->cnt; i++)
     {
@@ -3359,6 +3408,13 @@ static void obset_tou_cal(int idx)
     case 0x07: /* season profile passive */
         season = (season_date_type*)appl_tbuff;
         parse_seasonprof(&appl_msg[idx], season);
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        if (appl_set_save_result)
+        {
+            /* parse rejected in v3.3 - skip NV write */
+        }
+        else
+#endif
         if (nv_write(I_SEASON_PROFILE_DL, appl_tbuff))
         {
             pdl_set_bits |= SETBITS_TOU_SEASON;
@@ -5723,8 +5779,12 @@ static void obset_realtime_lp_interval(int idx)
         {
             pt8 = &appl_msg[idx + 1];
             ToH16((U8_16*)&t16, pt8);
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+            if (t16 != 1 && t16 != 5 && t16 != 15 && t16 != 30 && t16 != 60)
+#else
             if (t16 != 1 && t16 != 4 && t16 != 5 && t16 != 15 && t16 != 30 &&
                 t16 != 60)
+#endif
                 appl_resp_result = SET_RESULT_DATA_NG;
             else
                 rt_lp_interval = t16;

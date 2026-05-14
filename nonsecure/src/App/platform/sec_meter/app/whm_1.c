@@ -874,38 +874,8 @@ void meas_method_adj_dirchg(void)
     }
 }
 
-void set_billing_parm(uint8_t *parm)
+void set_billing_parm_srdr_only(uint8_t *parm)
 {
-    bool mt_transfer_set = 0;
-    ST_MIF_METER_PARM *pst_mif_meter_parm = dsm_mtp_get_meter_parm();
-
-    uint8_t *tptr;
-    tptr = adjust_tptr(&global_buff[0]);
-    uint8_t srdr;
-#if defined(FEATURE_SEC)
-    uint8_t eob_type = 0;
-#endif
-    srdr = 0;
-
-#if 0  // defined(FEATURE_JP_seasonCHG_sr_dr_type_to_SET_SR)
-	if((parm[0] & 0x10)&&(!(sr_dr_type[E_seasonCHG] & MR_SR_BIT)))
-		{
-			srdr |= MR_SR_BIT;
-#if defined(FEATURE_SEC)
-			if(srdr) eob_type |= EOB_SEASON_FLAG;
-#endif		
-		
-			if((srdr & (MR_SR_BIT |MR_DR_BIT )) != 0)
-			{
-#if defined(FEATURE_SEC)
-				sr_dr_proc(eob_type, srdr, &cur_rtc, tptr);
-#else
-				sr_dr_proc(srdr, &cur_rtc, tptr);
-#endif
-			}
-		}
-#endif
-
     sr_dr_type[E_mDR] = 0;
     sr_dr_type[E_pgmCHG] = 0;
     sr_dr_type[E_timCHG] = 0;
@@ -925,10 +895,10 @@ void set_billing_parm(uint8_t *parm)
     // demand reset(Program change)
     if (parm[1] & 0x02)
         sr_dr_type[E_pgmCHG] |= MR_DR_BIT;
-    // self read(season change)
+    // self read(demand interval change)
     if (parm[0] & 0x08)
         sr_dr_type[E_dmintvCHG] |= MR_SR_BIT;
-    // demand reset(season change)
+    // demand reset(demand interval change)
     if (parm[1] & 0x08)
         sr_dr_type[E_dmintvCHG] |= MR_DR_BIT;
     // self read(season change)
@@ -943,6 +913,33 @@ void set_billing_parm(uint8_t *parm)
     // demand reset(meter mode change)
     if (parm[1] & 0x40)
         sr_dr_type[E_MmodeCHG] |= MR_DR_BIT;
+}
+
+void set_billing_parm(uint8_t *parm)
+{
+    bool mt_transfer_set = 0;
+    ST_MIF_METER_PARM *pst_mif_meter_parm = dsm_mtp_get_meter_parm();
+
+#if 0  // defined(FEATURE_JP_seasonCHG_sr_dr_type_to_SET_SR)
+	if((parm[0] & 0x10)&&(!(sr_dr_type[E_seasonCHG] & MR_SR_BIT)))
+		{
+			srdr |= MR_SR_BIT;
+#if defined(FEATURE_SEC)
+			if(srdr) eob_type |= EOB_SEASON_FLAG;
+#endif
+
+			if((srdr & (MR_SR_BIT |MR_DR_BIT )) != 0)
+			{
+#if defined(FEATURE_SEC)
+				sr_dr_proc(eob_type, srdr, &cur_rtc, tptr);
+#else
+				sr_dr_proc(srdr, &cur_rtc, tptr);
+#endif
+			}
+		}
+#endif
+
+    set_billing_parm_srdr_only(parm);
 
     mt_transfer_set = 0;
     if (parm[2] != mt_dir)

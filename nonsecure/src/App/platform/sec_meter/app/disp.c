@@ -717,7 +717,10 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
                          릴레이 사용 시 */
     DSPMODE_TEST_REG_DATE, /* 정기검침일, [메뉴] 버튼으로 설정 가능(01 ~ 28) */
     DSPMODE_TARIFF_RATE, /* 종별설정(1~2종), [메뉴] 버튼으로 설정 가능(1 ~ 2) */
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
+    /* tou4: v3.3 delivery mode excludes the vEr test item. */
     DSPMODE_SPEC_VER,    /* v1.4: 규격 버전 표시 (vEr X.X) */
+#endif
     NUM_DSPMODE          // end of table
 };
 #else /* bccho, 2024-09-05, 삼상 */
@@ -762,7 +765,10 @@ static const /*__code*/ disp_mode_type test_state_mode1[] = {
                             */
     DSPMODE_TARIFF_RATE, /* 종별 설정 (1~2종), [메뉴] 버튼으로 설정 가능 (1 ~ 2)
                           */
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
+    /* tou4: v3.3 delivery mode excludes the vEr test item. */
     DSPMODE_SPEC_VER,    /* v1.4: 규격 버전 표시 (vEr X.X) */
+#endif
     NUM_DSPMODE          // end of table
 };
 #endif
@@ -5511,23 +5517,13 @@ static void dsp_drive_digit(void)
         }
         else
             LCD_DERR_ON;
-#if defined(FEATURE_TOU_8RATE)
+#if defined(FEATURE_TOU_8RATE) && !defined(FEATURE_SPEC_V33_DELIVERY)
         tbuf[0] = (U8)mt_rtkind + 1; /* front: TOU type */
         {
             U8 mask = cur_script_selector;
             U8 low = (U8)get_lowest_rate_from_mask(mask);
-            /* V27: single tariff -> digit '1'..'8' (KEPCO spec ex: "51").
-             *      multi tariff -> letter 'A'..'H' (KEPCO spec ex: "5C", "8D").
-             * LDIGIT: A=10, b=11, C=12, d=13, E=14, F=15, G=16, H=17.
-             */
-            if ((mask & (U8)(mask - 1U)) != 0U)
-            {
-                tbuf[1] = (U8)(LDIGIT_A + low); /* letter 'A'..'H' */
-            }
-            else
-            {
-                tbuf[1] = (U8)(low + 1U); /* digit '1'..'8' */
-            }
+            /* tou4: display the lowest tariff as digit '1'..'8'; no A~H overlap marker. */
+            tbuf[1] = (U8)(low + 1U);
         }
 #endif
     }
@@ -6167,7 +6163,7 @@ static void dsp_dot_rate(void)
     // A-type: rate ( bit3=D, bit2=C, bit1=B, bit0=A )
     // TOU 8rate: 5~8 rate kind shows ABCD all ON
     mtkind = mt_rtkind;
-#if 0  // V28: ABCD 점등 비활성화 - jp.kim 2026.04.27 추가    
+#if defined(FEATURE_SPEC_V33_DELIVERY)
     switch (mtkind)
     {
     case ONE_RATE_KIND:
@@ -6183,10 +6179,6 @@ static void dsp_dot_rate(void)
         LCD_DRATE_C_ON;
         break;
     case FOUR_RATE_KIND:
-    case FIVE_RATE_KIND:
-    case SIX_RATE_KIND:
-    case SEVEN_RATE_KIND:
-    case EIGHT_RATE_KIND:
         LCD_DRATE_A_ON;
         LCD_DRATE_B_ON;
         LCD_DRATE_C_ON;
@@ -6643,124 +6635,6 @@ void dsp_enter_lpm(void)
     lcd_digit_buf[6] = LDIGIT_5;
     lcd_digit_buf[7] = LDIGIT_u;
     //
-    dsm_lcd_dsp_lcdmem_clear();
-    dsp_drive_digit();
-    dsm_dsp_lcdmem_move();
-}
-
-void dsp_low_pwr_entry_state(uint32_t dsp_idx)
-{
-    lcd_digit_buf[2] = LDIGIT_L;
-    lcd_digit_buf[3] = LDIGIT_P;
-    lcd_digit_buf[4] = LDIGIT_BAR;
-    lcd_digit_buf[5] = LDIGIT_BAR;
-    lcd_digit_buf[6] = LDIGIT_BAR;
-
-    switch (dsp_idx)
-    {
-    case 0:
-        lcd_digit_buf[7] = LDIGIT_0;
-        break;
-    case 1:
-        lcd_digit_buf[7] = LDIGIT_1;
-        break;
-    case 2:
-        lcd_digit_buf[7] = LDIGIT_2;
-        break;
-    case 3:
-        lcd_digit_buf[7] = LDIGIT_3;
-        break;
-    case 4:
-        lcd_digit_buf[7] = LDIGIT_4;
-        break;
-    case 5:
-        lcd_digit_buf[7] = LDIGIT_5;
-        break;
-    case 6:
-        lcd_digit_buf[7] = LDIGIT_6;
-        break;
-    case 7:
-        lcd_digit_buf[7] = LDIGIT_7;
-        break;
-    case 8:
-        lcd_digit_buf[7] = LDIGIT_8;
-        break;
-    case 9:
-        lcd_digit_buf[7] = LDIGIT_9;
-        break;
-    default:
-        lcd_digit_buf[7] = /*LDIGIT_9*/ LDIGIT_BAR;
-        break;
-    }
-
-    dsm_lcd_dsp_clear();
-    dsm_lcd_dsp_lcdmem_clear();
-    dsp_drive_digit();
-    dsm_dsp_lcdmem_move();
-}
-
-void dsp_debug_state(uint32_t dsp_idx)
-{
-    lcd_digit_buf[2] = LDIGIT_d;
-    lcd_digit_buf[3] = LDIGIT_b;
-    // lcd_digit_buf[4] = LDIGIT_t;
-    lcd_digit_buf[4] = LDIGIT_9;
-    lcd_digit_buf[5] = LDIGIT_BAR;
-    lcd_digit_buf[6] = LDIGIT_BAR;
-
-    switch (dsp_idx)
-    {
-    case 0:
-        lcd_digit_buf[7] = LDIGIT_0;
-        break;
-    case 1:
-        lcd_digit_buf[7] = LDIGIT_1;
-        break;
-    case 2:
-        lcd_digit_buf[7] = LDIGIT_2;
-        break;
-    case 3:
-        lcd_digit_buf[7] = LDIGIT_3;
-        break;
-    case 4:
-        lcd_digit_buf[7] = LDIGIT_4;
-        break;
-    case 5:
-        lcd_digit_buf[7] = LDIGIT_5;
-        break;
-    case 6:
-        lcd_digit_buf[7] = LDIGIT_6;
-        break;
-    case 7:
-        lcd_digit_buf[7] = LDIGIT_7;
-        break;
-    case 8:
-        lcd_digit_buf[7] = LDIGIT_8;
-        break;
-    case 9:
-        lcd_digit_buf[7] = LDIGIT_9;
-        break;
-    default:
-        lcd_digit_buf[7] = /*LDIGIT_9*/ LDIGIT_BAR;
-        break;
-    }
-
-    dsm_lcd_dsp_clear();
-    dsm_lcd_dsp_lcdmem_clear();
-    dsp_drive_digit();
-    dsm_dsp_lcdmem_move();
-}
-
-void dsp_up_pwr_on_state(void)
-{
-    lcd_digit_buf[2] = LDIGIT_U;
-    lcd_digit_buf[3] = LDIGIT_P;
-    lcd_digit_buf[4] = LDIGIT_BAR;
-    lcd_digit_buf[5] = LDIGIT_o;
-    lcd_digit_buf[6] = LDIGIT_n;
-    lcd_digit_buf[7] = LDIGIT_BAR;
-
-    dsm_lcd_dsp_clear();
     dsm_lcd_dsp_lcdmem_clear();
     dsp_drive_digit();
     dsm_dsp_lcdmem_move();

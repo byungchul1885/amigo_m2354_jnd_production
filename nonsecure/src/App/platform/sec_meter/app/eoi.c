@@ -491,6 +491,29 @@ static void maxdem_proc(uint8_t intv, bool force, bool rtchg, rate_type rt,
         get_sublocks_data(i, rollch);
 
 #if defined(FEATURE_TOU_8RATE)
+        /* tou4: v3.3 delivery mode uses linear selectors 1..4; v3.4 uses bitmasks. */
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        {
+            uint8_t sel = eoi_selector;
+
+            if (sel >= 1 && sel <= 4)
+            {
+                int r = (int)(sel - 1);
+
+                if (eoich[i] > max_dm.max[r].dm[i].val)
+                {
+                    b_updated = true;
+
+                    max_dm.max[r].dm[i].val = eoich[i];
+                    max_dm.max[r].dm[i].dt = *pdt;
+
+                    nv_sub_info.cur.rt = (rate_type)r;
+                    nv_sub_info.cur.chsel = i;
+                    nv_write(I_DM_SUBLOCKS_DATA, (uint8_t *)rollch);
+                }
+            }
+        }
+#else
         {
             uint8_t sel = eoi_selector;
             int r;
@@ -513,6 +536,7 @@ static void maxdem_proc(uint8_t intv, bool force, bool rtchg, rate_type rt,
                 }
             }
         }
+#endif
 #else
         if (eoich[i] > max_dm.max[rt].dm[i].val)
         {

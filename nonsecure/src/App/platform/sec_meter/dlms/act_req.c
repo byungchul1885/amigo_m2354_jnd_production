@@ -249,7 +249,11 @@ static void approc_act_req_proc(int idx)
         break;
 
     case OBJ_PUSH_SETUP_LAST_RT_LP:
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        appl_resp_result = ACT_RESULT_TYPE_UNMAT;
+#else
         ob_push_setup_cmd(PUSH_SCRIPT_ID_LAST_RT_LP, idx);
+#endif
         break;
     default:
         appl_resp_result = ACT_RESULT_TYPE_UNMAT;
@@ -2043,9 +2047,15 @@ void dsm_image_update_go_proc(void)
     }
 }
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+#define LIGHT_LOAD 1
+#define MIDDLE_LOAD 2
+#define MAXIMUM_LOAD 3
+#else
 #define LIGHT_LOAD (1 << 0)
 #define MIDDLE_LOAD (1 << 1)
 #define MAXIMUM_LOAD (1 << 2)
+#endif
 
 season_struct_type g_default_season[SEASON_PROF_SIZE] = {
     {3, 1, 0},      {6, 1, 1},      {9, 1, 2},      {11, 1, 3},
@@ -2401,7 +2411,11 @@ void dsm_touimage_default(U8 rate_2)
     /****************/
     /* season profile */
     /****************/
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    season_info.cnt = 4;
+#else
     season_info.cnt = SEASON_PROF_SIZE;
+#endif
 
     DPRINTF(DBG_TRACE, "%s: SEASON cnt[%d]\r\n", __func__, season_info.cnt);
     for (cnt = 0; cnt < season_info.cnt; cnt++)
@@ -2421,7 +2435,11 @@ void dsm_touimage_default(U8 rate_2)
     /****************/
     /* week profile */
     /****************/
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    week_info.cnt = 4;
+#else
     week_info.cnt = WEEK_PROF_SIZE;
+#endif
     DPRINTF(DBG_TRACE, "%s: WEEK cnt[%d]\r\n", __func__, week_info.cnt);
     for (cnt = 0; cnt < week_info.cnt; cnt++)
     {
@@ -2455,7 +2473,11 @@ void dsm_touimage_default(U8 rate_2)
     DPRINTF(DBG_TRACE, "%s: DAY cnt[%d]\r\n", __func__, dp_cnt);
     // data_id 0
     dayid_info.day_id = 0;
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    dayid_info.tou_conf_cnt = 12;
+#else
     dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
+#endif
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2471,7 +2493,11 @@ void dsm_touimage_default(U8 rate_2)
 
     // data_id 1
     dayid_info.day_id = 1;
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    dayid_info.tou_conf_cnt = 12;
+#else
     dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
+#endif
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2487,7 +2513,11 @@ void dsm_touimage_default(U8 rate_2)
 
     // data_id 2
     dayid_info.day_id = 2;
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    dayid_info.tou_conf_cnt = 12;
+#else
     dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
+#endif
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)
@@ -2503,7 +2533,11 @@ void dsm_touimage_default(U8 rate_2)
 
     // data_id 3
     dayid_info.day_id = 3;
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+    dayid_info.tou_conf_cnt = 12;
+#else
     dayid_info.tou_conf_cnt = MAX_TOU_DIV_DLMS;
+#endif
     DPRINTF(DBG_TRACE, "day_id[%d], %d\r\n", dayid_info.day_id,
             dayid_info.tou_conf_cnt);
     for (cnt = 0; cnt < dayid_info.tou_conf_cnt; cnt++)

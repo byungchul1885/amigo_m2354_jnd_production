@@ -203,16 +203,9 @@ void LP_save(date_time_type *dt)
         lp_event_unset(LPE_SAG_SWELL);
     }
 #endif
-#if defined(FEATURE_TOU_8RATE)
-    lp_rec.evt[0] = (uint8_t)((LP_event >> 24) & 0xff);  // Byte 3
-    lp_rec.evt[1] = (uint8_t)((LP_event >> 16) & 0xff);  // Byte 2
-    lp_rec.evt[2] = (uint8_t)((LP_event >> 8) & 0xff);   // Byte 1
-    lp_rec.evt[3] = (uint8_t)(LP_event & 0xff);          // Byte 0
-#else
     lp_rec.evt[0] = (uint8_t)((LP_event >> 16) & 0xff);  // Byte 2
     lp_rec.evt[1] = (uint8_t)((LP_event >> 8) & 0xff);   // Byte 1
     lp_rec.evt[2] = (uint8_t)(LP_event & 0xff);          // Byte 0
-#endif
 
     TOTAL_LP_EVENT_CNT += 1L;
     lp_rec.lp_cnt = TOTAL_LP_EVENT_CNT;
@@ -313,13 +306,9 @@ void expand_time(date_time_type *dt, uint8_t *cdt)
 
 void lp_event_set_curate(void)
 {
+#if defined(FEATURE_SPEC_V33_DELIVERY)
     uint32_t t32;
 
-#if defined(FEATURE_TOU_8RATE)
-    lp_event_unset(LPE_TARIFF_MASK);
-    t32 = (uint32_t)(cur_script_selector & 0xFF) << 24;
-    lp_event_set(t32);
-#else
     lp_event_unset(LPE_TARIFF);
     t32 = (uint32_t)cur_rate << 8;
     lp_event_set(t32);
@@ -1019,6 +1008,7 @@ void LPrt_proc(void)
 
     b_lprt_ready = false;
 
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
     {
         float w_val = w0sum_mon;
         float var_val = var0sum_mon;
@@ -1076,6 +1066,7 @@ void LPrt_proc(void)
             lprt_vphase_ac_sum += get_inst_vphase(1);
         }
     }
+#endif
 
     lprt__cnt++;
     DPRINTF(DBG_TRACE, _D "media=%s cnt=%d\r\n",
@@ -1113,6 +1104,7 @@ LPrt_proc1:
 
             LPrt_init();
 
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
             if (rt_lp_interval == 1)
             {
                 if ((lprt__index % 5) == 0)
@@ -1122,6 +1114,7 @@ LPrt_proc1:
             {
                 dsm_data_noti_lastRtLP_evt_send();
             }
+#endif
 
             b_lprt_monitor = false;
             return;
@@ -1173,6 +1166,7 @@ LPrt_proc1:
 
         LPrt_init();
 
+#if !defined(FEATURE_SPEC_V33_DELIVERY)
         if (rt_lp_interval == 1)
         {
             if ((lprt__index % 5) == 0)
@@ -1182,6 +1176,7 @@ LPrt_proc1:
         {
             dsm_data_noti_lastRtLP_evt_send();
         }
+#endif
     }
 
     b_lprt_monitor = false;
@@ -1280,6 +1275,17 @@ void LPrt_save(date_time_type *dt)
         memset(&lprt_1phs, 0x00, sizeof(lprt_record_1phs));
         compress_time((uint8_t *)&lprt_1phs.dt[0], dt);
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        {
+            float w_now = w0sum_mon;
+            float var_now = var0sum_mon;
+
+            lprt_1phs.ch_2[0] = (w_now >= 0.0) ? w_now : 0.0;
+            lprt_1phs.ch_2[1] = (w_now < 0.0) ? fabs(w_now) : 0.0;
+            lprt_1phs.ch_2[2] = (var_now >= 0.0) ? var_now : 0.0;
+            lprt_1phs.ch_2[3] = (var_now < 0.0) ? fabs(var_now) : 0.0;
+        }
+#else
         lprt_1phs.ch_2[0] = lprt_w_pos_sum / lprt__cnt;
         lprt_1phs.ch_2[1] = lprt_w_neg_sum / lprt__cnt;
         lprt_1phs.ch_2[2] = lprt_var_pos_sum / lprt__cnt;
@@ -1288,6 +1294,7 @@ void LPrt_save(date_time_type *dt)
         lprt_1phs.ch_2[5] = lprt_i_sum / lprt__cnt;
         lprt_1phs.ch_2[6] = lprt_phase_sum / lprt__cnt;
         lprt_1phs.ch_2[7] = lprt_freq_sum / lprt__cnt;
+#endif
 
         lprt_record_write((uint8_t *)&lprt_1phs, lprt__index);
     }
@@ -1319,6 +1326,31 @@ void LPrt_save(date_time_type *dt)
         }
 #endif
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+        {
+            float wa = w0sum_mon;
+            float vara = var0sum_mon;
+            float wb = w1sum_mon;
+            float varb = var1sum_mon;
+            float wc = w2sum_mon;
+            float varc = var2sum_mon;
+
+            lprt_3phs.ch_2[4] = (wa >= 0.0) ? wa : 0.0;
+            lprt_3phs.ch_2[5] = (wa < 0.0) ? fabs(wa) : 0.0;
+            lprt_3phs.ch_2[6] = (vara >= 0.0) ? vara : 0.0;
+            lprt_3phs.ch_2[7] = (vara < 0.0) ? fabs(vara) : 0.0;
+
+            lprt_3phs.ch_2[8] = (wb >= 0.0) ? wb : 0.0;
+            lprt_3phs.ch_2[9] = (wb < 0.0) ? fabs(wb) : 0.0;
+            lprt_3phs.ch_2[10] = (varb >= 0.0) ? varb : 0.0;
+            lprt_3phs.ch_2[11] = (varb < 0.0) ? fabs(varb) : 0.0;
+
+            lprt_3phs.ch_2[12] = (wc >= 0.0) ? wc : 0.0;
+            lprt_3phs.ch_2[13] = (wc < 0.0) ? fabs(wc) : 0.0;
+            lprt_3phs.ch_2[14] = (varc >= 0.0) ? varc : 0.0;
+            lprt_3phs.ch_2[15] = (varc < 0.0) ? fabs(varc) : 0.0;
+        }
+#else
         lprt_3phs.ch_2[4] = lprt_w_pos_sum / lprt__cnt;
         lprt_3phs.ch_2[5] = lprt_w_neg_sum / lprt__cnt;
         lprt_3phs.ch_2[6] = lprt_var_pos_sum / lprt__cnt;
@@ -1345,6 +1377,7 @@ void LPrt_save(date_time_type *dt)
         lprt_3phs.ch_2[25] = lprt_vphase_ab_sum / lprt__cnt;
         lprt_3phs.ch_2[26] = lprt_vphase_ac_sum / lprt__cnt;
         lprt_3phs.ch_2[27] = lprt_freq_sum / lprt__cnt;
+#endif
 
 #if 1 /* bccho, 2024-09-24, 삼상 */
         for (int i = 0; i < 4; i++)

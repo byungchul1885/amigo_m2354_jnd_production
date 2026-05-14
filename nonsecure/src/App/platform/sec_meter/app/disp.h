@@ -1385,9 +1385,6 @@ void dsp_digit(int32_t val, uint8_t dgt, uint8_t point, bool lead_zero);
 void dsm_dsp_digit_update(void);
 
 void dsp_enter_lpm(void);
-void dsp_low_pwr_entry_state(uint32_t dsp_idx);
-void dsp_debug_state(uint32_t dsp_idx);
-void dsp_up_pwr_on_state(void);
 void dsp_r_sun_dsp_set(void);
 void dsp_on_sun_dsp_set(void);
 

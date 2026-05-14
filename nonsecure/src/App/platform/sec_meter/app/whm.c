@@ -140,7 +140,11 @@ bool meter_parm_wr_rd_cmp(void);
 
 #define VER_FW_NV_SIZE 10
 const uint8_t ver_fw_nv[] = {VERSION_FW_NV};
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+const U8 COSEM_METER_ID_VER[] = {"233"};
+#else
 const U8 COSEM_METER_ID_VER[] = {"234"};
+#endif
 const U8 zcrs_sig[] = {1, 0, 0, 0};  // 1000 ms
 
 /*
@@ -179,8 +183,22 @@ const uint8_t logical_device_name_r[DEVICE_ID_SIZE] = {
     /*  Flag(B1~B3)                   ,rev(B4)        ,제조연월일 (B5~B10)
        ,제조관리번(B11)        ,rev(B12~14)   ,LD(B14, '1')   spec ver(B15B16,
        ascill)*/
-    FLAG_ID1, FLAG_ID2, FLAG_ID3, ' ', '2', '4', '0', '1',
-    '2',      '3',      'A',      ' ', ' ', '1', '3', '4'};
+    FLAG_ID1,
+    FLAG_ID2,
+    FLAG_ID3,
+    ' ',
+    '2',
+    '4',
+    '0',
+    '1',
+    '2',
+    '3',
+    'A',
+    ' ',
+    ' ',
+    '1',
+    COSEM_METER_ID_VER[1],
+    COSEM_METER_ID_VER[2]};
 
 /*
 Kepco Management
@@ -202,8 +220,22 @@ uint8_t logical_device_name_r_kepco[DEVICE_ID_SIZE] = {
     /*  Flag(B1~B3)                   ,rev(B4)        ,제조연월일 (B5~B10)
        ,제조관리번(B11)        ,rev(B12~14)   ,LD(B14, '1')   spec ver(B15B16,
        ascill)*/
-    FLAG_ID1, FLAG_ID2, FLAG_ID3, ' ', '2', '4', '0', '1',
-    '2',      '3',      'A',      ' ', ' ', '2', '3', '4'};
+    FLAG_ID1,
+    FLAG_ID2,
+    FLAG_ID3,
+    ' ',
+    '2',
+    '4',
+    '0',
+    '1',
+    '2',
+    '3',
+    'A',
+    ' ',
+    ' ',
+    COSEM_METER_ID_VER[0],
+    COSEM_METER_ID_VER[1],
+    COSEM_METER_ID_VER[2]};
 
 #define DFT_A_BEGIN 9   // 9:00 hour
 #define DFT_B_BEGIN 23  // 23:00 hour
@@ -1296,6 +1328,11 @@ void prog_chg_proc_by_comm(prog_dl_type* progdl, uint8_t* tptr,
                            bool curr_prog_in)
 {
     uint8_t eob_type = 0;
+
+    if (progdl->set_bits & SETBITS_BILLING_PARM)
+    {
+        set_billing_parm_srdr_only(progdl->bill_parm);
+    }
 
     // jp.kim 24.11.08 TOU 파일 통신 파일 다운로드 이력 표현
     tou_id_change_sts = 1;

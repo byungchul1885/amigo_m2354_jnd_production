@@ -15,21 +15,8 @@
 
 #define LPE_IRRG_WR (uint32_t) BIT7  // 비주기적 LP WRITE 표시
 
-#if defined(FEATURE_TOU_8RATE)
-#define LPE_TARIFF_MASK (uint32_t)0xFF000000
-#define LPE_TARIFF_1 (uint32_t)BIT24
-#define LPE_TARIFF_2 (uint32_t)BIT25
-#define LPE_TARIFF_3 (uint32_t)BIT26
-#define LPE_TARIFF_4 (uint32_t)BIT27
-#define LPE_TARIFF_5 (uint32_t)BIT28
-#define LPE_TARIFF_6 (uint32_t)BIT29
-#define LPE_TARIFF_7 (uint32_t)BIT30
-#define LPE_TARIFF_8 (uint32_t)BIT31
-#else
 #define LPE_TARIFF \
-    (uint32_t)(BIT9 | BIT8)  // always, but pwr_fail, min_chg, rtc_chg event =>
-                             // tariff not updated
-#endif
+    (uint32_t)(BIT9 | BIT8)  // v3.3 current tariff on byte 1 bit 8/9
 #define LPE_sCURR_LIMIT \
     (uint32_t) BIT10  // always ( set ==> CLEAR_MASK 에서 clear)
 #define LPE_MAGNET_DET (uint32_t) BIT11  // always
@@ -156,10 +143,17 @@
 #define LPAVG_COL_PHASE3 0x0001
 #endif
 
+#if defined(FEATURE_SPEC_V33_DELIVERY)
+#define NUM_LPRT_COL_1PHS (1 + 4)
+#define NUM_LPRT_COL_3PHS (1 + 16)
+#define LPRT_COL_MASK_1PHS 0xF8000000
+#define LPRT_COL_MASK_3PHS 0xFFFF8000
+#else
 #define NUM_LPRT_COL_1PHS (1 + 8)
 #define NUM_LPRT_COL_3PHS (1 + 28)
 #define LPRT_COL_MASK_1PHS 0xFF800000
 #define LPRT_COL_MASK_3PHS 0xFFFFFFF8
+#endif
 
 #define LPRT_COL_CLOCK 0x80000000
 
@@ -199,11 +193,7 @@
 struct lp_record
 {
     uint32_t lp_cnt;
-#if defined(FEATURE_TOU_8RATE)
-    uint8_t evt[4];
-#else
-    uint8_t evt[3];
-#endif
+    uint8_t evt[3];  // 24bit LP status
     uint8_t dt[4];
     uint32_t ch[numCHs];
 };
