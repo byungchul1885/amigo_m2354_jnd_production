@@ -2058,30 +2058,22 @@ void dsm_image_update_go_proc(void)
 #endif
 
 season_struct_type g_default_season[SEASON_PROF_SIZE] = {
-    {3, 1, 0},      {6, 1, 1},      {9, 1, 2},      {11, 1, 3},
+    {3, 1, 0},       {6, 1, 1},       {9, 1, 2},       {11, 1, 3},
     {0xff, 0xff, 0}, {0xff, 0xff, 0}, {0xff, 0xff, 0}, {0xff, 0xff, 0}};
 
 // 1종
 week_struct_type g_default_week[WEEK_PROF_SIZE] = {
-    {0, {1, 1, 1, 1, 1, 1, 1}},
-    {1, {1, 1, 1, 1, 1, 1, 1}},
-    {2, {1, 1, 1, 1, 1, 1, 1}},
-    {3, {1, 1, 1, 1, 1, 1, 1}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}}};
+    {0, {1, 1, 1, 1, 1, 1, 1}},    {1, {1, 1, 1, 1, 1, 1, 1}},
+    {2, {1, 1, 1, 1, 1, 1, 1}},    {3, {1, 1, 1, 1, 1, 1, 1}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}}, {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}}, {0xff, {0, 0, 0, 0, 0, 0, 0}}};
 
 // 2종
 week_struct_type g_default_tariff_2_type_week[WEEK_PROF_SIZE] = {
-    {0, {2, 2, 2, 2, 2, 2, 2}},
-    {1, {2, 2, 2, 2, 2, 2, 2}},
-    {2, {2, 2, 2, 2, 2, 2, 2}},
-    {3, {2, 2, 2, 2, 2, 2, 2}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}},
-    {0xff, {0, 0, 0, 0, 0, 0, 0}}};
+    {0, {2, 2, 2, 2, 2, 2, 2}},    {1, {2, 2, 2, 2, 2, 2, 2}},
+    {2, {2, 2, 2, 2, 2, 2, 2}},    {3, {2, 2, 2, 2, 2, 2, 2}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}}, {0xff, {0, 0, 0, 0, 0, 0, 0}},
+    {0xff, {0, 0, 0, 0, 0, 0, 0}}, {0xff, {0, 0, 0, 0, 0, 0, 0}}};
 
 tou_struct_type g_default_day_0[MAX_TOU_DIV_DLMS] = {
     {8, 0, MIDDLE_LOAD},   {11, 0, MAXIMUM_LOAD}, {12, 0, MIDDLE_LOAD},
@@ -2101,19 +2093,12 @@ tou_struct_type g_default_day_1[MAX_TOU_DIV_DLMS] = {
     {0xff, 0xff, 1},    {0xff, 0xff, 1}, {0xff, 0xff, 1}, {0xff, 0xff, 1}};
 
 tou_struct_type g_default_day_2[MAX_TOU_DIV_DLMS] = {
-#if defined(FEATURE_TOU_0822_SET)
-    {8, 0, MIDDLE_LOAD}, {22, 0, LIGHT_LOAD},
-#else
-    {9, 0, MIDDLE_LOAD}, {23, 0, LIGHT_LOAD},
-#endif
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1},
-    {0xff, 0xff, 1}};
+    {8, 0, MIDDLE_LOAD}, {22, 0, LIGHT_LOAD}, {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1},
+    {0xff, 0xff, 1},     {0xff, 0xff, 1},     {0xff, 0xff, 1}, {0xff, 0xff, 1}};
 
 tou_struct_type g_default_day_3[MAX_TOU_DIV_DLMS] = {
     {8, 0, MIDDLE_LOAD},   {9, 0, MAXIMUM_LOAD}, {12, 0, MIDDLE_LOAD},
