@@ -13,7 +13,7 @@ extern bool bat_rtc_backuped, eob_pwrtn;
 extern bool b_season_changed_pwtr_back, b_season_changed_rtc_back;
 
 /* bccho, 2024-09-05, 삼상 */
-uint8_t float_to_byte(float idata, uint8_t *odata);
+uint8_t float_to_byte(float idata, uint8_t* odata);
 
 date_time_type pwrtn_EOB_dt;
 mr_data_accm_type mr_data_accm;
@@ -28,11 +28,11 @@ date_time_type sr_log_dt;
 npbill_date_type npBill_date;
 bool b_eob_proc;
 
-static void mr_reading(uint8_t eob_type, date_time_type *pdt, bool isdr,
-                       uint8_t *tptr);
-static bool eob_get_npEOB(date_time_type *pdt, uint8_t *tptr);
-static float calc_diff_pf(uint32_t *ch1, uint32_t *ch2, energy_dir_type dir);
-static void sel_react_monitor(date_time_type *dt);
+static void mr_reading(uint8_t eob_type, date_time_type* pdt, bool isdr,
+                       uint8_t* tptr);
+static bool eob_get_npEOB(date_time_type* pdt, uint8_t* tptr);
+static float calc_diff_pf(uint32_t* ch1, uint32_t* ch2, energy_dir_type dir);
+static void sel_react_monitor(date_time_type* dt);
 void sr_log_dt_init(void);
 
 #if 0 /* bccho, 2024-09-05, 삼상, delete */
@@ -61,25 +61,25 @@ void eob_init(void)
             nv_sub_info.mr.mrcnt = mr_cnt;
             nv_sub_info.mr.sel = eMrAccm;
             nv_sub_info.mr.rt = (rate_type)i;
-            if (!nv_read(I_MT_READ_DATA, (uint8_t *)&mr_data_accm.accm[i]))
-                memset((uint8_t *)&mr_data_accm.accm[i], 0, sizeof(mr_ch_type));
+            if (!nv_read(I_MT_READ_DATA, (uint8_t*)&mr_data_accm.accm[i]))
+                memset((uint8_t*)&mr_data_accm.accm[i], 0, sizeof(mr_ch_type));
 
             nv_sub_info.mr.mrcnt = mr_cnt;
             nv_sub_info.mr.sel = eMrDm;
             nv_sub_info.mr.rt = (rate_type)i;
-            if (!nv_read(I_MT_READ_DATA, (uint8_t *)&mr_data_dm.dm[i]))
-                memset((uint8_t *)&mr_data_dm.dm[i], 0, sizeof(mr_dm_type));
+            if (!nv_read(I_MT_READ_DATA, (uint8_t*)&mr_data_dm.dm[i]))
+                memset((uint8_t*)&mr_data_dm.dm[i], 0, sizeof(mr_dm_type));
         }
         nv_sub_info.mr.mrcnt = mr_cnt;
         nv_sub_info.mr.sel = eMrInfo;
-        if (!nv_read(I_MT_READ_DATA, (uint8_t *)&mr_data_info))
-            memset((uint8_t *)&mr_data_info, 0, sizeof(mr_data_info_type));
+        if (!nv_read(I_MT_READ_DATA, (uint8_t*)&mr_data_info))
+            memset((uint8_t*)&mr_data_info, 0, sizeof(mr_data_info_type));
     }
     else
     {
-        memset((uint8_t *)&mr_data_accm, 0, sizeof(mr_data_accm_type));
-        memset((uint8_t *)&mr_data_dm, 0, sizeof(mr_data_dm_type));
-        memset((uint8_t *)&mr_data_info, 0, sizeof(mr_data_info_type));
+        memset((uint8_t*)&mr_data_accm, 0, sizeof(mr_data_accm_type));
+        memset((uint8_t*)&mr_data_dm, 0, sizeof(mr_data_dm_type));
+        memset((uint8_t*)&mr_data_info, 0, sizeof(mr_data_info_type));
     }
 
     sr_dt_init();
@@ -95,7 +95,7 @@ void npBill_date_load(void)
 {
     if (prog_npbill_available())
     {
-        if (!nv_read(I_NP_BILLDATE_A, (uint8_t *)&npBill_date))
+        if (!nv_read(I_NP_BILLDATE_A, (uint8_t*)&npBill_date))
         {
             npBill_date.cnt = 0;
         }
@@ -106,15 +106,15 @@ void npBill_date_load(void)
     }
 }
 
-void npBill_date_load_forFut_notAvailxx(prog_dl_type *progdl)
+void npBill_date_load_forFut_notAvailxx(prog_dl_type* progdl)
 {
     if (!futprog_npbill_available())
     {
-        ST_npBILL_BACKUP *pst_npBILL_date = prog_get_curr_npbill_date_backup();
+        ST_npBILL_BACKUP* pst_npBILL_date = prog_get_curr_npbill_date_backup();
 
         if (pst_npBILL_date->curprog_available)
         {
-            memcpy((uint8_t *)&npBill_date, (uint8_t *)&pst_npBILL_date->date,
+            memcpy((uint8_t*)&npBill_date, (uint8_t*)&pst_npBILL_date->date,
                    sizeof(npbill_date_type));
             progdl->set_bits |= SETBITS_NPBILL_DATE;
             DPRINTF(DBG_WARN, "%s: npcnt[%d]\r\n", __func__, npBill_date.cnt);
@@ -142,7 +142,7 @@ lhh_add_desc : pfinfo (PF 정보 ) 의 time 정보와 정기/비정기 검침일
 SR/DR 처리 season이 변경되엇는지 체크하여 SR/DR 처리 선택 무효 체크 및
 sel_react_monitor_rtchg 실행..
 */
-void pwrtn_eob_proc(pwrfail_info_type *pfinfo, uint8_t *tptr)
+void pwrtn_eob_proc(pwrfail_info_type* pfinfo, uint8_t* tptr)
 {
     date_time_type tdt;
     bool selreact_mon;
@@ -179,8 +179,15 @@ void pwrtn_eob_proc(pwrfail_info_type *pfinfo, uint8_t *tptr)
     if (prog_changed_event())
     {
         prog_changed_event_clr();
-        srdr |= npEOB_sr_dr_type;
-        if (npEOB_sr_dr_type)
+        /* v440-fix-260518: TOU 예약 적용 시 SR/DR selector 비대칭 정정 (확정
+         * 버그 fix)
+         * - 기존: npEOB_sr_dr_type (비정기 검침일 selector — 잘못)
+         * - 정정: pgmCHG_sr_dr_type (검침 파라미터의 프로그램 변경 selector)
+         * - 즉시 적용 경로 (whm.c) 와 일관성 회복
+         * - 한전 규격 §3.4.2.8.3 검침 파라미터 bit 1 정합 (Isaac kim 보고 §6)
+         */
+        srdr |= pgmCHG_sr_dr_type;
+        if (pgmCHG_sr_dr_type)
             eob_type |= EOB_nPERIOD_FLAG;
     }
 #endif
@@ -208,7 +215,7 @@ void pwrtn_eob_proc(pwrfail_info_type *pfinfo, uint8_t *tptr)
 lhh_add_desc : end of bill 처리
 정기, 비정기, Season 변경 체크하여 SR, DR 처리..
 */
-void eob_proc(uint8_t *tptr)
+void eob_proc(uint8_t* tptr)
 {
     uint8_t srdr;
     uint8_t eob_type = 0;
@@ -219,8 +226,10 @@ void eob_proc(uint8_t *tptr)
     if (prog_changed_event())
     {
         prog_changed_event_clr();
-        srdr |= npEOB_sr_dr_type;
-        if (npEOB_sr_dr_type)
+        /* v440-fix-260518: TOU 예약 적용 시 SR/DR selector 비대칭 정정 (위와
+         * 동일, 확정 버그 fix) */
+        srdr |= pgmCHG_sr_dr_type;
+        if (pgmCHG_sr_dr_type)
             eob_type |= EOB_nPERIOD_FLAG;
     }
 #endif
@@ -265,7 +274,7 @@ void eob_proc(uint8_t *tptr)
 lhh_add_desc :
     RATE별 ch 별로 전력량 및 pf 를 accm 에 get 한다.
 */
-void mr_capture_accm(mr_data_accm_type *accm)
+void mr_capture_accm(mr_data_accm_type* accm)
 {
     rate_type i;
     float pf[numDirChs];
@@ -291,7 +300,7 @@ void mr_capture_accm(mr_data_accm_type *accm)
 lhh_add_desc :
     RATE별 ch 별로 수요 전력을 accm 에 get 한다.
 */
-void mr_capture_dm(mr_data_dm_type *dm, bool isdr)
+void mr_capture_dm(mr_data_dm_type* dm, bool isdr)
 {
     rate_type i;
 #if defined(FEATURE_DRIVER_PORT_AT_EXT_SOLUTION)
@@ -322,17 +331,17 @@ void mr_capture_dm(mr_data_dm_type *dm, bool isdr)
 }
 
 void mr_capture_rolldm(rate_type rt, demand_ch_type dmch,
-                       rolling_dm_ch_type *rollch)
+                       rolling_dm_ch_type* rollch)
 {
     nv_sub_info.cur.rt = rt;
     nv_sub_info.cur.chsel = dmch;
-    if (!nv_read(I_DM_SUBLOCKS_DATA, (uint8_t *)rollch))
+    if (!nv_read(I_DM_SUBLOCKS_DATA, (uint8_t*)rollch))
     {
-        memset((uint8_t *)rollch, 0, sizeof(rolling_dm_ch_type));
+        memset((uint8_t*)rollch, 0, sizeof(rolling_dm_ch_type));
     }
 }
 
-void man_sr_dr_proc(date_time_type *pdt, uint8_t *tptr)
+void man_sr_dr_proc(date_time_type* pdt, uint8_t* tptr)
 {
     uint8_t eob_type = 0;
     if (mDR_sr_dr_type)
@@ -522,8 +531,8 @@ lhh_add_desc :
     2. SR 먼저 수행 후 DR 수행
     3. DR 인 경우 demand reset 처리
 */
-void sr_dr_proc(uint8_t eob_type, uint8_t srdr, date_time_type *pdt,
-                uint8_t *tptr)
+void sr_dr_proc(uint8_t eob_type, uint8_t srdr, date_time_type* pdt,
+                uint8_t* tptr)
 {
     DPRINTF(DBG_ERR, "%s: eob_type[0x%x], srdr[0x%x]\r\n", __func__, eob_type,
             srdr);
@@ -667,7 +676,7 @@ typedef enum
     eBILL_EVERY_DAY
 } bill_date_type;
 
-bill_date_type get_bill_date_type(day_time_type *pday)
+bill_date_type get_bill_date_type(day_time_type* pday)
 {
     if (pday->dt.year != 0xff)
         return eBILL_JUST_DATE;
@@ -684,8 +693,8 @@ bill_date_type get_bill_date_type(day_time_type *pday)
     return eBILL_EVERY_DAY;
 }
 
-void fill_toward_bill_date(date_time_type *dt, bill_date_type _type,
-                           day_time_type *billdt, date_time_type *from,
+void fill_toward_bill_date(date_time_type* dt, bill_date_type _type,
+                           day_time_type* billdt, date_time_type* from,
                            bool dir)
 {
     bool pos;
@@ -809,8 +818,8 @@ void fill_toward_bill_date(date_time_type *dt, bill_date_type _type,
 //       1 : from < billdt <= to
 //      -1 : to < billdt < from
 //       0 : billdt is out of range
-int8_t bill_date_range_check(day_time_type *billdt, date_time_type *from,
-                             date_time_type *to, bool chgdir)
+int8_t bill_date_range_check(day_time_type* billdt, date_time_type* from,
+                             date_time_type* to, bool chgdir)
 {
     date_time_type dt;
     bill_date_type billdt_type;
@@ -873,7 +882,7 @@ int8_t bill_date_range_check(day_time_type *billdt, date_time_type *from,
     return 0;
 }
 
-int8_t eob_timechg_npEOB(date_time_type *oldt, date_time_type *newdt)
+int8_t eob_timechg_npEOB(date_time_type* oldt, date_time_type* newdt)
 {
     int8_t rslt = 0;
     uint8_t i;
@@ -909,7 +918,7 @@ int8_t eob_timechg_npEOB(date_time_type *oldt, date_time_type *newdt)
     return rslt;
 }
 
-bool npBill_date_check(date_time_type *curdt, day_time_type *npday)
+bool npBill_date_check(date_time_type* curdt, day_time_type* npday)
 {
     bool wildcard;
     enum touDAY _curday;
@@ -951,7 +960,7 @@ bool npBill_date_check(date_time_type *curdt, day_time_type *npday)
     return cmp_time(&npday->dt, curdt) == 0 ? true : false;
 }
 
-static bool eob_get_npEOB(date_time_type *curdt, uint8_t *tptr)
+static bool eob_get_npEOB(date_time_type* curdt, uint8_t* tptr)
 {
     uint8_t i;
 
@@ -972,7 +981,7 @@ static bool eob_get_npEOB(date_time_type *curdt, uint8_t *tptr)
     return false;
 }
 
-int8_t tchg_is_within_peob(date_time_type *oldt, date_time_type *newdt)
+int8_t tchg_is_within_peob(date_time_type* oldt, date_time_type* newdt)
 {
     bool chgdir;
     day_time_type dayt;
@@ -1012,13 +1021,13 @@ void eob_acc_nv_write(uint8_t eob_case, uint8_t i, uint8_t mrcnt)
     switch (eob_case)
     {
     case EOB_PERIOD_FLAG:
-        nv_write(I_MT_READ_DATA, (uint8_t *)&mr_data_accm.accm[i]);
+        nv_write(I_MT_READ_DATA, (uint8_t*)&mr_data_accm.accm[i]);
         break;
     case EOB_nPERIOD_FLAG:
-        nv_write(I_MT_READ_DATA_nPRD, (uint8_t *)&mr_data_accm.accm[i]);
+        nv_write(I_MT_READ_DATA_nPRD, (uint8_t*)&mr_data_accm.accm[i]);
         break;
     case EOB_SEASON_FLAG:
-        nv_write(I_MT_READ_DATA_SEASON, (uint8_t *)&mr_data_accm.accm[i]);
+        nv_write(I_MT_READ_DATA_SEASON, (uint8_t*)&mr_data_accm.accm[i]);
         break;
     }
 }
@@ -1076,19 +1085,19 @@ void eob_dm_nv_write(uint8_t eob_case, uint8_t i, uint8_t mrcnt)
     switch (eob_case)
     {
     case EOB_PERIOD_FLAG:
-        nv_write(I_MT_READ_DATA, (uint8_t *)&mr_data_dm.dm[i]);
+        nv_write(I_MT_READ_DATA, (uint8_t*)&mr_data_dm.dm[i]);
         break;
     case EOB_nPERIOD_FLAG:
-        nv_write(I_MT_READ_DATA_nPRD, (uint8_t *)&mr_data_dm.dm[i]);
+        nv_write(I_MT_READ_DATA_nPRD, (uint8_t*)&mr_data_dm.dm[i]);
         break;
     case EOB_SEASON_FLAG:
-        nv_write(I_MT_READ_DATA_SEASON, (uint8_t *)&mr_data_dm.dm[i]);
+        nv_write(I_MT_READ_DATA_SEASON, (uint8_t*)&mr_data_dm.dm[i]);
         break;
     }
 }
 
 void eob_subblocks_nv_write(uint8_t eob_case, uint8_t i, uint8_t j,
-                            uint8_t mrcnt, rolling_dm_ch_type *rollch)
+                            uint8_t mrcnt, rolling_dm_ch_type* rollch)
 {
     nv_sub_info.mr.rt = i;
     nv_sub_info.mr.sel = eMrSublocks;
@@ -1098,13 +1107,13 @@ void eob_subblocks_nv_write(uint8_t eob_case, uint8_t i, uint8_t j,
     switch (eob_case)
     {
     case EOB_PERIOD_FLAG:
-        nv_write(I_MT_READ_DATA, (uint8_t *)rollch);
+        nv_write(I_MT_READ_DATA, (uint8_t*)rollch);
         break;
     case EOB_nPERIOD_FLAG:
-        nv_write(I_MT_READ_DATA_nPRD, (uint8_t *)rollch);
+        nv_write(I_MT_READ_DATA_nPRD, (uint8_t*)rollch);
         break;
     case EOB_SEASON_FLAG:
-        nv_write(I_MT_READ_DATA_SEASON, (uint8_t *)rollch);
+        nv_write(I_MT_READ_DATA_SEASON, (uint8_t*)rollch);
         break;
     }
 }
@@ -1117,13 +1126,13 @@ void eob_datainfo_nv_write(uint8_t eob_case, uint8_t mrcnt)
     switch (eob_case)
     {
     case EOB_PERIOD_FLAG:
-        nv_write(I_MT_READ_DATA, (uint8_t *)&mr_data_info);
+        nv_write(I_MT_READ_DATA, (uint8_t*)&mr_data_info);
         break;
     case EOB_nPERIOD_FLAG:
-        nv_write(I_MT_READ_DATA_nPRD, (uint8_t *)&mr_data_info);
+        nv_write(I_MT_READ_DATA_nPRD, (uint8_t*)&mr_data_info);
         break;
     case EOB_SEASON_FLAG:
-        nv_write(I_MT_READ_DATA_SEASON, (uint8_t *)&mr_data_info);
+        nv_write(I_MT_READ_DATA_SEASON, (uint8_t*)&mr_data_info);
         break;
     }
 }
@@ -1314,12 +1323,12 @@ int16_t dsm_sec_signing_for_month_profile_dm_in(uint8_t eob_case, uint8_t gf,
 }
 #endif
 
-static void mr_reading(uint8_t eob_type, date_time_type *pdt, bool isdr,
-                       uint8_t *tptr)
+static void mr_reading(uint8_t eob_type, date_time_type* pdt, bool isdr,
+                       uint8_t* tptr)
 {
     uint8_t i;
     demand_ch_type j;
-    rolling_dm_ch_type *rollch;
+    rolling_dm_ch_type* rollch;
 
     mr_capture_accm(&mr_data_accm);
     mr_capture_dm(&mr_data_dm, isdr);
@@ -1382,7 +1391,7 @@ static void mr_reading(uint8_t eob_type, date_time_type *pdt, bool isdr,
         }
     }
 #else
-    rollch = (rolling_dm_ch_type *)tptr;
+    rollch = (rolling_dm_ch_type*)tptr;
     for (i = eArate; i < numRates; i++)
     {
         for (j = 0; j < numDmCHs; j++)
@@ -1443,7 +1452,7 @@ static void mr_reading(uint8_t eob_type, date_time_type *pdt, bool isdr,
     }
 }
 
-static float calc_diff_pf(uint32_t *ch1, uint32_t *ch2, energy_dir_type dir)
+static float calc_diff_pf(uint32_t* ch1, uint32_t* ch2, energy_dir_type dir)
 {
     uint32_t act;
     uint32_t rea;
@@ -1470,7 +1479,7 @@ static float calc_diff_pf(uint32_t *ch1, uint32_t *ch2, energy_dir_type dir)
 /*
 선택 무호
 */
-static void sel_react_monitor(date_time_type *dt)
+static void sel_react_monitor(date_time_type* dt)
 {
     if (dt->year == sel_react_yr && dt->month == sel_react_mon)
     {
@@ -1484,7 +1493,7 @@ static void sel_react_monitor(date_time_type *dt)
 /*
 lhh_add_desc : 선택 무효 판별 및 LP 관련 event 설정
 */
-void sel_react_monitor_rtchg(date_time_type *dt)
+void sel_react_monitor_rtchg(date_time_type* dt)
 {
     if (sel_react_yr != 0 && sel_react_mon != 0)
     {

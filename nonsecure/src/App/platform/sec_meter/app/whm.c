@@ -1143,15 +1143,22 @@ void rtc_chg_proc(date_time_type* pdt, uint8_t* tptr)
     }
 
     /* 다른 비 정기 event 체크 */
-#if 1
     if (prog_changed_event())
     {
         prog_changed_event_clr();
+
+        /* v440-fix-260518: TOU 예약 적용 시 SR/DR selector 비대칭 정정 (위와
+         * 동일, 확정 버그 fix) */
+#if 1
+        srdr |= pgmCHG_sr_dr_type;
+        if (pgmCHG_sr_dr_type)
+            eob_type |= EOB_nPERIOD_FLAG;
+#else
         srdr |= npEOB_sr_dr_type;
         if (npEOB_sr_dr_type)
             eob_type |= EOB_nPERIOD_FLAG;
-    }
 #endif
+    }
 
     if ((srdr & (MR_SR_BIT | MR_DR_BIT)) != 0)
     {
@@ -1329,10 +1336,28 @@ void prog_chg_proc_by_comm(prog_dl_type* progdl, uint8_t* tptr,
 {
     uint8_t eob_type = 0;
 
+    /* V38-fix-260511 1장 (SR/DR 정책 변경): SR/DR 비트만 선반영
+     * - 사용자 통찰: TOU 다운로드 시 SR/DR 은 신규 TOU 설정 기준으로만 실행
+     * (이전 잔존 제거)
+     * - 가이드 권장 구현 B-2: set_billing_parm_srdr_only() 호출로 sr_dr_type[]
+     * 만 선반영
+     * - 이전 코드: pgmCHG_sr_dr_type 이 이전 TOU 값으로 sr_dr_proc 실행 (잘못)
+     * - 정정 후: 신규 TOU 값으로 sr_dr_proc 실행 (정확)
+     * - mt_dir / mt_selreact / mDR_limit_sec / MIF 는 본 호출에서 제외 (side
+     * effect 분리)
+     *
+     * v440-fix-260518: V37 ↔ V38 정책 toggle (비교 시험용 컴파일 옵션)
+     * - FEATURE_SRDR_NEW_PGM_PREAPPLY ON  = V38 방식 (선반영 ? 신규 TOU 기준)
+     * - FEATURE_SRDR_NEW_PGM_PREAPPLY OFF = V37 이전 방식 (선반영 없음 ? 이전
+     * 잔존값)
+     * - 본 옵션은 비교 시험 / 회귀 검증 용도, eob.c 의 selector 정정 (확정
+     * 버그) 와 별개 */
+#if defined(FEATURE_SRDR_NEW_PGM_PREAPPLY)
     if (progdl->set_bits & SETBITS_BILLING_PARM)
     {
         set_billing_parm_srdr_only(progdl->bill_parm);
     }
+#endif
 
     // jp.kim 24.11.08 TOU 파일 통신 파일 다운로드 이력 표현
     tou_id_change_sts = 1;

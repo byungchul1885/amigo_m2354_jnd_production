@@ -192,6 +192,25 @@
                            // ON for NV layout compat
 #define FEATURE_SPEC_V33_DELIVERY     // 4-rate delivery mode (v3.3 KEPCO spec
                                       // compat)
+/* v441-fix-260518: TOU download SR/DR pre-apply policy toggle (V37 vs V38,
+ * regression test)
+ * - ON  (default) = V38 policy: new program sr_dr_type pre-applied
+ *   whm.c prog_chg_proc_by_comm calls
+ * set_billing_parm_srdr_only(progdl->bill_parm)
+ *   -> sr_dr_proc uses new TOU sr_dr_type (KEPCO spec / V37 guide chapter 1
+ * compliant)
+ * - OFF (comment out) = V37 legacy policy: previous program sr_dr_type residual
+ *   set_billing_parm_srdr_only is NOT called
+ *   -> sr_dr_proc uses residual sr_dr_type (V37-or-earlier behavior, 260226 /
+ * V32~V37)
+ *
+ * Purpose: regression compare / V37 vs V38 policy validation
+ * Applied at: whm.c only (set_billing_parm_srdr_only pre-apply guard, 1 spot)
+ *
+ * Note: eob.c prog_changed_event selector fix (npEOB -> pgmCHG) is a confirmed
+ * bug (Isaac kim report) and is always applied without toggle. */
+#define FEATURE_SRDR_NEW_PGM_PREAPPLY
+
 #define FEATURE_SEC_ACT_OPT_FLAG      // action req시 option flag 적용
 #define FEATURE_SEC_SIM_PRINT_ENABLE  // 디버깅시에서 사용
 #define FEATURE_ALWAYS_PRINT_OPT      // 항시 dm print opt
