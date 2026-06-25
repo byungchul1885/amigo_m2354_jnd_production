@@ -47,9 +47,9 @@
 #define MT_3P4W_SINGLE 3
 #define MT_3P4W_TRANS 4
 
-// #define METER_TYPE MT_1P2W_60A
+#define METER_TYPE MT_1P2W_60A
 // #define METER_TYPE MT_1P2W_120A
-#define METER_TYPE MT_3P4W_SINGLE
+// #define METER_TYPE MT_3P4W_SINGLE
 
 // #define HARDWARE_VERSION 0x32
 #define HARDWARE_VERSION 0x34
@@ -60,14 +60,14 @@
 #define SOFTWARE_METER_PART 0x33
 
 #define SOFTWARE_VERSION_H '6'
-#define SOFTWARE_VERSION_L '0'
+#define SOFTWARE_VERSION_L '8'
 
 #define SOFTWARE_DATE_YYH '2'
 #define SOFTWARE_DATE_YYL '6'
 #define SOFTWARE_DATE_MMH '0'
-#define SOFTWARE_DATE_MML '5'
-#define SOFTWARE_DATE_DDH '0'
-#define SOFTWARE_DATE_DDL '8'
+#define SOFTWARE_DATE_MML '6'
+#define SOFTWARE_DATE_DDH '2'
+#define SOFTWARE_DATE_DDL '5'
 
 #if 1  // jp.kim 251220  계량부 관리 구분
 //==============================================================================
@@ -84,13 +84,13 @@
 // sun F/W 버전및 날짜  업 시 매번 변경
 //==============================================================================
 #define INMODEM_VERSION_H '0'  // 0x30 // '0'
-#define INMODEM_VERSION_L '1'  // 0x30 // '0'
+#define INMODEM_VERSION_L '3'  // 0x30 // '0'
 #define INMODEM_DATE_YYH '2'
-#define INMODEM_DATE_YYL '5'
+#define INMODEM_DATE_YYL '6'
 #define INMODEM_DATE_MMH '0'
-#define INMODEM_DATE_MML '4'
-#define INMODEM_DATE_DDH '1'
-#define INMODEM_DATE_DDL '6'
+#define INMODEM_DATE_MML '6'
+#define INMODEM_DATE_DDH '2'
+#define INMODEM_DATE_DDL '5'
 #endif
 
 #define OUT_OF_PERIOD_DEMAND_RESET
@@ -190,8 +190,9 @@
 #define FEATURE_SEC
 #define FEATURE_TOU_8RATE  // TOU 8-rate support (bitmask-based tariff) - keep
                            // ON for NV layout compat
-#define FEATURE_SPEC_V33_DELIVERY     // 4-rate delivery mode (v3.3 KEPCO spec
-                                      // compat)
+#define FEATURE_SPEC_V33_DELIVERY  // 4-rate delivery mode (v3.3 KEPCO spec
+                                   // compat)
+
 /* v441-fix-260518: TOU download SR/DR pre-apply policy toggle (V37 vs V38,
  * regression test)
  * - ON  (default) = V38 policy: new program sr_dr_type pre-applied
