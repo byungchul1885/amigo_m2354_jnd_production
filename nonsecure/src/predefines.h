@@ -15,8 +15,8 @@
 #define MTP_ZCD_ON_OFF /* bccho, 2025-10-15 */
 #define MAIN_TASK_NO_DELAY
 
-#define ADD_DC_LOW_PIN    /* bccho, 2024-09-11 */
-#define REMOVE_SPI_FLASHx /* bccho, 2026-04-09 */
+#define ADD_DC_LOW_PIN   /* bccho, 2024-09-11 */
+#define REMOVE_SPI_FLASH /* bccho, 2026-04-09, 2026-07-22 다시 살림 */
 #define FEATURE_LAB_EEPROM_FULL_CLEAR_ACTION
 
 #if 1 /* -------------bccho, ADD, 2023-07-20 */
@@ -47,27 +47,27 @@
 #define MT_3P4W_SINGLE 3
 #define MT_3P4W_TRANS 4
 
-#define METER_TYPE MT_1P2W_60A
-// #define METER_TYPE MT_1P2W_120A
+// #define METER_TYPE MT_1P2W_60A
+#define METER_TYPE MT_1P2W_120A
 // #define METER_TYPE MT_3P4W_SINGLE
 
-// #define HARDWARE_VERSION 0x32
-#define HARDWARE_VERSION 0x34
+#define HARDWARE_VERSION 0x32
+// #define HARDWARE_VERSION 0x34
 
 #define SOFTWARE_SYSTEM_PART 0x30
 #define SOFTWARE_INMODEM_PART 0x31
 #define SOFTWARE_EXMODEM_PART 0x32
 #define SOFTWARE_METER_PART 0x33
 
-#define SOFTWARE_VERSION_H '6'
-#define SOFTWARE_VERSION_L '8'
+#define SOFTWARE_VERSION_H '7'
+#define SOFTWARE_VERSION_L '4'
 
 #define SOFTWARE_DATE_YYH '2'
 #define SOFTWARE_DATE_YYL '6'
 #define SOFTWARE_DATE_MMH '0'
-#define SOFTWARE_DATE_MML '6'
+#define SOFTWARE_DATE_MML '7'
 #define SOFTWARE_DATE_DDH '2'
-#define SOFTWARE_DATE_DDL '5'
+#define SOFTWARE_DATE_DDL '2'
 
 #if 1  // jp.kim 251220  계량부 관리 구분
 //==============================================================================
@@ -190,8 +190,10 @@
 #define FEATURE_SEC
 #define FEATURE_TOU_8RATE  // TOU 8-rate support (bitmask-based tariff) - keep
                            // ON for NV layout compat
-#define FEATURE_SPEC_V33_DELIVERY  // 4-rate delivery mode (v3.3 KEPCO spec
-                                   // compat)
+
+// bccho. 2026-07-22, 언디파인 합니다.
+// 4-rate delivery mode (v3.3 KEPCO spec compat)
+// #define FEATURE_SPEC_V33_DELIVERY
 
 /* v441-fix-260518: TOU download SR/DR pre-apply policy toggle (V37 vs V38,
  * regression test)

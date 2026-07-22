@@ -51,16 +51,16 @@ void dsm_spi_init(void)
 #if 1 /* bccho, SPI-FLASH, 2023-07-15 */
     MSG05("dsm_spi_init()");
 
-    /* as a master, MSB first, 8-bit transaction, SPI Mode-0 timing, clock is
-     * 2MHz */
-#if HARDWARE_VERSION == 0x32
-    SPI_Flash_Open_S(SPI0, 10000000); /* bccho, 2023-12-14, 10 Mhz */
-#elif HARDWARE_VERSION == 0x34
-    SPI_Flash_Open_S(SPI0, 8000000);
-#endif
+    /* Open SPI0 with 4.8 MHz clock rate. bccho. 2026-07-22 */
+    SPI_Flash_Open_S(SPI0, 4800000);
 
     /* Disable auto SS function, control SS signal manually. */
     SPI_DisableAutoSS(SPI0);
+
+#ifdef REMOVE_SPI_FLASH /* bccho. 2026-07-22 */
+    /* Serial flash is not used. Keep SPI0_SS/flash CS deselected. */
+    SPI_SET_SS_HIGH(SPI0);
+#endif
 #else
 #if 1
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -130,19 +130,19 @@ uint8_t dsm_spi_send(uint8_t cmd)
 }
 
 /* bccho, 2023-08-02, 사용하지 않음 */
-void dsm_spi_sendblock(const uint8_t *buffer, uint16_t count)
+void dsm_spi_sendblock(const uint8_t* buffer, uint16_t count)
 {
 #if 1 /* bccho, SPI-FLASH, 2023-07-15 */
     MSG05("dsm_spi_sendblock()");
     (void)buffer;
     (void)count;
 #else
-    HAL_SPI_Transmit(&hspi3, (uint8_t *)buffer, count, SPI_TIMEOUT);
+    HAL_SPI_Transmit(&hspi3, (uint8_t*)buffer, count, SPI_TIMEOUT);
 #endif /* bccho */
 }
 
 /* bccho, 2023-08-02, 사용하지 않음 */
-void dsm_spi_recvblock(uint8_t *buffer, uint16_t nbytes)
+void dsm_spi_recvblock(uint8_t* buffer, uint16_t nbytes)
 {
 #if 1 /* bccho, SPI-FLASH, 2023-07-15 */
     (void)buffer;
